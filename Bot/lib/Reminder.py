@@ -27,6 +27,10 @@ class Reminder:
         if self.at:
             self.at = datetime.fromtimestamp(self.at)
 
+        self.created_at = json.get('created_at', None)
+        if self.created_at:
+            self.created_at = datetime.fromtimestamp(self.created_at)
+
 
     def __eq__(self, other):
         return self.at == other.at
@@ -58,6 +62,9 @@ class Reminder:
         d['target'] = str(self.target) if self.target else None
         d['author'] = str(self.author) if self.author else None
         
+
+        if self.created_at:
+            d['created_at'] = datetime.timestamp(self.created_at)
 
         if self.at:
             d['at'] = datetime.timestamp(self.at)

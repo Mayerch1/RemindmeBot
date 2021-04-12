@@ -41,10 +41,11 @@ At the moment, different parameters cannot be combined.
 
 ```allowed intervals are
 	• y(ears)  
-	• m(onths)
+	• mo(nths)
 	• w(eeks)
 	• d(ays)
 	• h(ours)
+	• mi(nutes)
 	• eoy - remind at end of year
 	• eom - remind at end of month
 	• eow - remind at end of working week (Friday night)
@@ -61,8 +62,9 @@ the reminder can occur as much as 5 minutes delayed
 /remindme 2years This is a long time
 /remindme 2 h drink some water
 /remindme eow Buy groceries
+/remindme 5 mi Whatever
 
-/remind @Use 1 week What's up
+/remind @Use 1 mon What's up
 /remind @User eoy Happy new year
 ```
 
@@ -73,4 +75,3 @@ The correct plural of the time interval does not matter
 
 ### Github
 https://github.com/Mayerch1/RemindmeBot
-

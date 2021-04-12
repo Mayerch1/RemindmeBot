@@ -24,17 +24,18 @@ from lib.Reminder import Reminder
 class ReminderModule(commands.Cog):
 
     REMIND_FORMAT_HELP = '```allowed intervals are\n'\
-                '\t• n y(ears)  - n is any integer\n'\
-                '\t• n m(onths) - n is any integer\n'\
-                '\t• n w(eeks)  - n is any integer\n'\
-                '\t• n d(ays)   - n is any integer\n'\
-                '\t• n h(ours)  - n is any integer\n'\
+                '\t• y(ears)\n'\
+                '\t• mo(nths)\n'\
+                '\t• w(eeks)\n'\
+                '\t• d(ays)\n'\
+                '\t• h(ours)\n'\
+                '\t• mi(ns)\n'\
                 '\t• eoy - remind at end of year\n'\
                 '\t• eom - remind at end of month\n'\
                 '\t• eow - remind at end of week\n'\
                 '\t• eod - remind at end of day\n'\
                 '\n'\
-                'the reminder can occur as much as 15 minutes delayed```'
+                'the reminder can occur as much as 5 minutes delayed```'
                 
 
     @staticmethod
@@ -150,7 +151,7 @@ class ReminderModule(commands.Cog):
         elif timearg.startswith('y'):
             intvl = relativedelta(years=duration)
 
-        elif timearg.startswith('m'):
+        elif timearg.startswith('mo'):
             intvl = relativedelta(months=duration)
             
         elif timearg.startswith('w'):
@@ -161,13 +162,20 @@ class ReminderModule(commands.Cog):
             
         elif timearg.startswith('h'):
             intvl = timedelta(hours=duration)
-            
+
+        elif timearg.startswith('mi'):
+            intvl = timedelta(minutes=duration)
+
         else:
             err = True
 
 
         if err:
-            await ctx.send(ReminderModule.REMIND_FORMAT_HELP, hidden=True)
+            if timearg == 'm':
+                # specific help for month/minute completion
+                await ctx.send('Unambiguous reference to minutes/months. Please write out at least `mi` for minutes or `mo` for months', hidden=True)
+            else:
+                await ctx.send(ReminderModule.REMIND_FORMAT_HELP, hidden=True)
             return
 
         # reminder is in utc domain
@@ -180,6 +188,7 @@ class ReminderModule(commands.Cog):
         rem.ch_id = ctx.channel.id
         rem.author = author.id
         rem.target = target.id
+        rem.created_at = now
 
         Connector.add_reminder(rem)
         
@@ -198,12 +207,21 @@ class ReminderModule(commands.Cog):
             elif hours > 0:
                 return '{:02d} h {:02d} m'.format(int(hours), int(mins))
             else:
-                return '{:02d} m {:02d} s'.format(int(mins), int(secs))
+                return '{:d} minutes'.format(int(mins))
+
+
+        if target == author:
+            out_str = f'Reminding you in {delta_to_str(remind_at-now)}'
+        else:
+            out_str = f'Reminding {target.name} in {delta_to_str(remind_at-now)}'
+
+        if (remind_at-now) < timedelta(minutes=15):
+            out_str += '\nBe aware that the reminder can be as much as 5 minutes delayed'
+
 
         # delta_to_str cannot take relative delta
-        await ctx.send(f'Reminding you in {delta_to_str(remind_at-now)}', delete_after=120)
+        await ctx.send(out_str, delete_after=120)
 
-        
 
 
     # =====================
@@ -228,8 +246,6 @@ class ReminderModule(commands.Cog):
     @check_pending_reminders.before_loop
     async def check_pending_reminders_before(self):
         await self.client.wait_until_ready()
-
-      
 
 
    
