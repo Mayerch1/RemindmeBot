@@ -19,7 +19,6 @@ from lib.Connector import Connector
 from lib.Reminder import Reminder
 
 
-gs = [140150091607441408]
 
 # WARNING: needs PyNaCl package installed
 class ReminderModule(commands.Cog):
@@ -239,7 +238,7 @@ class ReminderModule(commands.Cog):
     # =====================
 
 
-    @cog_ext.cog_slash(name='remind', description='set a reminder for another user', guild_ids=gs,
+    @cog_ext.cog_slash(name='remind', description='set a reminder for another user',
                         options=[
                             create_option(
                                 name='user',
@@ -268,7 +267,7 @@ class ReminderModule(commands.Cog):
    
 
 
-    @cog_ext.cog_slash(name='remindme', description='set a reminder after a certain time period', guild_ids=gs,
+    @cog_ext.cog_slash(name='remindme', description='set a reminder after a certain time period',
                         options=[
                             create_option(
                                 name='period',

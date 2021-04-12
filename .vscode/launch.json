@@ -8,7 +8,7 @@
             "name": "Python: Aktuelle Datei",
             "type": "python",
             "request": "launch",
-            "program": "remindmeBot.py",
+            "program": "Bot/remindmeBot.py",
             "console": "integratedTerminal"
         }
     ]
