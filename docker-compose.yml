@@ -9,7 +9,7 @@ services:
         - mongo
     container_name: reminderbot-discord
     volumes:
-           - ./data/Bot:/code
+           - ./Bot:/code
            - /usr/share/zoneinfo:/usr/share/zoneinfo
   
     stdin_open: true
