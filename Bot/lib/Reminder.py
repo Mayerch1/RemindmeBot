@@ -8,8 +8,10 @@ class Reminder:
 
         self.msg = json.get('msg', None)
 
+
         g_id = json.get('g_id', None)
         self.g_id = int(g_id) if g_id else None
+
 
         ch_id = json.get('ch_id', None)
         self.ch_id = int(ch_id) if ch_id else None
@@ -26,6 +28,7 @@ class Reminder:
         self.at = json.get('at', None)
         if self.at:
             self.at = datetime.fromtimestamp(self.at)
+
 
         self.created_at = json.get('created_at', None)
         if self.created_at:

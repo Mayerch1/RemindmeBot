@@ -24,6 +24,18 @@ async def on_slash_command_error(ctx, error):
 
     if isinstance(error, discord.ext.commands.errors.MissingPermissions):
         await ctx.send('You do not have permission to execute this command')
+    elif isinstance(error, discord.ext.commands.errors.NoPrivateMessage):
+        await ctx.send('This command is only to be used on servers')
+    else:
+        print(error)
+        raise error
+
+
+@client.event
+async def on_command_error(cmd, error):
+
+    if isinstance(error, discord.ext.commands.errors.NoPrivateMessage):
+        await cmd.send('This command is only to be used on servers')
     else:
         print(error)
         raise error
@@ -51,6 +63,7 @@ async def set_timezone(cmd, value):
 
 
 @client.command(name='timezone', help='set the timezone of this server')
+@commands.guild_only()
 async def set_timezone_cmd(cmd, *value):
 
     if not value:

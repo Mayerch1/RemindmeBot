@@ -19,7 +19,6 @@ from lib.Connector import Connector
 from lib.Reminder import Reminder
 
 
-
 # WARNING: needs PyNaCl package installed
 class ReminderModule(commands.Cog):
 
@@ -35,8 +34,8 @@ class ReminderModule(commands.Cog):
                 '\t• eow - remind at end of week\n'\
                 '\t• eod - remind at end of day\n'\
                 '\n'\
-                'the reminder can occur as much as 5 minutes delayed```'
-                
+                'the reminder can occur as much as 1 minutes delayed```'
+
 
     @staticmethod
     def to_int(num_str: str, base: int=10):
@@ -58,47 +57,133 @@ class ReminderModule(commands.Cog):
         self.check_pending_reminders.start()
 
 
-    async def print_reminder(self, rem: Reminder):
+    async def get_rem_embed(self, rem: Reminder, is_dm=False):
 
-        guild = self.client.get_guild(rem.g_id)
-        channel = guild.get_channel(rem.ch_id)
+        if rem.target != rem.author:
+            try:
+                author = await self.client.fetch_user(rem.author)
+                title = 'Reminds you'
+            except discord.errors.NotFound:
+                author = None
+                title = 'Reminder'
+        else:
+            author = None
+            title = 'Reminder'
 
-        # no need to resolve author, target is sufficient
-    
+
+        eb = discord.Embed(title=title, description=rem.msg, color=0xffcc00)
+        eb.set_footer(text='created at {:s}'.format(rem.created_at.strftime('%Y-%m-%d %H:%M')))
+
+
+        if author:
+            eb.set_author(name=author.display_name, icon_url=author.avatar_url)
+
+        elif rem.target != rem.author:
+            # fallback if author couldn't be determined
+            eb.add_field(name='delivered by', value=f'<@!{rem.author}>')
+
+
+        return eb
+
+
+    def get_rem_string(self, rem: Reminder, is_dm=False):
 
         if rem.target == rem.author:
-            message = f'<@!{rem.target}>: {rem.msg}'
+            out_str = f'Reminder: {rem.msg}'
         else:
-            message = f'<@!{rem.target}> {rem.msg} (delivered by <@!{rem.author}>)'
+            out_str = f'Reminder: {rem.msg} (delivered by <@{rem.author}>)'
 
 
-        if channel:
-            await channel.send(message)
 
+        out_str += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
+        return out_str
+
+
+
+    async def print_reminder_dm(self, rem: Reminder, err_msg=None):
         # fallback to dm
-        else:
-            # target must be resolved, otherwise dm cannot be created
+        # target must be resolved, otherwise dm cannot be created
+
+        try:
+            target = await self.client.fetch_user(rem.target)
+        except discord.errors.NotFound:
+            print(f'cannot find user {rem.target} for reminder DM fallback')
+            return
+
+
+
+        # dm if channel not existing anymor
+        dm =  await target.create_dm()
+
+
+        eb = await self.get_rem_embed(rem, is_dm=True)
+        
+        
+        # first fallback is string-only message
+        # second fallback is dm to user
+        try:
+            await dm.send(embed=eb)
+            if err_msg:
+                await dm.send(f'||{err_msg}||')
+        except discord.errors.Forbidden:
+
             try:
-                target = await guild.fetch_member(rem.target)
-            except discord.errors.NotFound:
-                print(f'cannot find user {rem.target} for reminder DM fallback')
-                return
-
-            # dm if channel not existing anymor
-            dm =  await target.create_dm()
-
-            try:    
-                await dm.send(message)
-                await dm.send('`You are receiving this dm, as the reminder channel is not existing anymore.`')
+                await dm.send(self.get_rem_string(rem, is_dm=True))
             except discord.errors.Forbidden:
                 print(f'failed to send reminder as DM fallback')
 
 
 
 
+    async def print_reminder(self, rem: Reminder):
+
+        # reminder is a DM reminder
+        if not rem.g_id:
+            await self.print_reminder_dm(rem)
+            return
+
+        guild = self.client.get_guild(rem.g_id)
+        channel = guild.get_channel(rem.ch_id)
+
+        # no need to resolve author, target is sufficient
+
+        if not channel:
+            err = f'`You are receiving this dm, as the reminder channel on \'{guild.name}\' is not existing anymore.`'
+            await self.print_reminder_dm(rem, err)
+            return
+
+
+        eb = await self.get_rem_embed(rem)
+        
+
+        # first fallback is string-only message
+        # second fallback is dm to user
+        try:
+            await channel.send(embed=eb)
+        except discord.errors.Forbidden:
+
+            try:
+                await channel.send(self.get_rem_string(rem))
+            except discord.errors.Forbidden:
+                err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
+                await self.print_reminder_dm(rem, err)
+
+
+
+        
+
+
+
+
     async def process_reminder(self, ctx, author, target, period, message):
 
-        tz_str = Connector.get_timezone(author.guild.id)
+
+        if ctx.guild:
+            tz_str = Connector.get_timezone(author.guild.id)
+        else:
+            tz_str = 'UTC'
+
+        
         err = False
 
         # try splitting first arg in int+string
@@ -182,10 +267,17 @@ class ReminderModule(commands.Cog):
         remind_at = now + intvl
 
         rem = Reminder()
-        rem.g_id = ctx.guild.id
+
+        if ctx.guild:
+            rem.g_id = ctx.guild.id
+            rem.ch_id = ctx.channel.id
+        else:
+            # command was called in DM
+            rem.g_id = None
+            rem.ch_id = None
+
         rem.msg = message
         rem.at = remind_at
-        rem.ch_id = ctx.channel.id
         rem.author = author.id
         rem.target = target.id
         rem.created_at = now
@@ -232,7 +324,7 @@ class ReminderModule(commands.Cog):
         print('ReminderModule loaded')
 
 
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=1)
     async def check_pending_reminders(self):
         now = datetime.utcnow()
 
@@ -298,7 +390,6 @@ class ReminderModule(commands.Cog):
                                 option_type=SlashCommandOptionType.STRING
                             )
                         ])
-    @commands.guild_only()
     async def add_remind_author(self, ctx, period, message):
         
         await self.process_reminder(ctx, ctx.author, ctx.author, period, message)
