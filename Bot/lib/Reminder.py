@@ -25,6 +25,10 @@ class Reminder:
         self.author = int(author) if author else None
 
 
+        last_msg_id = json.get('last_msg_id', None)
+        self.last_msg_id = int(last_msg_id) if last_msg_id else None
+
+
         self.at = json.get('at', None)
         if self.at:
             self.at = datetime.fromtimestamp(self.at)
@@ -60,10 +64,12 @@ class Reminder:
 
         d['msg'] = self.msg
 
+
         d['g_id'] = str(self.g_id) if self.g_id else None
         d['ch_id'] = str(self.ch_id) if self.ch_id else None
         d['target'] = str(self.target) if self.target else None
         d['author'] = str(self.author) if self.author else None
+        d['last_msg_id'] = str(self.last_msg_id) if self.last_msg_id else None
         
 
         if self.created_at:

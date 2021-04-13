@@ -83,6 +83,11 @@ class ReminderModule(commands.Cog):
             eb.add_field(name='delivered by', value=f'<@!{rem.author}>')
 
 
+        if rem.g_id and rem.last_msg_id:
+            url = f'https://discord.com/channels/{rem.g_id}/{rem.ch_id}/{rem.last_msg_id}'
+            eb.add_field(name='When was this set?', value=f'[jump to the chat]({url})')
+
+
         return eb
 
 
@@ -180,8 +185,13 @@ class ReminderModule(commands.Cog):
 
         if ctx.guild:
             tz_str = Connector.get_timezone(author.guild.id)
+
+            # try and get the last message, for providing a jump link
+            last_msg = await ctx.channel.history(limit=1).flatten()
+            last_msg = last_msg[0] if last_msg else None
         else:
             tz_str = 'UTC'
+            last_msg = None
 
         
         err = False
@@ -281,6 +291,7 @@ class ReminderModule(commands.Cog):
         rem.author = author.id
         rem.target = target.id
         rem.created_at = now
+        rem.last_msg_id = last_msg.id if last_msg else None
 
         Connector.add_reminder(rem)
         
@@ -307,8 +318,8 @@ class ReminderModule(commands.Cog):
         else:
             out_str = f'Reminding {target.name} in {delta_to_str(remind_at-now)}'
 
-        if (remind_at-now) < timedelta(minutes=15):
-            out_str += '\nBe aware that the reminder can be as much as 5 minutes delayed'
+        if (remind_at-now) < timedelta(minutes=5):
+            out_str += '\nBe aware that the reminder can be as much as 1 minute delayed'
 
 
         # delta_to_str cannot take relative delta
