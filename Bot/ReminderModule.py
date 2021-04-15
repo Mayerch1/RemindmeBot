@@ -65,14 +65,16 @@ class ReminderModule(commands.Cog):
                 title = 'Reminds you'
             except discord.errors.NotFound:
                 author = None
-                title = 'Reminder'
+                title = f'Reminder'
         else:
             author = None
-            title = 'Reminder'
+            title = f'Reminder'
 
 
-        eb = discord.Embed(title=title, description=rem.msg, color=0xffcc00)
-        eb.set_footer(text='created at {:s}'.format(rem.created_at.strftime('%Y-%m-%d %H:%M')))
+        eb = discord.Embed(title=title, description=f'<@!{rem.target}>\n{rem.msg}', color=0xffcc00)
+
+        if rem.created_at:
+            eb.set_footer(text='created at {:s}'.format(rem.created_at.strftime('%Y-%m-%d %H:%M')))
 
 
         if author:
@@ -85,7 +87,7 @@ class ReminderModule(commands.Cog):
 
         if rem.g_id and rem.last_msg_id:
             url = f'https://discord.com/channels/{rem.g_id}/{rem.ch_id}/{rem.last_msg_id}'
-            eb.add_field(name='When was this set?', value=f'[jump to the chat]({url})')
+            eb.add_field(name='\u200B', value=f'[jump to the chat]({url})')
 
 
         return eb
