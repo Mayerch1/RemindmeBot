@@ -89,16 +89,15 @@ class ReminderModule(commands.Cog):
             url = f'https://discord.com/channels/{rem.g_id}/{rem.ch_id}/{rem.last_msg_id}'
             eb.add_field(name='\u200B', value=f'[jump to the chat]({url})')
 
-
         return eb
 
 
     def get_rem_string(self, rem: Reminder, is_dm=False):
 
         if rem.target == rem.author:
-            out_str = f'Reminder: {rem.msg}'
+            out_str = f'<@!{rem.target}> Reminder: {rem.msg}'
         else:
-            out_str = f'Reminder: {rem.msg} (delivered by <@!{rem.author}>)'
+            out_str = f'<@!{rem.target}> Reminder: {rem.msg} (delivered by <@!{rem.author}>)'
 
         out_str += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
         return out_str
