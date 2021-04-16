@@ -71,7 +71,7 @@ class ReminderModule(commands.Cog):
             title = f'Reminder'
 
 
-        eb = discord.Embed(title=title, description=f'<@!{rem.target}>\n{rem.msg}', color=0xffcc00)
+        eb = discord.Embed(title=title, description=f'{rem.msg}', color=0xffcc00)
 
         if rem.created_at:
             eb.set_footer(text='created at {:s}'.format(rem.created_at.strftime('%Y-%m-%d %H:%M')))
@@ -98,7 +98,7 @@ class ReminderModule(commands.Cog):
         if rem.target == rem.author:
             out_str = f'Reminder: {rem.msg}'
         else:
-            out_str = f'Reminder: {rem.msg} (delivered by <@{rem.author}>)'
+            out_str = f'Reminder: {rem.msg} (delivered by <@!{rem.author}>)'
 
 
 
@@ -128,6 +128,7 @@ class ReminderModule(commands.Cog):
         
         # first fallback is string-only message
         # second fallback is dm to user
+        # DM never requires user mention (DM itself is a ping)
         try:
             await dm.send(embed=eb)
             if err_msg:
@@ -166,10 +167,12 @@ class ReminderModule(commands.Cog):
         # first fallback is string-only message
         # second fallback is dm to user
         try:
-            await channel.send(embed=eb)
+            # embed does not hold user mention
+            await channel.send(f'<@!{rem.target}>', embed=eb)
         except discord.errors.Forbidden:
 
             try:
+                # string already holds user mention
                 await channel.send(self.get_rem_string(rem))
             except discord.errors.Forbidden:
                 err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
