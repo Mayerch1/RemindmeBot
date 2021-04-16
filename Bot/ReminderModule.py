@@ -100,11 +100,8 @@ class ReminderModule(commands.Cog):
         else:
             out_str = f'Reminder: {rem.msg} (delivered by <@!{rem.author}>)'
 
-
-
         out_str += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
         return out_str
-
 
 
     async def print_reminder_dm(self, rem: Reminder, err_msg=None):
@@ -117,14 +114,10 @@ class ReminderModule(commands.Cog):
             print(f'cannot find user {rem.target} for reminder DM fallback')
             return
 
-
-
         # dm if channel not existing anymor
         dm =  await target.create_dm()
 
-
         eb = await self.get_rem_embed(rem, is_dm=True)
-        
         
         # first fallback is string-only message
         # second fallback is dm to user
@@ -139,8 +132,6 @@ class ReminderModule(commands.Cog):
                 await dm.send(self.get_rem_string(rem, is_dm=True))
             except discord.errors.Forbidden:
                 print(f'failed to send reminder as DM fallback')
-
-
 
 
     async def print_reminder(self, rem: Reminder):
@@ -160,27 +151,36 @@ class ReminderModule(commands.Cog):
             await self.print_reminder_dm(rem, err)
             return
 
-
         eb = await self.get_rem_embed(rem)
         
 
         # first fallback is string-only message
         # second fallback is dm to user
-        try:
-            # embed does not hold user mention
-            await channel.send(f'<@!{rem.target}>', embed=eb)
-        except discord.errors.Forbidden:
 
+        perms = channel.permissions_for(guild.me)
+        
+
+        if perms.send_messages and perms.embed_links:
+            try:
+                # embed does not hold user mention
+                await channel.send(f'<@!{rem.target}>', embed=eb)
+                return
+            except discord.errors.Forbidden:
+                pass
+
+
+        if perms.send_messages:
             try:
                 # string already holds user mention
                 await channel.send(self.get_rem_string(rem))
+                return
             except discord.errors.Forbidden:
-                err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
-                await self.print_reminder_dm(rem, err)
+                pass
 
 
+        err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
 
-        
+        await self.print_reminder_dm(rem, err)
 
 
 
