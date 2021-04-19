@@ -20,6 +20,7 @@ from lib.Reminder import Reminder
 
 
 # WARNING: needs PyNaCl package installed
+# TODO: does it really?
 class ReminderModule(commands.Cog):
 
     REMIND_FORMAT_HELP = '```allowed intervals are\n'\
@@ -31,7 +32,7 @@ class ReminderModule(commands.Cog):
                 '\t• mi(ns)\n'\
                 '\t• eoy - remind at end of year\n'\
                 '\t• eom - remind at end of month\n'\
-                '\t• eow - remind at end of week\n'\
+                '\t• eow - remind at end of working week (Friday night)\n'\
                 '\t• eod - remind at end of day\n'\
                 '\n'\
                 'the reminder can occur as much as 1 minutes delayed```'
@@ -47,9 +48,11 @@ class ReminderModule(commands.Cog):
         finally:
             return conv_int
     
+
     # =====================
     # internal functions
     # =====================
+
     def __init__(self, client):
         self.client = client
 
@@ -182,8 +185,6 @@ class ReminderModule(commands.Cog):
         await self.print_reminder_dm(rem, err)
 
 
-
-
     async def process_reminder(self, ctx, author, target, period, message):
 
 
@@ -219,8 +220,8 @@ class ReminderModule(commands.Cog):
 
             
         
-        now = datetime.utcnow()
-        now_local = datetime.utcnow().replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str))
+        utcnow = datetime.utcnow()
+        now_local = utcnow.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str))
 
         if timearg == 'eoy':
             tmp = now_local.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -238,7 +239,7 @@ class ReminderModule(commands.Cog):
             week_start = now_local - timedelta(days=w_day)
             week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
 
-            eow = week_start + relativedelta(weeks=1, hours=-1)
+            eow = week_start + relativedelta(days=5, hours=-1)
             intvl = eow - now_local
 
 
@@ -272,13 +273,13 @@ class ReminderModule(commands.Cog):
         if err:
             if timearg == 'm':
                 # specific help for month/minute completion
-                await ctx.send('Unambiguous reference to minutes/months. Please write out at least `mi` for minutes or `mo` for months', hidden=True)
+                await ctx.send('Ambiguous reference to minutes/months. Please write out at least `mi` for minutes or `mo` for months', hidden=True)
             else:
                 await ctx.send(ReminderModule.REMIND_FORMAT_HELP, hidden=True)
             return
 
         # reminder is in utc domain
-        remind_at = now + intvl
+        remind_at = utcnow + intvl
 
         rem = Reminder()
 
@@ -294,12 +295,11 @@ class ReminderModule(commands.Cog):
         rem.at = remind_at
         rem.author = author.id
         rem.target = target.id
-        rem.created_at = now
+        rem.created_at = utcnow
         rem.last_msg_id = last_msg.id if last_msg else None
 
         Connector.add_reminder(rem)
         
-
 
         def delta_to_str(delta):
             ret_str = ''
@@ -318,11 +318,11 @@ class ReminderModule(commands.Cog):
 
 
         if target == author:
-            out_str = f'Reminding you in {delta_to_str(remind_at-now)}'
+            out_str = f'Reminding you in {delta_to_str(remind_at-utcnow)}'
         else:
-            out_str = f'Reminding {target.name} in {delta_to_str(remind_at-now)}'
+            out_str = f'Reminding {target.name} in {delta_to_str(remind_at-utcnow)}'
 
-        if (remind_at-now) < timedelta(minutes=5):
+        if (remind_at-utcnow) < timedelta(minutes=5):
             out_str += '\nBe aware that the reminder can be as much as 1 minute delayed'
 
 
@@ -330,10 +330,10 @@ class ReminderModule(commands.Cog):
         await ctx.send(out_str, delete_after=120)
 
 
-
     # =====================
     # events functions
     # =====================
+
     @commands.Cog.listener()
     async def on_ready(self):
         print('ReminderModule loaded')
@@ -349,17 +349,14 @@ class ReminderModule(commands.Cog):
             await self.print_reminder(reminder)
     
 
-  
     @check_pending_reminders.before_loop
     async def check_pending_reminders_before(self):
         await self.client.wait_until_ready()
-
 
    
     # =====================
     # commands functions
     # =====================
-
 
     @cog_ext.cog_slash(name='remind', description='set a reminder for another user',
                         options=[
@@ -388,8 +385,6 @@ class ReminderModule(commands.Cog):
         await self.process_reminder(ctx, ctx.author, target, period, message)
     
    
-
-
     @cog_ext.cog_slash(name='remindme', description='set a reminder after a certain time period',
                         options=[
                             create_option(
@@ -410,8 +405,6 @@ class ReminderModule(commands.Cog):
         await self.process_reminder(ctx, ctx.author, ctx.author, period, message)
         
        
-
-
 
 def setup(client):
     client.add_cog(ReminderModule(client))

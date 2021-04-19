@@ -39,7 +39,7 @@ class Connector:
         if not tz_json:
             return 'UTC'
         else:
-            return tz_json.get('localisation', {}).get('timezone', 'UTC')
+            return tz_json.get('timezone', 'UTC')
 
     @staticmethod
     def set_timezone(guild_id: int, timezone_str):
