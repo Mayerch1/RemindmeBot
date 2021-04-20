@@ -97,6 +97,7 @@ def main():
     Connector.init()
 
     client.load_extension(f'TopGGModule')
+    client.load_extension(f'DiscordBotListModule')
     client.load_extension(f'ReminderModule')
     client.run(token)
 
