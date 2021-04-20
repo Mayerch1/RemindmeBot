@@ -6,9 +6,7 @@ import requests
 import json
 
 
-
-
-class TopGG(commands.Cog):
+class DiscordBotList(commands.Cog):
 
     def __init__(self, client):
         self.BASE = 'https://discordbotlist.com/api/v1'
@@ -33,10 +31,9 @@ class TopGG(commands.Cog):
         self.update_stats.cancel()
 
     
-
     async def post_count(self, url, payload):
         if not self.token:
-            print('no topGGToken')
+            print('no DiscordBotList token')
             return
 
         url = self.BASE + url
@@ -53,7 +50,8 @@ class TopGG(commands.Cog):
 
         if r.status_code != 200:
             print(f'Server Count Post failed with {r.status_code}: {r.content}')
-
+        else:
+            print('posted discordBotList servercount')
 
 
     @tasks.loop(minutes=30)
@@ -77,6 +75,6 @@ class TopGG(commands.Cog):
 
 
 def setup(client):
-    client.add_cog(TopGG(client))
+    client.add_cog(DiscordBotList(client))
 
 
