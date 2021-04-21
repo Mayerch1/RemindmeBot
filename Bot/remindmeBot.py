@@ -14,7 +14,7 @@ from lib.Connector import Connector
 
 
 token = open('token.txt', 'r').read()
-client = commands.Bot(command_prefix='/', description='Reminding you whenever you want')
+client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None)
 slash = SlashCommand(client, sync_commands=True, override_type=True)
 
 
@@ -71,7 +71,15 @@ async def set_timezone_cmd(cmd, *value):
     else:
         await set_timezone(cmd, value[0])
 
-   
+@client.command(name='help', help='Show this message')
+async def get_help(cmd, *x):
+    
+    await cmd.send('```Reminding you whenever you want\n'\
+                    '\n'\
+                    'help     Shows this message\n'\
+                    'timezone set/get the timezone of this server\n'\
+                    'remindme reminding you after a set time period\n'\
+                    'remind   remind another user after a set time period```')
 
 
 

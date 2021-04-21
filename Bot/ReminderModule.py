@@ -35,6 +35,11 @@ class ReminderModule(commands.Cog):
                 '\t• eow - remind at end of working week (Friday night)\n'\
                 '\t• eod - remind at end of day\n'\
                 '\n'\
+                'examples:\n'\
+                '\t/remindme 1y Hello future me\n'\
+                '\t/remindme 2 h drink some water\n'\
+                '\t/remind @User eoy Happy new year\n'\
+                '\n'\
                 'the reminder can occur as much as 1 minutes delayed```'
 
 

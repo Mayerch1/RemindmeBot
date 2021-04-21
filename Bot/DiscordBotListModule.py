@@ -50,8 +50,6 @@ class DiscordBotList(commands.Cog):
 
         if r.status_code != 200:
             print(f'Server Count Post failed with {r.status_code}: {r.content}')
-        else:
-            print('posted discordBotList servercount')
 
 
     @tasks.loop(minutes=30)
