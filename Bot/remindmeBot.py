@@ -36,6 +36,8 @@ async def on_command_error(cmd, error):
 
     if isinstance(error, discord.ext.commands.errors.NoPrivateMessage):
         await cmd.send('This command is only to be used on servers')
+    elif isinstance(error, discord.ext.commands.errors.CommandNotFound):
+        pass # silently catch these
     else:
         print(error)
         raise error
