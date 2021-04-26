@@ -3,9 +3,7 @@ import os
 import pymongo
 from pymongo import MongoClient
 
-
 from lib import Reminder
-
 
 
 class Connector:
@@ -41,6 +39,7 @@ class Connector:
         else:
             return tz_json.get('timezone', 'UTC')
 
+
     @staticmethod
     def set_timezone(guild_id: int, timezone_str):
 
@@ -58,9 +57,8 @@ class Connector:
         rems =  list(Connector.db.reminders.find({'at': {'$lt': timestamp}}))
         rems = list(map(Reminder.Reminder, rems))
 
-        # this method pops the entries
-
-
+        # this method gets the entries
+        print('WARN: requested reminder without deleting from db')
         return rems
 
 
@@ -72,6 +70,5 @@ class Connector:
 
         # this method pops the entries
         Connector.db.reminders.delete_many({'at': {'$lt': timestamp}})
-
 
         return rems

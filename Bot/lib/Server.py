@@ -4,8 +4,6 @@ from icalendar import Calendar
 import copy
 
 
-
-
 class Server:
 
     def __init__(self, json={}):
@@ -16,8 +14,6 @@ class Server:
         self.g_id = int(json.get('g_id', 0))  # id
        
         self.timezone = json.get('timezone', 'UTC')
-
-
 
 
     def _to_json(self):

@@ -6,8 +6,6 @@ import requests
 import json
 
 
-
-
 class TopGG(commands.Cog):
 
     def __init__(self, client):
@@ -31,7 +29,6 @@ class TopGG(commands.Cog):
     def cog_unload(self):
         self.update_stats.cancel()
 
-    
 
     async def post_count(self, url, payload):
         if not self.token:
@@ -54,7 +51,6 @@ class TopGG(commands.Cog):
             print(f'Server Count Post failed with {r.status_code}: {r.content}')
 
 
-
     @tasks.loop(minutes=30)
     async def update_stats(self):
         """This function runs every 30 minutes to automatically update your server count."""
@@ -71,6 +67,7 @@ class TopGG(commands.Cog):
 
         await self.post_count( f'/bots/{self.client.user.id}/stats', payload=payload)
 
+
     @update_stats.before_loop
     async def update_stats_before(self):
         await self.client.wait_until_ready()
@@ -78,5 +75,3 @@ class TopGG(commands.Cog):
 
 def setup(client):
     client.add_cog(TopGG(client))
-
-

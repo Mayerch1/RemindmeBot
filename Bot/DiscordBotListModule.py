@@ -74,5 +74,3 @@ class DiscordBotList(commands.Cog):
 
 def setup(client):
     client.add_cog(DiscordBotList(client))
-
-

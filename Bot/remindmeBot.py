@@ -1,4 +1,3 @@
-
 import discord
 from discord.ext import commands
 from discord_slash import SlashContext, SlashCommand
@@ -12,11 +11,9 @@ from dateutil.zoneinfo import getzoneinfofile_stream, ZoneInfoFile
 from lib.Connector import Connector
 
 
-
 token = open('token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None)
 slash = SlashCommand(client, sync_commands=True, override_type=True)
-
 
 
 @client.event
@@ -73,6 +70,7 @@ async def set_timezone_cmd(cmd, *value):
     else:
         await set_timezone(cmd, value[0])
 
+
 @client.command(name='help', help='Show this message')
 async def get_help(cmd, *x):
     
@@ -82,8 +80,6 @@ async def get_help(cmd, *x):
                     'timezone set/get the timezone of this server\n'\
                     'remindme reminding you after a set time period\n'\
                     'remind   remind another user after a set time period```')
-
-
 
 
 @client.event
@@ -96,11 +92,9 @@ async def on_ready():
     await client.change_presence(activity=discord.Game(name='/remindme'))
 
 
-
 @client.event
 async def on_guild_remove(guild):
     Connector.delete_guild(guild.id)
-
 
 
 def main():

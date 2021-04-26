@@ -410,6 +410,5 @@ class ReminderModule(commands.Cog):
         await self.process_reminder(ctx, ctx.author, ctx.author, period, message)
         
        
-
 def setup(client):
     client.add_cog(ReminderModule(client))
