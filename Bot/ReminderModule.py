@@ -4,7 +4,7 @@ import re
 from enum import Enum
 from datetime import datetime, timedelta
 from dateutil import tz
-from dateutil.relativedelta import *
+
 import copy
 
 import discord
@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 
 from lib.Connector import Connector
 from lib.Reminder import Reminder
+import lib.input_parser
 
 
 # WARNING: needs PyNaCl package installed
@@ -35,9 +36,13 @@ class ReminderModule(commands.Cog):
                 '\t• eow - remind at end of working week (Friday night)\n'\
                 '\t• eod - remind at end of day\n'\
                 '\n'\
+                'you can combine relative intervals like this\n'\
+                '\t1y 1mo 2 days\n'\
+                '\n'\
                 'examples:\n'\
                 '\t/remindme 1y Hello future me\n'\
                 '\t/remindme 2 h drink some water\n'\
+                '\t/remindme 1w 2d hello there\n'\
                 '\t/remind @User eoy Happy new year\n'\
                 '\n'\
                 'the reminder can occur as much as 1 minutes delayed```'
@@ -190,8 +195,24 @@ class ReminderModule(commands.Cog):
         await self.print_reminder_dm(rem, err)
 
 
-    async def process_reminder(self, ctx, author, target, period, message):
+    @staticmethod
+    def delta_to_str(delta):
+            ret_str = ''
+            secs = delta.total_seconds()
 
+            hours, rem = divmod(secs, 3600)
+            mins, secs = divmod(rem, 60)
+            
+            if hours > 48:
+                return '{:d} days ({:02d} hours)'.format(int(hours/24), int(hours))
+            elif hours > 0:
+                return '{:02d} h {:02d} m'.format(int(hours), int(mins))
+            else:
+                return '{:d} minutes'.format(int(mins))
+
+
+
+    async def process_reminder(self, ctx, author, target, period, message):
 
         if ctx.guild:
             tz_str = Connector.get_timezone(author.guild.id)
@@ -206,85 +227,21 @@ class ReminderModule(commands.Cog):
         
         err = False
 
-        # try splitting first arg in int+string
-        duration_arg = re.search(r'^\d+', period)
-        interval_arg = re.search(r'[^0-9 ].*', period)
-
-        if not interval_arg:
-            await ctx.send(ReminderModule.REMIND_FORMAT_HELP)
-            return
-
-        # arg format was: 1y my text
-        elif duration_arg:
-            duration = ReminderModule.to_int(duration_arg.group())
-            timearg = interval_arg.group()
-
-        # arg format was: eoy my text
-        else:
-            timearg = interval_arg.group()
-
-            
-        
         utcnow = datetime.utcnow()
-        now_local = utcnow.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str))
-
-        if timearg == 'eoy':
-            tmp = now_local.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            eoy = tmp + relativedelta(years=1, days=-1)
-            intvl = eoy - now_local
-
-        elif timearg == 'eom':
-            tmp = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            eom = tmp + relativedelta(months=1, hours=-12)
-            intvl = eom - now_local
+        remind_at, info = lib.input_parser.parse(period, utcnow, tz_str)
 
 
-        elif timearg == 'eow':
-            w_day = now_local.weekday()
-            week_start = now_local - timedelta(days=w_day)
-            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-
-            eow = week_start + relativedelta(days=5, hours=-1)
-            intvl = eow - now_local
-
-
-        elif timearg == 'eod':
-            tmp = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
-            eod = tmp + relativedelta(days=1, minutes=-15)
-            intvl = eod - now_local
-            
-        elif timearg.startswith('y'):
-            intvl = relativedelta(years=duration)
-
-        elif timearg.startswith('mo'):
-            intvl = relativedelta(months=duration)
-            
-        elif timearg.startswith('w'):
-            intvl = relativedelta(weeks=duration)
-            
-        elif timearg.startswith('d'):
-            intvl = timedelta(days=duration)
-            
-        elif timearg.startswith('h'):
-            intvl = timedelta(hours=duration)
-
-        elif timearg.startswith('mi'):
-            intvl = timedelta(minutes=duration)
-
-        else:
-            err = True
-
-
-        if err:
-            if timearg == 'm':
-                # specific help for month/minute completion
-                await ctx.send('Ambiguous reference to minutes/months. Please write out at least `mi` for minutes or `mo` for months', hidden=True)
+        if (remind_at - utcnow) <= timedelta(hours=0):
+            out_str = 'Couldn\'t create reminder\n'
+            if info:
+                out_str += f'```Parsing hints:\n{info}```\n'
+                out_str += ReminderModule.REMIND_FORMAT_HELP
             else:
-                await ctx.send(ReminderModule.REMIND_FORMAT_HELP, hidden=True)
+                out_str += f'```the interval must be greater than 0```'
+
+            await ctx.send(out_str, hidden=True)
             return
 
-        # reminder is in utc domain
-        remind_at = utcnow + intvl
 
         rem = Reminder()
 
@@ -303,36 +260,49 @@ class ReminderModule(commands.Cog):
         rem.created_at = utcnow
         rem.last_msg_id = last_msg.id if last_msg else None
 
-        Connector.add_reminder(rem)
+        # the id is required in case the users wishes to abort
+        rem_id = Connector.add_reminder(rem)
         
-
-        def delta_to_str(delta):
-            ret_str = ''
-            secs = delta.total_seconds()
-
-            hours, rem = divmod(secs, 3600)
-            mins, secs = divmod(rem, 60)
-
-            
-            if hours > 48:
-                return '{:d} days ({:02d} hours)'.format(int(hours/24), int(hours))
-            elif hours > 0:
-                return '{:02d} h {:02d} m'.format(int(hours), int(mins))
-            else:
-                return '{:d} minutes'.format(int(mins))
-
+        # convert reminder period to readable delta
+        # convert utc date into readable local time (locality based on server settings)
+        delta_str = ReminderModule.delta_to_str(remind_at-utcnow)
+        if tz_str == 'UTC':
+            # this workaround is required, as system uses german term for UTC
+            at_str = remind_at.strftime('%Y/%m/%d %H:%M UTC')
+        else:
+            at_str = remind_at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)).strftime('%Y/%m/%d %H:%M %Z')
 
         if target == author:
-            out_str = f'Reminding you in {delta_to_str(remind_at-utcnow)}'
+            out_str = f'Reminding you in `{delta_str}` at `{at_str}`.'
         else:
-            out_str = f'Reminding {target.name} in {delta_to_str(remind_at-utcnow)}'
-
+             out_str = f'Reminding {target.name} in `{delta_str}` at `{at_str}`.'
+      
         if (remind_at-utcnow) < timedelta(minutes=5):
             out_str += '\nBe aware that the reminder can be as much as 1 minute delayed'
 
+        if info:
+            out_str += f'\n```Parsing hints:\n{info}```'
 
+        
+        out_str += '\n\nYou can cancel this reminder within the next 3 minutes by reacting to this message'
+        
         # delta_to_str cannot take relative delta
-        await ctx.send(out_str, delete_after=120)
+        msg = await ctx.send(out_str, delete_after=300)
+        await msg.add_reaction('❌')
+
+        def check(reaction, user):
+            return user.id == author.id and reaction.emoji == '❌' and reaction.message.id == msg.id
+
+        try:
+            react, _ = await self.client.wait_for('reaction_add', timeout=180, check=check)
+        except asyncio.exceptions.TimeoutError:
+            await msg.remove_reaction('❌', self.client.user)
+        else:
+            # delete the reminder again
+            if Connector.delete_reminder(rem_id):
+                await ctx.channel.send('Deleted reminder')
+
+
 
 
     # =====================

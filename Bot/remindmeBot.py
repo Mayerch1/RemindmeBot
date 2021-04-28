@@ -73,13 +73,27 @@ async def set_timezone_cmd(cmd, *value):
 
 @client.command(name='help', help='Show this message')
 async def get_help(cmd, *x):
-    
-    await cmd.send('```Reminding you whenever you want\n'\
+
+
+    embed = discord.Embed(title='Remindme Help', description='Reminding you whenever you want')
+
+    embed.add_field(name='/help', value='show this message', inline=False)
+    embed.add_field(name='/timezone', value='set/get the timezone of this server', inline=False)
+    embed.add_field(name='/remindme', value='reminding you after a set time period', inline=False)
+    embed.add_field(name='/remind', value='remind another user after a set time period', inline=False)
+
+    embed.add_field(name='\u200b', value='If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874)', inline=False)
+
+    try:
+        await cmd.send(embed=embed)
+    except discord.errors.Forbidden:
+        await cmd.send('```Reminding you whenever you want\n'\
                     '\n'\
                     'help     Shows this message\n'\
                     'timezone set/get the timezone of this server\n'\
                     'remindme reminding you after a set time period\n'\
-                    'remind   remind another user after a set time period```')
+                    'remind   remind another user after a set time period\n\n'\
+                    'please assign \'Embed Links\' permissions for better formatting```')
 
 
 @client.event

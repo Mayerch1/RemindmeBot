@@ -1,0 +1,169 @@
+import re
+import copy
+from datetime import datetime, timedelta
+
+from dateutil.relativedelta import *
+from dateutil import tz
+
+
+def _to_int(num_str: str, base: int=10):
+        
+    try:
+        conv_int = int(num_str, base)
+    except ValueError:
+        conv_int = None
+    finally:
+        return conv_int
+
+def _split_arg(arg):
+
+    num_regex = re.search(r'\d+', arg)
+
+    if num_regex:
+        num_arg = num_regex.group()
+
+        return (int(num_arg), arg.replace(num_arg, ''))
+    else:
+        return (None, arg)
+
+
+def _join_spaced_args(args):
+
+    joined_args = []
+    
+
+    i = 0
+    while i < len(args):
+        arg = args[i]
+
+        if i+1 >= len(args):
+            # cannot perform operation on last element
+            joined_args.append(arg)
+
+        # i+1 is guaranteed to exist
+        elif (arg[0] != None and not arg[1]) and (not args[i+1][0] and args[i+1][1]):
+            joined_args.append((arg[0], args[i+1][1]))
+            i += 1 # skip next element
+
+        else:
+            # element is not complete, but following element doesn't allow joinup
+            # this is caused by args like eom, eoy, ...
+            joined_args.append(arg)
+            
+        i += 1
+
+    return joined_args
+
+
+
+def _parse_absolute(args, utcnow, now_local):
+
+    total_intvl = timedelta(hours=0)
+    error = ''
+    info = ''
+
+    for arg in args:
+        if arg[1] == 'eoy':
+            tmp = now_local.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            eoy = tmp + relativedelta(years=1, days=-1)
+            total_intvl = eoy - now_local
+
+        elif arg[1] == 'eom':
+            tmp = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            eom = tmp + relativedelta(months=1, hours=-12)
+            total_intvl = eom - now_local
+
+        elif arg[1] == 'eow':
+            w_day = now_local.weekday()
+            week_start = now_local - timedelta(days=w_day)
+            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            eow = week_start + relativedelta(days=5, hours=-1)
+            total_intvl = eow - now_local
+
+        elif arg[1] == 'eod':
+            tmp = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+            eod = tmp + relativedelta(days=1, minutes=-15)
+            total_intvl = eod - now_local
+
+        else:
+            info = info + f'• ignoring {arg}, as absolute and relative intervals cannot be mixed\n'
+
+
+    return (total_intvl, info)
+            
+
+
+def _parse_relative(args):
+
+    total_intvl = timedelta(hours=0)
+    info = ''
+
+    for arg in args:
+
+        intvl = timedelta(hours=0) # default in case of no-match
+
+        if arg[0] == None:
+            info = info + f'• Ignoring {arg}, as required numerical part is missing\n'
+        else:
+            if arg[1].startswith('y'):
+                    intvl = relativedelta(years=arg[0])
+                    
+            elif arg[1].startswith('mo'):
+                    intvl = relativedelta(months=arg[0])
+
+            elif arg[1].startswith('w'):
+                intvl = relativedelta(weeks=arg[0])
+
+            elif arg[1].startswith('d'):
+                intvl = timedelta(days=arg[0]) 
+
+            elif arg[1].startswith('h'):
+                intvl = timedelta(hours=arg[0])
+
+            elif arg[1].startswith('mi'):
+                intvl = timedelta(minutes=arg[0])
+
+            else:
+                if arg[1] == 'm':
+                    info = info + f'• Ambiguous reference to minutes/months. Please write out at least `mi` for minutes or `mo` for months\n'
+                else:
+                    info = info + f'• Ignoring {arg}, as this is not a known interval\n'
+            
+        total_intvl += intvl
+
+
+    return (total_intvl, info)
+
+
+
+
+
+def parse(input, utcnow, timezone='UTC'):
+    err = False
+    
+    # first split into the different arguments
+    # next separate number form char arguments
+
+    rx = re.compile(r'\W')
+    args = rx.split(input)
+
+    args = list(filter(lambda a: a != None and a != '', args))
+    args = list(map(_split_arg, args))
+    args = _join_spaced_args(args)
+    
+
+
+    now_local = utcnow.replace(tzinfo=tz.UTC).astimezone(tz.gettz(timezone))
+
+    
+    remind_in, info = _parse_absolute(args, utcnow, now_local)
+
+
+    if remind_in == timedelta(hours=0):
+        remind_in, info = _parse_relative(args)
+
+
+    # reminder is in utc domain
+    remind_at = utcnow + remind_in
+    return (remind_at, info)

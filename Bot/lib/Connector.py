@@ -48,7 +48,16 @@ class Connector:
 
     @staticmethod
     def add_reminder(reminder: Reminder.Reminder):
-        Connector.db.reminders.insert_one(reminder._to_json())
+        """save the reminder into the database
+
+        Args:
+            reminder (Reminder.Reminder): reminder object to be saved
+
+        Returns:
+            ObjectId: id of the database entry
+        """
+        insert_obj = Connector.db.reminders.insert_one(reminder._to_json())
+        return insert_obj.inserted_id
 
 
     @staticmethod
@@ -72,3 +81,12 @@ class Connector:
         Connector.db.reminders.delete_many({'at': {'$lt': timestamp}})
 
         return rems
+
+
+
+    @staticmethod
+    def delete_reminder(reminder_id):
+
+        action = Connector.db.reminders.delete_one({'_id': reminder_id})
+        return (action.deleted_count > 0)
+   
