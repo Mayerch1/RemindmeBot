@@ -39,19 +39,33 @@ The time parser allows multiple formats for specifying the reminder period.
 
 At the moment, different parameters cannot be combined.
 
-```allowed intervals are
-	• y(ears)  
-	• mo(nths)
-	• w(eeks)
-	• d(ays)
-	• h(ours)
-	• mi(nutes)
-	• eoy - remind at end of year
-	• eom - remind at end of month
-	• eow - remind at end of working week (Friday night)
-	• eod - remind at end of day
+```
+	allowed absolutes are
+		• eoy - remind at end of year
+		• eom - remind at end of month
+		• eow - remind at end of working week (Friday night)
+		• eod - remind at end of day
+	
+	allowed intervals are
+		• y(ears)
+		• mo(nths)
+		• w(eeks)
+		• d(ays)
+		• h(ours)
+		• mi(ns)
+	
+	you can combine relative intervals like this
+		1y 1mo 2 days -5h
+	
+	dates are supported aswell, you can try different formats
+		• 5 jul, 5th july, july 5
+		• 23 sept at 3pm or 23 sept at 15:00
+		• 2050
 
-the reminder can occur as much as 5 minutes delayed
+	Note: the parser uses day first (1.2.2021 -> 1st January)
+	      absolute days do respect the /timezone of the server
+
+	the reminder can occur as much as 1 minute delayed
 ```
 
 
@@ -63,8 +77,10 @@ the reminder can occur as much as 5 minutes delayed
 /remindme 2 h drink some water
 /remindme eow Buy groceries
 /remindme 5 mi Whatever
+/remindme 2 aug 3pm Is it hot outside?
 
 /remind @Use 1 mon What's up
+/remind @User 24 dec Merry Christmas
 /remind @User eoy Happy new year
 ```
 

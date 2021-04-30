@@ -66,12 +66,17 @@ class TimezoneParseTest(unittest.TestCase):
 
         self.assertEqual(at, at_cmp)
 
-    def test_timezone_in_last_year(self):
+    def test_timezone_in_last_day(self):
         # timezones towards the west can be stuck in the last year
-        # therefore the result of absolute units (eom) might be different than expected
-
-        # example of new year, chicago is still in the old year, therefore eom will result in new years eve
-        at_cmp = datetime(year=2020, month=12, day=31, hour=18) # chicago is 6h diff to utc in summer
-        at, _ = p.parse('eom', self.utcnow, 'America/Chicago')
+        # therefore the result of absolute units (eod) might be different than expected
+        
+        # chicago is 6h 'in the past', so the eod will be new years eve chicago time
+        # however this date is still in the future for utc
+        # expected date is therefore +5:45h, as the reminder is 15min before midnight
+        
+        at_cmp = datetime(year=2021, month=1, day=1, hour=5, minute=45)
+        at, _ = p.parse('eod', self.utcnow, 'America/Chicago')
 
         self.assertEqual(at, at_cmp)
+
+    #TODO: abs date is in daylight switch (non existing)

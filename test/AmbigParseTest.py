@@ -17,4 +17,4 @@ class AmbigParseTest(unittest.TestCase):
         at, error = p.parse('1m', self.utcnow)
 
         self.assertEqual(at, self.utcnow)
-        self.assertNotEqual(error, None)
+        self.assertNotEqual(error, '')

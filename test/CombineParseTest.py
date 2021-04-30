@@ -42,4 +42,26 @@ class CombineParseTest(unittest.TestCase):
         at, info = p.parse('mo 1mi 1h y 1d ', self.utcnow)
 
         self.assertEqual(at, at_cmp)
-        self.assertNotEqual(info, None)
+        self.assertNotEqual(info, '')
+
+
+    def test_negative_intvl(self):
+        at_cmp = self.utcnow
+        at, info = p.parse('1mo -1y', self.utcnow)
+
+        self.assertEqual(at, at_cmp)
+
+
+    def test_substract(self):
+        at_cmp = datetime(year=2021, month=1, day=31)
+        at, info = p.parse('1mo -1d', self.utcnow)
+
+        self.assertEqual(at, at_cmp)
+
+
+    def test_ignore_mixed_input(self):
+        at_cmp = datetime(year=2021, month=1, day=31, hour=12)
+        at, info = p.parse('5h 1y eom 5mi', self.utcnow)
+        
+        self.assertEqual(at, at_cmp) # all relatives must be ignored
+        self.assertNotEqual(info, '') # warning must be issued

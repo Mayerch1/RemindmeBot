@@ -2,6 +2,7 @@ import re
 import copy
 from datetime import datetime, timedelta
 
+import dateutil.parser
 from dateutil.relativedelta import *
 from dateutil import tz
 
@@ -17,7 +18,7 @@ def _to_int(num_str: str, base: int=10):
 
 def _split_arg(arg):
 
-    num_regex = re.search(r'\d+', arg)
+    num_regex = re.search(r'-?\d+', arg)
 
     if num_regex:
         num_arg = num_regex.group()
@@ -115,7 +116,8 @@ def _parse_relative(args):
             elif arg[1].startswith('w'):
                 intvl = relativedelta(weeks=arg[0])
 
-            elif arg[1].startswith('d'):
+            elif arg[1] == 'd' or arg[1].startswith('da'):
+                # condition must not detect the month 'december'
                 intvl = timedelta(days=arg[0]) 
 
             elif arg[1].startswith('h'):
@@ -140,12 +142,29 @@ def _parse_relative(args):
 
 
 def parse(input, utcnow, timezone='UTC'):
+    """parse the input string into a datetime object
+       this can be either relative or absolute, in relation to the input utcnow
+       the function can respect the given timezone, for absolute and semi-absolute dates (e.g. oy)
+
+    Args:
+        input (str): input string, provided by the user
+        utcnow (datetime): current utc time
+        timezone (str, optional): target timezone (tzfile string). Defaults to 'UTC'.
+
+    Raises:
+        e: [description]
+
+    Returns:
+        (Datetime, str): Datetime: input target, returns utcnow on failure, cannot be in the past
+                         str: info string on why the parser failed/ignored parts of the input
+    """
     err = False
+
     
     # first split into the different arguments
     # next separate number form char arguments
 
-    rx = re.compile(r'\W')
+    rx = re.compile(r'[^a-zA-Z0-9-]') # allow negative sign
     args = rx.split(input)
 
     args = list(filter(lambda a: a != None and a != '', args))
@@ -153,17 +172,45 @@ def parse(input, utcnow, timezone='UTC'):
     args = _join_spaced_args(args)
     
 
-
     now_local = utcnow.replace(tzinfo=tz.UTC).astimezone(tz.gettz(timezone))
 
-    
     remind_in, info = _parse_absolute(args, utcnow, now_local)
-
 
     if remind_in == timedelta(hours=0):
         remind_in, info = _parse_relative(args)
 
-
     # reminder is in utc domain
-    remind_at = utcnow + remind_in
+    
+    # special case 'm': this is a valid timeframe for dateutil.parse
+    # but its blacklisted on purpose, due to ambiguity to month/minutes of own parser
+    if remind_in == timedelta(hours=0) and not re.match(r'-?\d+\W?m', input):
+        try:
+            remind_parse = dateutil.parser.parse(input, dayfirst=True)
+        except dateutil.parser.ParserError as e:
+            info = '• ' + ' '.join(e.args)
+            remind_parse = None
+        except:
+            remind_parse = None
+            info = '• Unexpected parser error occurred'
+        else:
+            info = ''
+
+
+        # convert the given time from timezone to UTC
+        # needs to be made tz-aware first
+        # the resulting remind_at is not timezone aware again
+        if remind_parse:
+            remind_parse = remind_parse.replace(tzinfo=tz.gettz(timezone))
+            remind_utc = remind_parse.astimezone(tz.UTC)
+            remind_at = remind_utc.replace(tzinfo=None)
+        else:
+            remind_at = utcnow
+    else:
+        remind_at = utcnow + remind_in
+
+    # negative intervals are not allowed
+    if remind_at < utcnow:
+        remind_at = utcnow
+        info += '• the given date must be in the future\n'
+
     return (remind_at, info)

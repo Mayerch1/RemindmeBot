@@ -20,32 +20,44 @@ from lib.Reminder import Reminder
 import lib.input_parser
 
 
-# WARNING: needs PyNaCl package installed
-# TODO: does it really?
 class ReminderModule(commands.Cog):
 
-    REMIND_FORMAT_HELP = '```allowed intervals are\n'\
+    REMIND_FORMAT_HELP = '```'\
+                'allowed absolutes are\n'\
+                '\t• eoy - remind at end of year\n'\
+                '\t• eom - remind at end of month\n'\
+                '\t• eow - remind at end of working week (Friday night)\n'\
+                '\t• eod - remind at end of day\n'\
+                '\n'\
+                'allowed intervals are\n'\
                 '\t• y(ears)\n'\
                 '\t• mo(nths)\n'\
                 '\t• w(eeks)\n'\
                 '\t• d(ays)\n'\
                 '\t• h(ours)\n'\
                 '\t• mi(ns)\n'\
-                '\t• eoy - remind at end of year\n'\
-                '\t• eom - remind at end of month\n'\
-                '\t• eow - remind at end of working week (Friday night)\n'\
-                '\t• eod - remind at end of day\n'\
                 '\n'\
                 'you can combine relative intervals like this\n'\
-                '\t1y 1mo 2 days\n'\
+                '\t1y 1mo 2 days -5h\n'\
+                '\n'\
+                'dates are supported aswell, you can try different formats\n'\
+                '\t• 5 jul, 5th july, july 5\n'\
+                '\t• 23 sept at 3pm or 23 sept at 15:00\n'\
+                '\t• 2050\n'\
+                'Note: the parser uses day first (1.2.2021 -> 1st January)\n'\
+                '      absolute days do respect the /timezone of the server\n'\
                 '\n'\
                 'examples:\n'\
                 '\t/remindme 1y Hello future me\n'\
                 '\t/remindme 2 h drink some water\n'\
                 '\t/remindme 1w 2d hello there\n'\
+                '\t/remind @User 24 dec Merry Christmas\n'\
                 '\t/remind @User eoy Happy new year\n'\
                 '\n'\
-                'the reminder can occur as much as 1 minutes delayed```'
+                'the reminder can occur as much as 1 minute delayed```\n'\
+                'If you find a bug in the parser, please reach out to us.\n'\
+                'Contact details are at `Get Support` on [top.gg](https://top.gg/bot/831142367397412874)'\
+                ' or on [Github](https://github.com/Mayerch1/RemindmeBot)'
 
 
     @staticmethod
@@ -232,14 +244,15 @@ class ReminderModule(commands.Cog):
 
 
         if (remind_at - utcnow) <= timedelta(hours=0):
-            out_str = 'Couldn\'t create reminder\n'
+            out_str = ''
             if info:
                 out_str += f'```Parsing hints:\n{info}```\n'
                 out_str += ReminderModule.REMIND_FORMAT_HELP
             else:
                 out_str += f'```the interval must be greater than 0```'
 
-            await ctx.send(out_str, hidden=True)
+            embed = discord.Embed(title='Failed to create the reminder', description=out_str)
+            await ctx.send(embed=embed, hidden=True)
             return
 
 
