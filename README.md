@@ -9,7 +9,7 @@ Key features:
 
 This bot is inspired by the reddit remindme bot and allows similar usage.
 
-[Invite the Bot](https://discord.com/api/oauth2/authorize?client_id=831142367397412874&permissions=68608&scope=bot%20applications.commands)
+[Invite the Bot](https://discord.com/api/oauth2/authorize?client_id=831142367397412874&permissions=68608&scope=bot%20applications.commands) or view it's profile on [top.gg](https://top.gg/bot/831142367397412874)
 
 
 This bot is a subset of the bigger [ModBot](https://top.gg/bot/602236567574020133)
