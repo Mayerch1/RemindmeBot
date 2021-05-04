@@ -1,4 +1,5 @@
 import discord
+
 from discord.ext import commands
 from discord_slash import SlashContext, SlashCommand
 from discord_slash.utils.manage_commands import create_option, create_choice
@@ -10,6 +11,11 @@ from dateutil.zoneinfo import getzoneinfofile_stream, ZoneInfoFile
 
 from lib.Connector import Connector
 
+import log_handle as log
+
+
+
+log.init_loggers()
 
 token = open('token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None)

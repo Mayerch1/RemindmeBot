@@ -10,6 +10,14 @@
             "request": "launch",
             "program": "Bot/remindmeBot.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Unit Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\BotTest.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

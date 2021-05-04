@@ -19,6 +19,7 @@ from lib.Connector import Connector
 from lib.Reminder import Reminder
 import lib.input_parser
 
+import log_handle as log
 
 class ReminderModule(commands.Cog):
 
@@ -275,6 +276,7 @@ class ReminderModule(commands.Cog):
 
         # the id is required in case the users wishes to abort
         rem_id = Connector.add_reminder(rem)
+        log.logger.debug('Added reminder')
         
         # convert reminder period to readable delta
         # convert utc date into readable local time (locality based on server settings)
