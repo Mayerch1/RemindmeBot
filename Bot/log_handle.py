@@ -1,6 +1,5 @@
 import discord
 import logging
-import graypy
 import os
 
 cl_logger = None
