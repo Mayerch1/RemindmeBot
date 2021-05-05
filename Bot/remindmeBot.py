@@ -115,6 +115,11 @@ async def on_ready():
 @client.event
 async def on_guild_remove(guild):
     Connector.delete_guild(guild.id)
+    log.logger.info(f'Removed from guild (total count: {len(client.guilds)})')
+
+@client.event
+async def on_guild_add(guild):
+    log.logger.info(f'Added to guild (total count: {len(client.guilds)}')
 
 
 def main():

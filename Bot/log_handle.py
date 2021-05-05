@@ -1,11 +1,14 @@
 import discord
 import logging
 import graypy
+import os
 
 
 cl_logger = None
 logger = None
 
+
+graylog_url = os.getenv('GRAYLOG_URL')
 
 def init_loggers():
     global cl_logger
@@ -18,7 +21,7 @@ def init_loggers():
     cl_logger.addHandler(handler)
 
     logger = logging.getLogger('gray_logger')
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
-    gray_handler = graypy.GELFUDPHandler('graylog', 12201)
+    gray_handler = graypy.GELFUDPHandler(graylog_url, 12201)
     logger.addHandler(gray_handler)

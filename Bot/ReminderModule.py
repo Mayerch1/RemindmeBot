@@ -276,7 +276,11 @@ class ReminderModule(commands.Cog):
 
         # the id is required in case the users wishes to abort
         rem_id = Connector.add_reminder(rem)
-        log.logger.debug('Added reminder')
+
+        if rem.author == rem.target:
+            log.logger.info('Reminder: Added for self')
+        else:
+            log.logger.info('Reminder: Added')
         
         # convert reminder period to readable delta
         # convert utc date into readable local time (locality based on server settings)
@@ -316,6 +320,7 @@ class ReminderModule(commands.Cog):
             # delete the reminder again
             if Connector.delete_reminder(rem_id):
                 await ctx.channel.send('Deleted reminder')
+                log.logger.info('Reminder: Deleted')
 
 
 
