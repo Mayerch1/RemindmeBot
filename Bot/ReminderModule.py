@@ -249,8 +249,10 @@ class ReminderModule(commands.Cog):
             if info:
                 out_str += f'```Parsing hints:\n{info}```\n'
                 out_str += ReminderModule.REMIND_FORMAT_HELP
+                log.logger.info('received invalid format string')
             else:
                 out_str += f'```the interval must be greater than 0```'
+                log.logger.info('received negative reminder interval')
 
             embed = discord.Embed(title='Failed to create the reminder', description=out_str)
             await ctx.send(embed=embed, hidden=True)
@@ -278,9 +280,9 @@ class ReminderModule(commands.Cog):
         rem_id = Connector.add_reminder(rem)
 
         if rem.author == rem.target:
-            log.logger.info('Reminder: Added for self')
+            log.logger.info('added reminder for self')
         else:
-            log.logger.info('Reminder: Added')
+            log.logger.info('added reminder')
         
         # convert reminder period to readable delta
         # convert utc date into readable local time (locality based on server settings)
@@ -320,7 +322,7 @@ class ReminderModule(commands.Cog):
             # delete the reminder again
             if Connector.delete_reminder(rem_id):
                 await ctx.channel.send('Deleted reminder')
-                log.logger.info('Reminder: Deleted')
+                log.logger.info('deleted reminder')
 
 
 
@@ -339,9 +341,13 @@ class ReminderModule(commands.Cog):
         now = datetime.utcnow()
 
         pending_rems = Connector.pop_elapsed_reminders(now.timestamp())
+        
 
         for reminder in pending_rems:
             await self.print_reminder(reminder)
+
+        if pending_rems:
+            log.logger.info(f'showed {len(pending_rems)} pending reminders')
     
 
     @check_pending_reminders.before_loop

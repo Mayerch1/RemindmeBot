@@ -1,12 +1,6 @@
 # ./docker-compose.yml
 version: '3.3'
 
-networks:
-  reminder-net:
-    external: false
-  gray-net:
-    external:
-      name: gray-net
 
 services:
   bot:
@@ -29,9 +23,6 @@ services:
       - GRAYLOG_URL=${GRAYLOG_URL}
 
     restart: always
-    networks:
-      - reminder-net
-      - gray-net
 
     
   mongo:
@@ -47,8 +38,6 @@ services:
     environment:
         MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
         MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS}
-    networks:
-      - reminder-net
         
   mongo-express:
     image: mongo-express
@@ -59,7 +48,5 @@ services:
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USER}
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASS}
-    networks:
-      - reminder-net
         
 
