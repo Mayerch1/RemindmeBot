@@ -224,7 +224,6 @@ class ReminderModule(commands.Cog):
                 return '{:d} minutes'.format(int(mins))
 
 
-
     async def process_reminder(self, ctx, author, target, period, message):
 
         if ctx.guild:
@@ -303,13 +302,16 @@ class ReminderModule(commands.Cog):
 
         if info:
             out_str += f'\n```Parsing hints:\n{info}```'
+        
+        out_str += '\n\nYou can cancel this reminder within the next 3 minutes by reacting to this message with ❌'
 
-        
-        out_str += '\n\nYou can cancel this reminder within the next 3 minutes by reacting to this message'
-        
         # delta_to_str cannot take relative delta
         msg = await ctx.send(out_str, delete_after=300)
-        await msg.add_reaction('❌')
+
+        try:
+            await msg.add_reaction('❌')
+        except:
+            pass
 
         def check(reaction, user):
             return user.id == author.id and reaction.emoji == '❌' and reaction.message.id == msg.id
@@ -323,8 +325,6 @@ class ReminderModule(commands.Cog):
             if Connector.delete_reminder(rem_id):
                 await ctx.channel.send('Deleted reminder')
                 log.logger.info('deleted reminder')
-
-
 
 
     # =====================
