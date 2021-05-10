@@ -5,6 +5,8 @@ from discord.ext import commands, tasks
 import requests
 import json
 
+from lib.Analytics import Analytics
+
 
 class TopGG(commands.Cog):
 
@@ -56,6 +58,7 @@ class TopGG(commands.Cog):
         """This function runs every 30 minutes to automatically update your server count."""
 
         server_count = len(self.client.guilds)
+        Analytics.current_guilds(server_count)
 
         payload = {
             'server_count': server_count

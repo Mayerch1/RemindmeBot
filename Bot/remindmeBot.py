@@ -10,12 +10,10 @@ from dateutil import tz
 from dateutil.zoneinfo import getzoneinfofile_stream, ZoneInfoFile
 
 from lib.Connector import Connector
-
-import log_handle as log
-
+from lib.Analytics import Analytics
 
 
-log.init_loggers()
+
 
 token = open('token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None)
@@ -115,15 +113,18 @@ async def on_ready():
 @client.event
 async def on_guild_remove(guild):
     Connector.delete_guild(guild.id)
-    log.logger.info(f'removed from guild (total count: {len(client.guilds)})')
+    Analytics.delete_guild(guild.id)
+    print(f'removed from guild (total count: {len(client.guilds)})')
 
 @client.event
 async def on_guild_add(guild):
-    log.logger.info(f'added to guild (total count: {len(client.guilds)}')
+    Analytics.add_guild(guild.id)
+    print(f'added to guild (total count: {len(client.guilds)}')
 
 
 def main():
     Connector.init()
+    Analytics.init()
 
     client.load_extension(f'TopGGModule')
     client.load_extension(f'DiscordBotListModule')

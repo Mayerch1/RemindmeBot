@@ -16,6 +16,7 @@ def _to_int(num_str: str, base: int=10):
     finally:
         return conv_int
 
+
 def _split_arg(arg):
 
     num_regex = re.search(r'-?\d+', arg)
@@ -32,7 +33,6 @@ def _join_spaced_args(args):
 
     joined_args = []
     
-
     i = 0
     while i < len(args):
         arg = args[i]
@@ -54,7 +54,6 @@ def _join_spaced_args(args):
         i += 1
 
     return joined_args
-
 
 
 def _parse_absolute(args, utcnow, now_local):
@@ -93,7 +92,6 @@ def _parse_absolute(args, utcnow, now_local):
 
     return (total_intvl, info)
             
-
 
 def _parse_relative(args):
 
@@ -136,9 +134,6 @@ def _parse_relative(args):
 
 
     return (total_intvl, info)
-
-
-
 
 
 def parse(input, utcnow, timezone='UTC'):

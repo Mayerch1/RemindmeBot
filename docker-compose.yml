@@ -20,7 +20,6 @@ services:
       - MONGO_DB_PORT=${MONGO_DB_PORT}
       - MONGO_ROOT_USER=${MONGO_ROOT_USER}
       - MONGO_ROOT_PASS=${MONGO_ROOT_PASS}
-      - GRAYLOG_URL=${GRAYLOG_URL}
 
     restart: always
 
@@ -38,6 +37,20 @@ services:
     environment:
         MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
         MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS}
+
+  mongo-analytics:
+    image: mongo
+    container_name: reminderbot-mongo-analytic
+    restart: always
+    volumes:
+        - ./data/db2:/data/db
+    ports:
+        - 27019:27017
+    expose:
+        - 27017
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: ${MONGO_ANALYTICS_USER}
+        MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ANALYTICS_PASS}
         
   mongo-express:
     image: mongo-express
@@ -46,7 +59,20 @@ services:
     ports:
       - 40001:8081
     environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USER}
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASS}
+
+
+  mongo-express2:
+    image: mongo-express
+    container_name: reminderbot-mongoexpress2
+    restart: always
+    ports:
+      - 40002:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo-analytics
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ANALYTICS_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ANALYTICS_PASS}
         
 

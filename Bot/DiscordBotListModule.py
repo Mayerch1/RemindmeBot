@@ -16,10 +16,7 @@ class DiscordBotList(commands.Cog):
         if os.path.exists('botListToken.txt'):
             self.client = client
             self.token = open('botListToken.txt', 'r').readline()[:-1]
-            #self.token = open('botListToken.txt', 'r').readline()
-
-            #self.dblpy = dbl.DBLClient(self.client, self.token, autopost=True)
-            #self.dblpy = dbl.DBLClient(self.bot, self.token)
+            
             print('Started botList server')
             self.update_stats.start()
 

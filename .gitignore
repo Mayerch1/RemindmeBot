@@ -20,6 +20,7 @@ servers_bak.json
 
 tmp/
 data/db/**
+data/db2/**
 
 # ---> Python
 # Byte-compiled / optimized / DLL files

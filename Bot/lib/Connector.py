@@ -13,8 +13,8 @@ class Connector:
 
     @staticmethod
     def init():
-        host = os.getenv('MONGO_DB_CONN')
-        port = int(os.getenv('MONGO_DB_PORT'))
+        host = os.getenv('MONGO_CONN')
+        port = int(os.getenv('MONGO_PORT'))
 
         uname = os.getenv('MONGO_ROOT_USER')
         pw = os.getenv('MONGO_ROOT_PASS')
@@ -27,6 +27,7 @@ class Connector:
     def delete_guild(guild_id: int):
         Connector.db.settings.delete_one({'g_id': str(guild_id)})
         Connector.db.reminders.delete_many({'g_id': str(guild_id)})
+        Connector.db.repeating.delete_many({'g_id': str(guild_id)})
 
 
     @staticmethod
@@ -82,6 +83,10 @@ class Connector:
 
         return rems
 
+
+    @staticmethod
+    def get_reminder_cnt():
+        return Connector.db.reminders.count()
 
 
     @staticmethod

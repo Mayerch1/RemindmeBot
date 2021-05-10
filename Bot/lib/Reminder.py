@@ -70,3 +70,15 @@ class Reminder:
             d['at'] = datetime.timestamp(self.at)
 
         return d
+
+
+
+class Repeating(Reminder):
+
+    def __init__(self, json = {}):
+        Reminder.__init__(self, json)
+
+
+    def _to_json(self):
+        d = Reminder._to_json(self)
+        return d
