@@ -85,6 +85,22 @@ class Connector:
 
 
     @staticmethod
+    def get_user_reminders(guild_id: int, user_id: int):
+
+        rems = list(Connector.db.reminders.find({'g_id': str(guild_id), 'author': str(user_id)}))
+        rems = list(map(Reminder.Reminder, rems))
+
+        return rems
+
+    @staticmethod
+    def get_user_private_reminders(user_id: int):
+
+        rems = list(Connector.db.reminders.find({'g_id': None, 'author': str(user_id)}))
+        rems = list(map(Reminder.Reminder, rems))
+
+        return rems
+
+    @staticmethod
     def get_reminder_cnt():
         return Connector.db.reminders.count()
 

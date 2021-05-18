@@ -13,10 +13,12 @@ from lib.Connector import Connector
 from lib.Analytics import Analytics
 
 
-
+intents = discord.Intents()
+intents.reactions = True
+intents.messages = True
 
 token = open('token.txt', 'r').read()
-client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None)
+client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
 slash = SlashCommand(client, sync_commands=True, override_type=True)
 
 

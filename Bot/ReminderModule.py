@@ -20,6 +20,7 @@ from lib.Reminder import Reminder
 import lib.input_parser
 
 from lib.Analytics import Analytics
+from ReminderListing import ReminderListing
 
 class ReminderModule(commands.Cog):
 
@@ -84,50 +85,8 @@ class ReminderModule(commands.Cog):
         self.check_reminder_cnt.start()
 
 
-    async def get_rem_embed(self, rem: Reminder, is_dm=False):
 
-        if rem.target != rem.author:
-            try:
-                author = await self.client.fetch_user(rem.author)
-                title = 'Reminds you'
-            except discord.errors.NotFound:
-                author = None
-                title = f'Reminder'
-        else:
-            author = None
-            title = f'Reminder'
-
-
-        eb = discord.Embed(title=title, description=f'{rem.msg}', color=0xffcc00)
-
-        if rem.created_at:
-            eb.set_footer(text='created at {:s}'.format(rem.created_at.strftime('%Y-%m-%d %H:%M')))
-
-
-        if author:
-            eb.set_author(name=author.display_name, icon_url=author.avatar_url)
-
-        elif rem.target != rem.author:
-            # fallback if author couldn't be determined
-            eb.add_field(name='delivered by', value=f'<@!{rem.author}>')
-
-
-        if rem.g_id and rem.last_msg_id:
-            url = f'https://discord.com/channels/{rem.g_id}/{rem.ch_id}/{rem.last_msg_id}'
-            eb.add_field(name='\u200B', value=f'[jump to the chat]({url})')
-
-        return eb
-
-
-    def get_rem_string(self, rem: Reminder, is_dm=False):
-
-        if rem.target == rem.author:
-            out_str = f'<@!{rem.target}> Reminder: {rem.msg}'
-        else:
-            out_str = f'<@!{rem.target}> Reminder: {rem.msg} (delivered by <@!{rem.author}>)'
-
-        out_str += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
-        return out_str
+        
 
 
     async def print_reminder_dm(self, rem: Reminder, err_msg=None):
@@ -143,7 +102,7 @@ class ReminderModule(commands.Cog):
         # dm if channel not existing anymor
         dm =  await target.create_dm()
 
-        eb = await self.get_rem_embed(rem, is_dm=True)
+        eb = await rem.get_embed(self.client, is_dm=True)
         
         # first fallback is string-only message
         # second fallback is dm to user
@@ -155,7 +114,7 @@ class ReminderModule(commands.Cog):
         except discord.errors.Forbidden:
 
             try:
-                await dm.send(self.get_rem_string(rem, is_dm=True))
+                await dm.send(rem.get_string())
             except discord.errors.Forbidden:
                 print(f'failed to send reminder as DM fallback')
 
@@ -177,7 +136,7 @@ class ReminderModule(commands.Cog):
             await self.print_reminder_dm(rem, err)
             return
 
-        eb = await self.get_rem_embed(rem)
+        eb = await rem.get_embed(self.client)
         
 
         # first fallback is string-only message
@@ -198,7 +157,7 @@ class ReminderModule(commands.Cog):
         if perms.send_messages:
             try:
                 # string already holds user mention
-                await channel.send(self.get_rem_string(rem))
+                await channel.send(rem.get_string())
                 return
             except discord.errors.Forbidden:
                 pass
@@ -208,9 +167,6 @@ class ReminderModule(commands.Cog):
 
         await self.print_reminder_dm(rem, err)
 
-
-    async def process_interval(self, ctx, author, target, period, message):
-        pass
 
 
     @staticmethod
@@ -235,7 +191,11 @@ class ReminderModule(commands.Cog):
             tz_str = Connector.get_timezone(author.guild.id)
 
             # try and get the last message, for providing a jump link
-            last_msg = await ctx.channel.history(limit=1).flatten()
+            try:
+                last_msg = await ctx.channel.history(limit=1).flatten()
+            except:
+                last_msg = None
+
             last_msg = last_msg[0] if last_msg else None
         else:
             tz_str = 'UTC'
@@ -269,7 +229,7 @@ class ReminderModule(commands.Cog):
 
         if ctx.guild:
             rem.g_id = ctx.guild.id
-            rem.ch_id = ctx.channel.id
+            rem.ch_id = ctx.channel_id
         else:
             # command was called in DM
             rem.g_id = None
@@ -332,7 +292,7 @@ class ReminderModule(commands.Cog):
         else:
             # delete the reminder again
             if Connector.delete_reminder(rem_id):
-                await ctx.channel.send('Deleted reminder')
+                await ctx.send('Deleted reminder')
                 Analytics.delete_reminder()
                 print('deleted reminder')
 
@@ -400,9 +360,9 @@ class ReminderModule(commands.Cog):
                             )
                         ])
     @commands.guild_only()
-    async def add_remind_user(self, ctx, target, period, message):
+    async def add_remind_user(self, ctx, user, period, message):
         
-        await self.process_reminder(ctx, ctx.author, target, period, message)
+        await self.process_reminder(ctx, ctx.author, user, period, message)
     
    
     @cog_ext.cog_slash(name='remindme', description='set a reminder after a certain time period',
@@ -425,17 +385,13 @@ class ReminderModule(commands.Cog):
         await self.process_reminder(ctx, ctx.author, ctx.author, period, message)
         
        
-    @cog_ext.cog_slash(name='interval', description='Set a reminder appearing in an interval',
-                        options=[
-                            create_option(
-                                name='period',
-                                description='dummy',
-                                required=True,
-                                option_type=SlashCommandOptionType.STRING
-                            )
-                        ])
-    async def add_repeating_user(self, ctx, target, period, message):
-        await self.process_interval(ctx, ctx.author, target, period, message)
+    @cog_ext.cog_slash(name='reminder_list', description='List all reminders created by you')
+    async def list_reminders(self, ctx):
+
+        if ctx.guild:
+            await ReminderListing.show_reminders_dm(self.client, ctx)
+        else:
+            await ReminderListing.show_private_reminders(self.client, ctx)
 
 
 def setup(client):

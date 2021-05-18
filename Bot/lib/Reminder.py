@@ -1,3 +1,4 @@
+import discord # for reminder
 from datetime import datetime
 
 
@@ -8,6 +9,8 @@ class Reminder:
             json = {}
 
         self.msg = json.get('msg', None)
+
+        self._id = json.get('_id', None)
 
         g_id = json.get('g_id', None)
         self.g_id = int(g_id) if g_id else None
@@ -72,13 +75,96 @@ class Reminder:
         return d
 
 
+    def get_string(self):
+        """return string description of this reminder
 
-class Repeating(Reminder):
+        Args:
+            is_dm (bool, optional): deprecated, is ignored
 
-    def __init__(self, json = {}):
-        Reminder.__init__(self, json)
+        Returns:
+            [type]: [description]
+        """
+
+        if self.target == self.author:
+            out_str = f'<@!{self.target}> Reminder: {self.msg}'
+        else:
+            out_str = f'<@!{self.target}> Reminder: {self.msg} (delivered by <@!{self.author}>)'
+
+        out_str += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
+        return out_str
 
 
-    def _to_json(self):
-        d = Reminder._to_json(self)
-        return d
+
+
+    def _get_embed_body(self, title, author=None):
+        eb = discord.Embed(title=title, description=f'{self.msg}', color=0xffcc00)
+
+        if self.created_at:
+            eb.set_footer(text='created at {:s}'.format(self.created_at.strftime('%Y-%m-%d %H:%M')))
+
+        if author:
+            eb.set_author(name=author.display_name, icon_url=author.avatar_url)
+
+        elif self.target != self.author:
+            # fallback if author couldn't be determined
+            eb.add_field(name='delivered by', value=f'<@!{self.author}>')
+
+        return eb
+
+        
+
+    def get_info_embed(self):
+        """return info embed of this reminders
+           used for reminder management.
+           Shows due-date, instead of link to channel
+
+        Returns:
+            [type]: [description]
+        """
+
+        eb = self._get_embed_body('Reminder Info')
+
+
+        if self.author != self.target:
+            eb.add_field(name='Target user', value=f'<@!{self.target}>')
+
+        eb.add_field(name='Due date', value=self.at.strftime('%Y/%m/%d %H:%M'), inline=False)
+
+        return eb
+
+
+    async def get_embed(self, client, is_dm=False):
+        """return embed of this reminders
+           will resolve user mentions.
+           Used for elapsed reminders
+
+        Args:
+            client ([type]): bot client object, for resolving user names
+            is_dm (bool, optional): legacy, is ignored
+
+        Returns:
+            discord.Embed: embed of reminder
+        """
+
+        if self.target != self.author:
+            try:
+                author = await self.client.fetch_user(self.author)
+                title = 'Reminds you'
+            except discord.errors.NotFound:
+                author = None
+                title = f'Reminder'
+        else:
+            author = None
+            title = f'Reminder'
+
+        eb = self._get_embed_body(title, author)
+
+        if self.g_id and self.last_msg_id:
+            url = f'https://discord.com/channels/{self.g_id}/{self.ch_id}/{self.last_msg_id}'
+            eb.add_field(name='\u200B', value=f'[jump to the chat]({url})')
+
+        return eb
+
+
+
+

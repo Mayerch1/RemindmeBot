@@ -7,6 +7,67 @@ from dateutil.relativedelta import *
 from dateutil import tz
 
 
+def num_to_emoji(num: int):
+    """convert a single digit to the numbers emoji
+    Arguments:
+        num {int}
+    Returns:
+        [str] -- unicode emoji, * if num was out of range [0..9]
+    """
+    if num == 1:
+        return '1️⃣'
+    elif num == 2:
+        return '2️⃣'
+    elif num == 3:
+        return '3️⃣'
+    elif num == 4:
+        return '4️⃣'
+    elif num == 5:
+        return '5️⃣'
+    elif num == 6:
+        return '6️⃣'
+    elif num == 7:
+        return '7️⃣'
+    elif num == 8:
+        return '8️⃣'
+    elif num == 9:
+        return '9️⃣'
+    elif num == 0:
+        return '0️⃣'
+    else:
+        return '*️⃣'
+
+def emoji_to_num(emoji):
+    """convert unicode emoji back to integer
+    Arguments:
+        emoji {str} -- unicode to convert back, only supports single digits
+    Returns:
+        [int] -- number of emoji, None if emoji was not a number
+    """
+    if emoji == '1️⃣':
+        return 1
+    elif emoji == '2️⃣':
+        return 2
+    elif emoji == '3️⃣':
+        return 3
+    elif emoji == '4️⃣':
+        return 4
+    elif emoji == '5️⃣':
+        return 5
+    elif emoji == '6️⃣':
+        return 6
+    elif emoji == '7️⃣':
+        return 7
+    elif emoji == '8️⃣':
+        return 8
+    elif emoji == '9️⃣':
+        return 9
+    elif emoji == '0️⃣':
+        return 0
+    else:
+        return None    
+
+
 def _to_int(num_str: str, base: int=10):
         
     try:
