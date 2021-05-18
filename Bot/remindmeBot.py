@@ -16,6 +16,7 @@ from lib.Analytics import Analytics
 intents = discord.Intents()
 intents.reactions = True
 intents.messages = True
+intents.guilds = True
 
 token = open('token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
@@ -95,10 +96,11 @@ async def get_help(cmd, *x):
     except discord.errors.Forbidden:
         await cmd.send('```Reminding you whenever you want\n'\
                     '\n'\
-                    'help     Shows this message\n'\
-                    'timezone set/get the timezone of this server\n'\
-                    'remindme reminding you after a set time period\n'\
-                    'remind   remind another user after a set time period\n\n'\
+                    'help          Shows this message\n'\
+                    'timezone      set/get the timezone of this server\n'\
+                    'remindme      reminding you after a set time period\n'\
+                    'remind        remind another user after a set time period\n'\
+                    'reminder_list manage all your reminders for this server\n\n'
                     'please assign \'Embed Links\' permissions for better formatting```')
 
 

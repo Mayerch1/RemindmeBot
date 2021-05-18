@@ -97,7 +97,8 @@ class ReminderListing:
 
     @staticmethod
     async def _reminder_stm(scope, dm):
-        
+        page = 0
+
         while True:
 
             reminders = ReminderListing._get_reminders(scope)
@@ -106,7 +107,7 @@ class ReminderListing:
                 return
 
             page_cnt = math.ceil(len(reminders) / 9)
-            page = 0
+            
 
             if page < 0:
                 page = page_cnt - 1
@@ -223,8 +224,8 @@ class ReminderListing:
         ReminderListing._client = client
         
         intro_msg = 'You requested to see all reminders created by you.\n'\
-                        'Keep in mind that the following list will only show reminders related to the server you invoked this command.\n'\
-                        'You need to invoke this command for every server you have setup further reminders.'
+                        'Keep in mind that the following list will only show reminders related to the server `{:s}`.\n'\
+                        'You need to invoke this command for every server you have setup further reminders.'.format(ctx.guild.name)
             
         dm = await ReminderListing._send_intro_dm(ctx, intro_msg)
 
