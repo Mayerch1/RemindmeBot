@@ -286,9 +286,14 @@ class ReminderModule(commands.Cog):
             return user.id == author.id and reaction.emoji == '❌' and reaction.message.id == msg.id
 
         try:
-            react, _ = await self.client.wait_for('reaction_add', timeout=180, check=check)
+            react, _ = await self.client.wait_for('reaction_add', timeout=10, check=check)
         except asyncio.exceptions.TimeoutError:
-            await msg.remove_reaction('❌', self.client.user)
+            try:
+                await msg.add_reaction('⏲')
+                await msg.remove_reaction('❌', self.client.user)
+            except:
+                # fails if reaction couldn't be added in last step
+                pass
         else:
             # delete the reminder again
             if Connector.delete_reminder(rem_id):
