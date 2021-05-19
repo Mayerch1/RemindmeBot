@@ -88,6 +88,7 @@ async def get_help(cmd, *x):
     embed.add_field(name='/timezone', value='set/get the timezone of this server', inline=False)
     embed.add_field(name='/remindme', value='reminding you after a set time period', inline=False)
     embed.add_field(name='/remind', value='remind another user after a set time period', inline=False)
+    embed.add_field(name='/reminder_list', value='manage all reminders of this server', inline=False)
 
     embed.add_field(name='\u200b', value='If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874)', inline=False)
 
