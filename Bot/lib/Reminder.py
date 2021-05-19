@@ -148,7 +148,7 @@ class Reminder:
 
         if self.target != self.author:
             try:
-                author = await self.client.fetch_user(self.author)
+                author = await client.fetch_user(self.author)
                 title = 'Reminds you'
             except discord.errors.NotFound:
                 author = None

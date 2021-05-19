@@ -286,7 +286,7 @@ class ReminderModule(commands.Cog):
             return user.id == author.id and reaction.emoji == '❌' and reaction.message.id == msg.id
 
         try:
-            react, _ = await self.client.wait_for('reaction_add', timeout=10, check=check)
+            react, _ = await self.client.wait_for('reaction_add', timeout=180, check=check)
         except asyncio.exceptions.TimeoutError:
             try:
                 await msg.add_reaction('⏲')
