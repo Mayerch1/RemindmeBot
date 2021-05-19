@@ -143,6 +143,7 @@ class ReminderListing:
             ex = first_task.exception()
 
             if ex:
+                # any exception is handled the same way as a timeout exception
                 return
 
             result = await first_task
