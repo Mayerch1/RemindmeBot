@@ -268,5 +268,7 @@ def parse(input, utcnow, timezone='UTC'):
     if remind_at < utcnow:
         remind_at = utcnow
         info += '• the given date must be in the future\n'
+        info += '  current utc-time is:     {:s}\n'.format(utcnow.strftime('%Y-%m-%d %H:%M'))
+        info += '  chosen reminder time is: {:s}\n'.format(remind_at.strftime('%Y-%m-%d %H:%M'))
 
     return (remind_at, info)
