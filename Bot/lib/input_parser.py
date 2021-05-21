@@ -216,6 +216,8 @@ def parse(input, utcnow, timezone='UTC'):
     """
     err = False
 
+    display_tz = tz.gettz(timezone)
+    tznow = utcnow.replace(tzinfo=tz.UTC).astimezone(display_tz) # create local time, used for some parsers
     
     # first split into the different arguments
     # next separate number form char arguments
@@ -228,9 +230,7 @@ def parse(input, utcnow, timezone='UTC'):
     args = _join_spaced_args(args)
     
 
-    now_local = utcnow.replace(tzinfo=tz.UTC).astimezone(tz.gettz(timezone))
-
-    remind_in, info = _parse_absolute(args, utcnow, now_local)
+    remind_in, info = _parse_absolute(args, utcnow, tznow)
 
     if remind_in == timedelta(hours=0):
         remind_in, info = _parse_relative(args)
@@ -241,7 +241,7 @@ def parse(input, utcnow, timezone='UTC'):
     # but its blacklisted on purpose, due to ambiguity to month/minutes of own parser
     if remind_in == timedelta(hours=0) and not re.match(r'-?\d+\W?m', input):
         try:
-            remind_parse = dateutil.parser.parse(input, dayfirst=True)
+            remind_parse = dateutil.parser.parse(input, default=tznow, fuzzy=True, dayfirst=True)
         except dateutil.parser.ParserError as e:
             info = '• ' + ' '.join(e.args)
             remind_parse = None
@@ -253,10 +253,8 @@ def parse(input, utcnow, timezone='UTC'):
 
 
         # convert the given time from timezone to UTC
-        # needs to be made tz-aware first
-        # the resulting remind_at is not timezone aware again
+        # the resulting remind_at is not timezone aware
         if remind_parse:
-            remind_parse = remind_parse.replace(tzinfo=tz.gettz(timezone))
             remind_utc = remind_parse.astimezone(tz.UTC)
             remind_at = remind_utc.replace(tzinfo=None)
         else:
