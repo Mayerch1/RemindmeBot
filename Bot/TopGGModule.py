@@ -49,7 +49,9 @@ class TopGG(commands.Cog):
 
         r = requests.post(url, data=payload, headers=headers)
 
-        if r.status_code != 200:
+        if r.status_code == 502:
+            print(f'Server Count Post failed with 502: Bad Gateway')
+        elif r.status_code != 200:
             print(f'Server Count Post failed with {r.status_code}: {r.content}')
 
 

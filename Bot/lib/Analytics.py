@@ -29,7 +29,7 @@ class Analytics:
         Analytics.db.counts.find_one_and_update({'g_id': '0'}, {'$inc': {'removed_gs': 1}}, new=True, upsert=True)
 
     @staticmethod
-    def add_guild(guild_id, int):
+    def add_guild(guild_id: int):
         Analytics.db.counts.find_one_and_update({'g_id': '0'}, {'$inc': {'added_gs': 1}}, new=True, upsert=True)
 
 

@@ -224,7 +224,7 @@ class ReminderModule(commands.Cog):
             await ctx.send(embed=embed, hidden=True)
             return
 
-
+        await ctx.defer() # allow more headroom for response latency, before command fails
         rem = Reminder()
 
         if ctx.guild:
