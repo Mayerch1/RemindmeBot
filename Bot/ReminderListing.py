@@ -1,6 +1,7 @@
 import asyncio
 import math
 from enum import Enum
+import random
 
 import discord
 from discord.ext import commands, tasks
@@ -202,6 +203,10 @@ class ReminderListing:
     @staticmethod
     async def show_private_reminders(client, ctx):
 
+        # only used for debug print
+        session_id = random.randint(1e3, 1e12)
+        print('starting dm session ' + str(session_id))
+
         ReminderListing._client = client
         
         intro_msg = 'You requested to see all reminders created by you.\n'\
@@ -213,14 +218,19 @@ class ReminderListing:
         if not dm:
             return
 
-
         scope = ReminderListing.ListingScope(is_private=True, user_id=ctx.author.id)
         await ReminderListing._reminder_stm(scope, dm)
         await dm.send('If you wish to edit more reminders, re-invoke the command')
 
+        print('ending dm session ' + str(session_id))
+
 
     @staticmethod
     async def show_reminders_dm(client, ctx):
+
+        # only used for debug print
+        session_id = random.randint(1e3, 1e12)
+        print('starting dm session ' + str(session_id))
 
         ReminderListing._client = client
         
@@ -233,8 +243,9 @@ class ReminderListing:
         if not dm:
             return
 
-
         scope = ReminderListing.ListingScope(is_private=False, guild_id=ctx.guild.id, user_id=ctx.author.id)
 
         await ReminderListing._reminder_stm(scope, dm)
         await dm.send('If you wish to edit more reminders, re-invoke the command')
+
+        print('ending dm session ' + str(session_id))

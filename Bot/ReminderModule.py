@@ -247,10 +247,8 @@ class ReminderModule(commands.Cog):
 
         if rem.author == rem.target:
             Analytics.add_self_reminder(rem)
-            print('added reminder for self')
         else:
             Analytics.add_foreign_reminder(rem)
-            print('added reminder')
         
         # convert reminder period to readable delta
         # convert utc date into readable local time (locality based on server settings)
