@@ -50,9 +50,11 @@ class TopGG(commands.Cog):
         r = requests.post(url, data=payload, headers=headers)
 
         if r.status_code == 502:
-            print(f'Server Count Post failed with 502: Bad Gateway')
+            print(f'TopGG Server Count Post failed with 502: Bad Gateway')
+        elif r.status_code == 504:
+            print(f'TopGG Server Count Post failed with 504: Gateway Timeout')
         elif r.status_code != 200:
-            print(f'Server Count Post failed with {r.status_code}: {r.content}')
+            print(f'TopGG Server Count Post failed with {r.status_code}: {r.content}')
 
 
     @tasks.loop(minutes=30)

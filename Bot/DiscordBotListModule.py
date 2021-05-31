@@ -46,7 +46,7 @@ class DiscordBotList(commands.Cog):
         r = requests.post(url, data=payload, headers=headers)
 
         if r.status_code != 200:
-            print(f'Server Count Post failed with {r.status_code}: {r.content}')
+            print(f'DBL Server Count Post failed with {r.status_code}: {r.content}')
 
 
     @tasks.loop(minutes=30)
