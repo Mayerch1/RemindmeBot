@@ -35,8 +35,6 @@ services:
     restart: always
     volumes:
         - ./data/db:/data/db
-    ports:
-        - 27017
     expose:
         - 27017
     environment:
@@ -49,8 +47,6 @@ services:
     restart: always
     volumes:
         - ./data/db2:/data/db
-    ports:
-        - 27017
     expose:
         - 27017
     environment:
