@@ -125,8 +125,8 @@ class ReminderListing:
             def msg_check(msg):
                 return msg.author.id == dm.recipient.id and msg.channel.id == dm.id
 
-            pending_tasks = [ReminderListing._client.wait_for('raw_reaction_add',check=react_check, timeout=5),
-                            ReminderListing._client.wait_for('message',check=msg_check, timeout=5)]
+            pending_tasks = [ReminderListing._client.wait_for('raw_reaction_add',check=react_check, timeout=60),
+                            ReminderListing._client.wait_for('message',check=msg_check, timeout=60)]
 
             done_tasks, pending_tasks = await asyncio.wait(pending_tasks, return_when=asyncio.FIRST_COMPLETED)
 

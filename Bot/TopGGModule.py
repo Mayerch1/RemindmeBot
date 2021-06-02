@@ -51,6 +51,8 @@ class TopGG(commands.Cog):
 
         if r.status_code == 502:
             print(f'TopGG Server Count Post failed with 502: Bad Gateway')
+        elif r.status_code == 503:
+            print(f'TopGG Server Count Post failed with 503: Service Unavailable')
         elif r.status_code == 504:
             print(f'TopGG Server Count Post failed with 504: Gateway Timeout')
         elif r.status_code != 200:
