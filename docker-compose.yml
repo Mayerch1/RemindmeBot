@@ -16,10 +16,15 @@ services:
     tty: true
 
     environment:
-      - MONGO_DB_CONN=${MONGO_DB_CONN}
-      - MONGO_DB_PORT=${MONGO_DB_PORT}
-      - MONGO_ROOT_USER=${MONGO_ROOT_USER}
-      - MONGO_ROOT_PASS=${MONGO_ROOT_PASS}
+      - MONGO_CONN
+      - MONGO_PORT
+      - MONGO_ROOT_USER
+      - MONGO_ROOT_PASS
+      - MONGO_ANALYTICS_USER
+      - MONGO_ANALYTICS_PASS
+      - MONGO_ANALYTICS_CONN
+      - MONGO_ANALYTICS_PORT
+     
 
     restart: always
 
@@ -31,7 +36,7 @@ services:
     volumes:
         - ./data/db:/data/db
     ports:
-        - 27018:27017
+        - 27017
     expose:
         - 27017
     environment:
@@ -45,7 +50,7 @@ services:
     volumes:
         - ./data/db2:/data/db
     ports:
-        - 27019:27017
+        - 27017
     expose:
         - 27017
     environment:

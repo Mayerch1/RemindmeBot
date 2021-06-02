@@ -124,7 +124,7 @@ async def on_guild_remove(guild):
 @client.event
 async def on_guild_join(guild):
     Analytics.add_guild(guild.id)
-    print(f'added to guild (total count: {len(client.guilds)}')
+    print(f'added to guild (total count: {len(client.guilds)})')
 
 
 def main():

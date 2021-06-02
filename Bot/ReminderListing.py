@@ -125,8 +125,8 @@ class ReminderListing:
             def msg_check(msg):
                 return msg.author.id == dm.recipient.id and msg.channel.id == dm.id
 
-            pending_tasks = [ReminderListing._client.wait_for('raw_reaction_add',check=react_check, timeout=60),
-                            ReminderListing._client.wait_for('message',check=msg_check, timeout=60)]
+            pending_tasks = [ReminderListing._client.wait_for('raw_reaction_add',check=react_check, timeout=5),
+                            ReminderListing._client.wait_for('message',check=msg_check, timeout=5)]
 
             done_tasks, pending_tasks = await asyncio.wait(pending_tasks, return_when=asyncio.FIRST_COMPLETED)
 
@@ -143,8 +143,14 @@ class ReminderListing:
             first_task = done_tasks.pop()
             ex = first_task.exception()
 
+            # ignore all other tasks
+            # reading the exception should silence console error output
+            while done_tasks:
+                task = done_tasks.pop()
+                task.cancel()
+                _ = task.exception()
+
             if ex:
-                # any exception is handled the same way as a timeout exception
                 return
 
             result = await first_task
@@ -205,7 +211,7 @@ class ReminderListing:
 
         # only used for debug print
         session_id = random.randint(1e3, 1e12)
-        print('starting dm session ' + str(session_id))
+        print('starting private dm session ' + str(session_id))
 
         ReminderListing._client = client
         
