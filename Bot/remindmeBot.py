@@ -134,6 +134,7 @@ def main():
     client.load_extension(f'TopGGModule')
     client.load_extension(f'DiscordBotListModule')
     client.load_extension(f'ReminderModule')
+    client.load_extension(f'ReminderListing')
     client.run(token)
 
 

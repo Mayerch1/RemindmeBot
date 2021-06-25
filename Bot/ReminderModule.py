@@ -4,14 +4,16 @@ import re
 from enum import Enum
 from datetime import datetime, timedelta
 from dateutil import tz
+from bson import ObjectId
 
 import copy
 
 import discord
 from discord.ext import commands, tasks
-from discord_slash import cog_ext, SlashContext
+from discord_slash import cog_ext, SlashContext, ComponentContext
 from discord_slash.utils.manage_commands import create_option, create_choice
-from discord_slash.model import SlashCommandOptionType
+from discord_slash.utils import manage_components
+from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 from datetime import datetime, timedelta
 
@@ -84,9 +86,6 @@ class ReminderModule(commands.Cog):
         self.check_pending_reminders.start()
         self.check_reminder_cnt.start()
 
-
-
-        
 
 
     async def print_reminder_dm(self, rem: Reminder, err_msg=None):
@@ -270,39 +269,44 @@ class ReminderModule(commands.Cog):
         if info:
             out_str += f'\n```Parsing hints:\n{info}```'
         
-        out_str += '\n\nYou can cancel this reminder within the next 3 minutes by reacting to this message with ❌'
+        # create the button to delete this reminder
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.danger,
+                label='Delete',
+                emoji='🗑️',
+                custom_id=str(rem_id)
+            )
+        ]
+        action_row = manage_components.create_actionrow(*buttons)
 
         # delta_to_str cannot take relative delta
-        msg = await ctx.send(out_str, delete_after=300)
-
-        try:
-            await msg.add_reaction('❌')
-        except:
-            pass
-
-        def check(reaction, user):
-            return user.id == author.id and reaction.emoji == '❌' and reaction.message.id == msg.id
-
-        try:
-            react, _ = await self.client.wait_for('reaction_add', timeout=180, check=check)
-        except asyncio.exceptions.TimeoutError:
-            try:
-                await msg.add_reaction('⏲')
-                await msg.remove_reaction('❌', self.client.user)
-            except:
-                # fails if reaction couldn't be added in last step
-                pass
-        else:
-            # delete the reminder again
-            if Connector.delete_reminder(rem_id):
-                await ctx.send('Deleted reminder')
-                Analytics.delete_reminder()
-                print('deleted reminder')
+        msg = await ctx.send(out_str, delete_after=300, components=[action_row])
 
 
     # =====================
     # events functions
     # =====================
+
+    @commands.Cog.listener()
+    async def on_component(self, ctx: ComponentContext):
+
+        if ctx.component.get('label', '') != 'Delete' or \
+            ctx.component.get('emoji', {}).get('name', '') != '🗑️':
+            return # some other routine must take care of this
+
+        try:
+            rem_id = ObjectId(ctx.custom_id)
+        except:
+            return 
+
+        if Connector.delete_reminder(rem_id):
+            await ctx.send('Deleted the reminder', hidden=True)
+            Analytics.delete_reminder() 
+        else:
+            await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was already deleted', hidden=True)
+
+
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -336,6 +340,7 @@ class ReminderModule(commands.Cog):
     @check_reminder_cnt.before_loop
     async def check_reminder_cnt_before(self):
         await self.client.wait_until_ready()
+
 
     # =====================
     # commands functions
@@ -383,18 +388,12 @@ class ReminderModule(commands.Cog):
                                 option_type=SlashCommandOptionType.STRING
                             )
                         ])
-    async def add_remind_author(self, ctx, period, message):
+    async def remindme(self, ctx, period, message):
         
         await self.process_reminder(ctx, ctx.author, ctx.author, period, message)
         
        
-    @cog_ext.cog_slash(name='reminder_list', description='List all reminders created by you')
-    async def list_reminders(self, ctx):
-
-        if ctx.guild:
-            await ReminderListing.show_reminders_dm(self.client, ctx)
-        else:
-            await ReminderListing.show_private_reminders(self.client, ctx)
+    
 
 
 def setup(client):
