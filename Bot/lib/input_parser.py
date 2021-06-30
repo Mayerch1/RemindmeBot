@@ -118,6 +118,21 @@ def _join_spaced_args(args):
 
 
 def _parse_absolute(args, utcnow, now_local):
+    """parse the date to absolute arguments
+       (eoy, eom, ...)
+
+       gives the absolute utc-date when the reminder
+       should be triggered
+
+    Args:
+        args ([]]): list of arguments
+        utcnow (datetime): current utc datetime (not tz-aware)
+        now_local (datetime): local datetime (tz-aware)
+
+    Returns:
+        (datetime, str): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
+                         info string for parsing errors/warnings
+    """
 
     total_intvl = timedelta(hours=0)
     error = ''
@@ -151,10 +166,24 @@ def _parse_absolute(args, utcnow, now_local):
             info = info + f'• ignoring {arg}, as absolute and relative intervals cannot be mixed\n'
 
 
-    return (total_intvl, info)
+    return (utcnow + total_intvl, info)
             
 
-def _parse_relative(args):
+def _parse_relative(args, utcnow):
+    """parse the date to relative arguments
+       (2y, 5d,...)
+
+       gives the absolute utc-date when the reminder
+       should be triggered
+
+    Args:
+        args ([]]): list of arguments
+        utcnow (datetime): current utc datetime
+
+    Returns:
+        (datetime, str): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
+                         info string for parsing errors/warnings
+    """
 
     total_intvl = timedelta(hours=0)
     info = ''
@@ -194,7 +223,79 @@ def _parse_relative(args):
         total_intvl += intvl
 
 
-    return (total_intvl, info)
+    return (utcnow + total_intvl, info)
+
+
+def _parse_iso(input, utcnow, display_tz):
+
+    try:
+        remind_parse = dateutil.parser.isoparse(input)
+    except ValueError as e:
+        info = '• ' + ' '.join(e.args)
+        remind_parse = None
+    except:
+        info = '• Unexpected parser error occurred'
+        remind_parse = None
+    else:
+        info = ''
+
+    # if the input string doesn't hold any timezone
+    # it is converted into the local timzone
+    # otherwise not modified
+    # error assumes current utc time
+    if remind_parse and not remind_parse.tzinfo:
+        remind_aware = remind_parse.replace(tzinfo=display_tz)
+    elif not remind_parse:
+        remind_aware = utcnow.replace(tzinfo=tz.UTC)
+    else:
+        remind_aware = remind_parse
+
+
+    # convert the parsed time back into a non-tz aware string
+    # at utc
+    remind_utc = remind_aware.astimezone(tz.UTC)
+    remind_at = remind_utc.replace(tzinfo=None)
+
+    return (remind_at, info)
+
+
+def _parse_fuzzy(input, utcnow, display_tz):
+    """parse a fuzzy input string using dateutil
+
+       gives the absolute utc-date when the reminder
+       should be triggered
+
+    Args:
+        input (str): input string, provided by user
+        utcnow (datetime): current utc datetime
+        display_tz (tzfile): the timezone of the guild/user
+
+    Returns:
+        (datetime, str): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
+                         info string for parsing errors/warnings
+    """
+
+    try:
+        remind_parse = dateutil.parser.parse(input, fuzzy=True, dayfirst=True, yearfirst=False)
+        remind_parse = remind_parse.replace(tzinfo=display_tz)
+    except dateutil.parser.ParserError as e:
+        info = '• ' + ' '.join(e.args)
+        remind_parse = None
+    except:
+        remind_parse = None
+        info = '• Unexpected parser error occurred'
+    else:
+        info = ''
+
+    # convert the given time from timezone to UTC
+    # the resulting remind_at is not timezone aware
+    if remind_parse:
+        remind_utc = remind_parse.astimezone(tz.UTC)
+        remind_at = remind_utc.replace(tzinfo=None)
+    else:
+        remind_at = utcnow
+
+    return (remind_at, info)
 
 
 def parse(input, utcnow, timezone='UTC'):
@@ -211,13 +312,13 @@ def parse(input, utcnow, timezone='UTC'):
         e: [description]
 
     Returns:
-        (Datetime, str): Datetime: input target, returns utcnow on failure, cannot be in the past
+        (Datetime, str): Datetime: input target, returns utcnow on failure, might return dates in the past
                          str: info string on why the parser failed/ignored parts of the input
     """
     err = False
 
     display_tz = tz.gettz(timezone)
-    tznow = utcnow.replace(tzinfo=tz.UTC).astimezone(display_tz) # create local time, used for some parsers
+    tz_now = utcnow.replace(tzinfo=tz.UTC).astimezone(display_tz) # create local time, used for some parsers
     
     # first split into the different arguments
     # next separate number form char arguments
@@ -230,43 +331,23 @@ def parse(input, utcnow, timezone='UTC'):
     args = _join_spaced_args(args)
     
 
-    remind_in, info = _parse_absolute(args, utcnow, tznow)
+    remind_at, info = _parse_absolute(args, utcnow, tz_now)
 
-    if remind_in == timedelta(hours=0):
-        remind_in, info = _parse_relative(args)
+    if remind_at == utcnow:
+        remind_at, info = _parse_relative(args, utcnow)
 
-    # reminder is in utc domain
-    
-    # special case 'm': this is a valid timeframe for dateutil.parse
-    # but its blacklisted on purpose, due to ambiguity to month/minutes of own parser
-    if remind_in == timedelta(hours=0) and not re.match(r'-?\d+\W?m', input):
-        try:
-            remind_parse = dateutil.parser.parse(input, default=tznow, fuzzy=True, dayfirst=True)
-        except dateutil.parser.ParserError as e:
-            info = '• ' + ' '.join(e.args)
-            remind_parse = None
-        except:
-            remind_parse = None
-            info = '• Unexpected parser error occurred'
-        else:
-            info = ''
+    if remind_at == utcnow:
+        remind_at, info = _parse_iso(input, utcnow, display_tz)
 
-
-        # convert the given time from timezone to UTC
-        # the resulting remind_at is not timezone aware
-        if remind_parse:
-            remind_utc = remind_parse.astimezone(tz.UTC)
-            remind_at = remind_utc.replace(tzinfo=None)
-        else:
-            remind_at = utcnow
-    else:
-        remind_at = utcnow + remind_in
+    # filter out queries which use 1m, as this is required to fail due to ambiguity with minutes/month
+    if remind_at == utcnow and not re.match(r'-?\d+\W?m', input):
+        remind_at, info = _parse_fuzzy(input, utcnow, display_tz)
 
     # negative intervals are not allowed
     if remind_at < utcnow:
         info += '• the given date must be in the future\n'
-        info += '  current utc-time is:         {:s}\n'.format(utcnow.strftime('%Y-%m-%d %H:%M'))
-        info += '  timezone corrected input is: {:s}\n'.format(remind_at.strftime('%Y-%m-%d %H:%M'))
-        remind_at = utcnow # eliminate negative interval
+        info += '  current utc-time is:  {:s}\n'.format(utcnow.strftime('%Y-%m-%d %H:%M'))
+        info += '  interpreted input is: {:s}\n'.format(remind_at.strftime('%Y-%m-%d %H:%M'))
+        # return negative intervals, but keep warning
 
     return (remind_at, info)

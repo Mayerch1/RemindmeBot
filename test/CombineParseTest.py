@@ -49,7 +49,7 @@ class CombineParseTest(unittest.TestCase):
         at_cmp = self.utcnow
         at, info = p.parse('1mo -1y', self.utcnow)
 
-        self.assertEqual(at, at_cmp)
+        self.assertTrue(at < at_cmp)
 
 
     def test_substract(self):

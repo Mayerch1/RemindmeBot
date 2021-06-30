@@ -44,24 +44,32 @@ class ReminderModule(commands.Cog):
                 'you can combine relative intervals like this\n'\
                 '\t1y 1mo 2 days -5h\n'\
                 '\n'\
-                'dates are supported aswell, you can try different formats\n'\
+                'iso-timestamps are supported\n'\
+                '\tbe aware that specifying a timezone\n'\
+                '\twill ignore the server timezone\n'\
+                '\n'\
+                'natural dates are supported, you can try different formats\n'\
                 '\t• 5 jul, 5th july, july 5\n'\
-                '\t• 23 sept at 3pm or 23 sept at 15:00\n'\
+                '\t• 23 sept at 3pm, 23 sept at 15:00\n'\
                 '\t• 2050\n'\
-                'Note: the parser uses day first (1.2.2021 -> 1st January)\n'\
-                '      absolute days do respect the /timezone of the server\n'\
+                '\tNote: the parser uses day-first and year-least\n'\
+                '\t      (01/02/21 -> 1st January 2021)\n'\
                 '\n'\
                 'examples:\n'\
                 '\t/remindme 1y Hello future me\n'\
                 '\t/remindme 2 h drink some water\n'\
                 '\t/remindme 1w 2d hello there\n'\
+                '\t/remindme 2021-09-02T12:25:00+02:00 iso is cool\n'\
+                '\n'\
+                '\t/remind @User 1 mon What\'s up\n'\
                 '\t/remind @User 24 dec Merry Christmas\n'\
                 '\t/remind @User eoy Happy new year\n'\
                 '\n'\
                 'the reminder can occur as much as 1 minute delayed```\n'\
-                'If you find a bug in the parser, please reach out to us.\n'\
-                'Contact details are at `Get Support` on [top.gg](https://top.gg/bot/831142367397412874)'\
-                ' or on [Github](https://github.com/Mayerch1/RemindmeBot)'
+                
+    HELP_FOOTER = 'If you find a bug in the parser, please reach out to us.\n'\
+                    'Contact details are at `Get Support` on [top.gg](https://top.gg/bot/831142367397412874)'\
+                    ' or on [Github](https://github.com/Mayerch1/RemindmeBot)'
 
 
     @staticmethod
@@ -85,7 +93,6 @@ class ReminderModule(commands.Cog):
         print('starting reminder event loops')
         self.check_pending_reminders.start()
         self.check_reminder_cnt.start()
-
 
 
     async def print_reminder_dm(self, rem: Reminder, err_msg=None):
@@ -136,13 +143,11 @@ class ReminderModule(commands.Cog):
             return
 
         eb = await rem.get_embed(self.client)
-        
 
         # first fallback is string-only message
         # second fallback is dm to user
 
         perms = channel.permissions_for(guild.me)
-        
 
         if perms.send_messages and perms.embed_links:
             try:
@@ -161,11 +166,8 @@ class ReminderModule(commands.Cog):
             except discord.errors.Forbidden:
                 pass
 
-
         err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
-
         await self.print_reminder_dm(rem, err)
-
 
 
     @staticmethod
@@ -200,27 +202,27 @@ class ReminderModule(commands.Cog):
             tz_str = 'UTC'
             last_msg = None
 
-        
         err = False
 
         utcnow = datetime.utcnow()
         remind_at, info = lib.input_parser.parse(period, utcnow, tz_str)
 
-
-        if (remind_at - utcnow) <= timedelta(hours=0):
-            out_str = ''
-            if info:
-                print('received invalid format string')
-                out_str += f'```Parsing hints:\n{info}```\n'
-                out_str += ReminderModule.REMIND_FORMAT_HELP
-                Analytics.invalid_f_string()
+        interval = remind_at - utcnow
+        if interval <= timedelta(hours=0):
+            if info != '':
+                out_str = f'```Parsing hints:\n{info}```\n'
             else:
-                print('received negative reminder interval')
-                out_str += f'```the interval must be greater than 0```'
-                Analytics.invalid_f_string()
+                out_str = ''
 
+            if interval == timedelta(hours=0):
+                # only append full help on invalid strings
+                # not on negative intervals
+                out_str += ReminderModule.REMIND_FORMAT_HELP
+            out_str += ReminderModule.HELP_FOOTER
+            
             embed = discord.Embed(title='Failed to create the reminder', description=out_str)
             await ctx.send(embed=embed, hidden=True)
+            Analytics.invalid_f_string()
             return
 
         await ctx.defer() # allow more headroom for response latency, before command fails
@@ -265,6 +267,7 @@ class ReminderModule(commands.Cog):
       
         if (remind_at-utcnow) < timedelta(minutes=5):
             out_str += '\nBe aware that the reminder can be as much as 1 minute delayed'
+        out_str += '\n**Note:** The parser behavior was changed recently. Make sure your input was interpreted as intended'
 
         if info:
             out_str += f'\n```Parsing hints:\n{info}```'
@@ -304,8 +307,7 @@ class ReminderModule(commands.Cog):
             await ctx.send('Deleted the reminder', hidden=True)
             Analytics.delete_reminder() 
         else:
-            await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was already deleted', hidden=True)
-
+            await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was deleted', hidden=True)
 
 
     @commands.Cog.listener()
@@ -328,7 +330,6 @@ class ReminderModule(commands.Cog):
         await self.client.wait_until_ready()
 
    
-
     @tasks.loop(minutes=15)
     async def check_reminder_cnt(self):
         now = datetime.utcnow()
@@ -340,7 +341,6 @@ class ReminderModule(commands.Cog):
     @check_reminder_cnt.before_loop
     async def check_reminder_cnt_before(self):
         await self.client.wait_until_ready()
-
 
     # =====================
     # commands functions
@@ -369,7 +369,6 @@ class ReminderModule(commands.Cog):
                         ])
     @commands.guild_only()
     async def add_remind_user(self, ctx, user, period, message):
-        
         await self.process_reminder(ctx, ctx.author, user, period, message)
     
    
@@ -389,11 +388,7 @@ class ReminderModule(commands.Cog):
                             )
                         ])
     async def remindme(self, ctx, period, message):
-        
         await self.process_reminder(ctx, ctx.author, ctx.author, period, message)
-        
-       
-    
 
 
 def setup(client):

@@ -14,14 +14,6 @@ class AbsParseTest(unittest.TestCase):
         self.utcnow = datetime(year=2021, month=1, day=1)
 
 
-    def test_past_abs_date_fail(self):
-        cmp_at = self.utcnow
-        at, info = p.parse('2020', self.utcnow)
-
-        self.assertEqual(at, cmp_at)
-        self.assertNotEqual(info, '')
-
-
     def test_timezone_convert(self):
         # timezone in winter is 1h difference
         cmp_at = datetime(year=2021, month=1, day=1, hour=0)

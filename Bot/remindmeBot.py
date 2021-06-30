@@ -1,3 +1,4 @@
+import re
 import discord
 
 from discord.ext import commands
@@ -47,40 +48,79 @@ async def on_command_error(cmd, error):
         raise error
 
 
-async def get_timezone(cmd):
-    await cmd.send('Timezone is set to `{:s}`'.format(Connector.get_timezone(cmd.guild.id)))
+async def get_timezone(ctx):
+    await ctx.send('Timezone is set to `{:s}`'.format(Connector.get_timezone(ctx.guild.id)), hidden=True)
 
 
-async def set_timezone(cmd, value):
+async def set_timezone(ctx, value):
     tz_obj = tz.gettz(value)
 
-    if not tz_obj:
+    if tz_obj:
+        Connector.set_timezone(ctx.guild.id, value)
+
+        out_str = 'Timezone is now set to `{:s}`'.format(value)
+        if re.match(r'^UTC\+\d+$', value):
+            out_str += '\n*Consider using your local timezone (instead of `UTC+X`), in order to automatically adjust to daylight-saving*'
+
+        await ctx.send(out_str)
+    else:
+
         err = True
-        await cmd.send('The timezone `{:s}` is not valid'.format(value))
+        err_str = 'The timezone `{:s}` is not valid'.format(value)
+
         all_zones = list(ZoneInfoFile(getzoneinfofile_stream()).zones.keys())
         closest_tz = difflib.get_close_matches(value, all_zones)
+
         if closest_tz:
-            await cmd.send('Did you mean `{:s}`?'.format('`, `'.join(closest_tz)))
+            err_str += '\nDid you mean `{:s}`?'.format('`, `'.join(closest_tz))
 
-    # only save correct timezones
-    if tz_obj:
-        Connector.set_timezone(cmd.guild.id, value)
-        await cmd.send('Timezone is now set to `{:s}`'.format(value))
+        await ctx.send(err_str, hidden=True)
+        
 
 
-@client.command(name='timezone', help='set the timezone of this server')
-@commands.guild_only()
-async def set_timezone_cmd(cmd, *value):
+@client.slash.slash(name='timezone', description='Set the timezone of this server',
+                    options=[
+                        create_option(
+                            name='mode',
+                            description='choose to get/set the timezone',
+                            required=True,
+                            option_type=SlashCommandOptionType.STRING,
+                            choices=[
+                                create_choice(
+                                    name='get',
+                                    value='get'
+                                ),
+                                create_choice(
+                                    name='set',
+                                    value='set'
+                                )
+                            ]
 
-    if not value:
-        await get_timezone(cmd)
+                        ),
+                        create_option(
+                            name='timezone',
+                            description='string code for your time-zone, only when using set',
+                            required=False,
+                            option_type=SlashCommandOptionType.STRING
+                        )
+                    ]) 
+async def set_timezone_cmd(ctx, mode, timezone=None):
+
+    if not ctx.guild:
+        await ctx.send('Setting the timezone is currently only supported on servers. Your private timezone is fixed to `UTC` (for now).')
+        return
+
+    if mode == 'get':
+        await get_timezone(ctx)
     else:
-        await set_timezone(cmd, value[0])
+        if not timezone:
+            await ctx.send('You need to specify the `timezone` parameter for this `mode`', hidden=True)
+            return
 
+        await set_timezone(ctx, timezone)
 
-@client.command(name='help', help='Show this message')
-async def get_help(cmd, *x):
-
+@client.slash.slash(name='help', description='Show the help page for this bot')
+async def get_help(ctx):
 
     embed = discord.Embed(title='Remindme Help', description='Reminding you whenever you want')
 
@@ -93,9 +133,9 @@ async def get_help(cmd, *x):
     embed.add_field(name='\u200b', value='If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874)', inline=False)
 
     try:
-        await cmd.send(embed=embed)
+        await ctx.send(embed=embed)
     except discord.errors.Forbidden:
-        await cmd.send('```Reminding you whenever you want\n'\
+        await ctx.send('```Reminding you whenever you want\n'\
                     '\n'\
                     'help          Shows this message\n'\
                     'timezone      set/get the timezone of this server\n'\

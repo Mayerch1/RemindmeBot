@@ -29,7 +29,7 @@ This is a recently introduced discord permission, and can control the access to 
 |```remindme <time> <message>```  | reminds you after the given `<time>` period| 
 |```remind <user> <time> <message>``` | reminds another user after the given `<time>` period|
 |```reminder_list``` | manage all your reminders for this server (interactive DM) |
-|```timezone <string>``` | set the timezone of your server, used for end-of-day calculation, defaults |to UTC|
+|```timezone <string>``` | set the timezone of your server, used for end-of-day calculation, defaults to UTC|
 
 
 
@@ -57,14 +57,17 @@ At the moment, different parameters cannot be combined.
 	
 	you can combine relative intervals like this
 		1y 1mo 2 days -5h
+
+	iso-timestamps are supported
+		be aware that specifying a timezone will ignore the server timezone
 	
-	dates are supported aswell, you can try different formats
+	dates are supported, you can try different formats
 		• 5 jul, 5th july, july 5
-		• 23 sept at 3pm or 23 sept at 15:00
+		• 23 sept at 3pm, 23 sept at 15:00
 		• 2050
 
-	Note: the parser uses day first (1.2.2021 -> 1st January)
-	      absolute days do respect the /timezone of the server
+	Note: the parser uses day first and year first
+	      (1.2.2021 -> 1st January)
 
 	the reminder can occur as much as 1 minute delayed
 ```
@@ -79,8 +82,9 @@ At the moment, different parameters cannot be combined.
 /remindme eow Buy groceries
 /remindme 5 mi Whatever
 /remindme 2 aug 3pm Is it hot outside?
+/remindme 2021-09-02T12:25:00+02:00 iso is cool
 
-/remind @Use 1 mon What's up
+/remind @User 1 mon What's up
 /remind @User 24 dec Merry Christmas
 /remind @User eoy Happy new year
 ```
