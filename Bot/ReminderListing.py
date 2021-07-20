@@ -174,26 +174,27 @@ class ReminderListing(commands.Cog):
         ]
         stm.navigation_rows = [manage_components.create_actionrow(*buttons)]
 
+
         selectables = ReminderListing.get_reminders_on_page(stm.reminders, stm.page)
 
+        if selectables:
+            reminder_options = [manage_components.create_select_option(
+                                    label= unidecode(r.msg)[:25] or '*empty reminder*', 
+                                    emoji= lib.input_parser.num_to_emoji(i+1), 
+                                    value= str(i))
+                                    for i, r in enumerate(selectables)]
 
-        reminder_options = [manage_components.create_select_option(
-                                label= unidecode(r.msg)[:25] or '*empty reminder*', 
-                                emoji= lib.input_parser.num_to_emoji(i+1), 
-                                value= str(i))
-                                for i, r in enumerate(selectables)]
-
-        reminder_selection = (
-            manage_components.create_select(
-                custom_id='reminder_list_reminder_selection',
-                placeholder='Select a reminder to edit',
-                min_values=1,
-                max_values=1,
-                options=reminder_options
+            reminder_selection = (
+                manage_components.create_select(
+                    custom_id='reminder_list_reminder_selection',
+                    placeholder='Select a reminder to edit',
+                    min_values=1,
+                    max_values=1,
+                    options=reminder_options
+                )
             )
-        )
 
-        stm.navigation_rows.append(manage_components.create_actionrow(reminder_selection))
+            stm.navigation_rows.append(manage_components.create_actionrow(reminder_selection))
 
         if stm.menu_msg and push_update:
             await stm.question_msg.edit(components=[*stm.navigation_rows])
