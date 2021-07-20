@@ -152,7 +152,13 @@ class ReminderListing(commands.Cog):
             for c in n_row['components']:
                 c['disabled'] = True
 
-        await stm.menu_msg.edit(components=[*stm.navigation_rows])
+        try:
+            await stm.menu_msg.edit(components=[*stm.navigation_rows])
+        except AttributeError:
+            # if the stm exits outside the basic menu, nothing to be done 
+            # here
+            pass
+
 
 
     async def update_navigation(self, stm: STM, push_update=False):
