@@ -22,6 +22,15 @@ class ReminderListing(commands.Cog):
             self.guild_id = guild_id
             self.user_id = user_id
 
+    class STM():
+        def __init__(self):
+            self.page = 0
+            self.dm = None
+            self.scope = None
+            self.menu_msg = None
+            self.navigation_rows = []
+            self.reminders = []
+
 
     def __init__(self, client):
         self.client = client
@@ -39,7 +48,16 @@ class ReminderListing(commands.Cog):
     # helper methods
     # =====================
 
-    def _get_reminders(self, scope: ListingScope):
+    def get_reminders(self, scope: ListingScope):
+        """request all reminders from the db
+           which match the required scope
+
+        Args:
+            scope (ListingScope): scope of dm instance
+
+        Returns:
+            list: list of reminders
+        """
 
         rems = []
 
@@ -52,118 +70,141 @@ class ReminderListing(commands.Cog):
 
         return sorted(rems, key=lambda r: r.at)
 
-
     @staticmethod
-    def _create_reminder_list(reminders, from_idx, to_idx):
+    def _create_reminder_list(reminders):
         out_str = 'Sorted by date\n\n'
-        to_idx = min(to_idx, len(reminders) - 1)
 
-        for i in range(from_idx, to_idx + 1):
-            out_str += lib.input_parser.num_to_emoji((i-from_idx) + 1)
-            out_str += f' {reminders[i].msg[0:50]}\n'
+        for i, r in enumerate(reminders):
+            out_str += lib.input_parser.num_to_emoji(i + 1)
+            out_str += f' {r.msg[0:50]}\n'
 
-        return out_str, (to_idx - from_idx)
+        return out_str
 
-    
     @staticmethod
-    def _get_reminder_list_eb(reminders, page):
+    def get_reminder_list_eb(reminders, page):
+
         page_cnt = math.ceil(len(reminders) / 9)
-        out_str, count = ReminderListing._create_reminder_list(reminders, (page * 9), (page * 9) + 8)
+        selectables = ReminderListing.get_reminders_on_page(reminders, page)
+
+        out_str = ReminderListing._create_reminder_list(selectables)
 
         embed = discord.Embed(title=f'List of reminders {page+1}/{page_cnt}',
                                 description=out_str)
-
         return embed
 
-
     @staticmethod
-    def _get_reminder_cnt_on_page(reminders, page):
-
-        if len(reminders)==0:
-            return 0  # special case to make calculation easier
-
+    def get_reminders_on_page(reminders, page):
+        
         from_idx = page*9
-        to_idx = from_idx + 8
-
-        from_idx = min(from_idx, len(reminders) - 1)
+        to_idx = (page*9) + 9
         to_idx = min(to_idx, len(reminders) - 1)
 
-        return (to_idx - from_idx) + 1
+        return reminders[from_idx:to_idx]
 
-
-    @staticmethod
-    def _index_to_reminder(reminders, page, index):
-        """converts a page index into an absolute list index
-           and returns the appropriate reminder
-
-        Args:
-           page (int) - page index, 0-offset
-           index (int) - index of page, 1-offset
-
-        Returns:
-            reminder - None if index out of range
-        """
-
-        access_idx = index + (page * 9) - 1
-
-        if access_idx >= len(reminders) or access_idx < 0:
-            return None  # out of range
-        else:
-            return reminders[access_idx]
-
+ 
 
     # =====================
     # stm core
     # =====================
 
+    async def _exit_stm(self, stm):
+        """exit the stm, disable all components
+           and send a goodbye message
 
-    async def _setup_stm(self, dm, reminders):
+        Args:
+            stm (STM): stm object
+        """
+        await stm.dm.send('If you wish to edit more reminders, re-invoke the command')
+        
+        for n_row in stm.navigation_rows:
+            for c in n_row['components']:
+                c['disabled'] = True
 
-        if len(reminders) == 0:
-            await dm.send('```No reminders for this instance```')
-            return None, None
+        await stm.menu_msg.edit(components=[*stm.navigation_rows])
+
+    async def update_navigation(self, stm: STM, push_update=False):
 
         buttons = [
             manage_components.create_button(
-                style=ButtonStyle.primary,
-                label="Select Reminder",
-                custom_id='select_reminder'
-            ),
-            manage_components.create_button(
                 style=ButtonStyle.secondary,
                 emoji='⏪',
-                custom_id='navigation_prev'
+                custom_id='reminder_list_navigation_prev'
             ),
             manage_components.create_button(
                 style=ButtonStyle.secondary,
                 emoji='⏩',
-                custom_id='navigation_next'
+                custom_id='reminder_list_navigation_next'
             )
         ]
+        stm.navigation_rows = [manage_components.create_actionrow(*buttons)]
 
-        action_row = manage_components.create_actionrow(*buttons)
-        msg = await dm.send(embed=ReminderListing._get_reminder_list_eb(reminders, 0), components=[action_row])
+        selectables = ReminderListing.get_reminders_on_page(stm.reminders, stm.page)
+        reminder_options = [manage_components.create_select_option(label=r.msg[:25],
+                                                                    emoji=lib.input_parser.num_to_emoji(i+1), 
+                                                                    value=str(i)) 
+                                                                    for i, r in enumerate(selectables)]
 
-        return msg, action_row
 
-    
-    async def _exit_stm(self, dm, msg, component):
+        reminder_selection = (
+            manage_components.create_select(
+                custom_id='reminder_list_reminder_selection',
+                placeholder='Select a reminder to edit',
+                min_values=1,
+                max_values=1,
+                options=reminder_options
+            )
+        )
+
+        stm.navigation_rows.append(manage_components.create_actionrow(reminder_selection))
+
+        if stm.menu_msg and push_update:
+            await stm.question_msg.edit(components=[*stm.navigation_rows])
+
+
+    async def update_message(self, stm, re_send=False):
+
+        if re_send or not stm.menu_msg:
+            if stm.menu_msg:
+                await stm.menu_msg.delete()
+            stm.menu_msg = await stm.dm.send(content='...')
+
+        eb = ReminderListing.get_reminder_list_eb(stm.reminders, stm.page)
+        await stm.menu_msg.edit(content='', embed=eb, components=[*stm.navigation_rows])
+
+
+    async def process_navigation(self, ctx, stm):
+
+        if ctx.custom_id == 'reminder_list_navigation_prev':
+            stm.page -= 1
+        elif ctx.custom_id == 'reminder_list_navigation_next':
+            stm.page += 1
+
+        page_cnt = math.ceil(len(stm.reminders) / 9)
+
+        if stm.page < 0:
+            stm.page = page_cnt - 1
+        elif stm.page >= page_cnt:
+            stm.page = 0
+
+        await ctx.defer(edit_origin=True)
+            
         
-        for c in component['components']:
-            c['disabled'] = True
+    async def process_reminder_edit(self, ctx, stm):
 
-        await msg.edit(components=[component])
-        pass
+        sel_id = ctx.selected_options[0]
+        sel_id = int(sel_id)  # must be integer
 
+        # update reminders
+        # in case some of them have elapsed
+        stm.reminders = self.get_reminders(stm.scope)
 
+        reminders = ReminderListing.get_reminders_on_page(stm.reminders, stm.page)
 
-    async def update_reminder_embed(self, ctx, reminders, page):
-        eb = ReminderListing._get_reminder_list_eb(reminders, page)
-        await ctx.edit_origin(embed=eb)
+        if sel_id >= len(reminders):
+            return # a reminder elapsed since selection
 
+        reminder = reminders[sel_id]
 
-    async def delete_reminder(self, ctx, reminder):
-        
         buttons = [
             manage_components.create_button(
                 style=ButtonStyle.primary,
@@ -178,7 +219,13 @@ class ReminderListing(commands.Cog):
         action_row = manage_components.create_actionrow(*buttons)
         await ctx.edit_origin(embed=reminder.get_info_embed(), components=[action_row])
         
-        delete_ctx = await manage_components.wait_for_component(self.client, components=action_row)
+
+        try:
+            delete_ctx = await manage_components.wait_for_component(self.client, components=action_row, timeout=5*60)
+        except asyncio.exceptions.TimeoutError:
+            # abort the deletion
+            return
+        
         await delete_ctx.defer(edit_origin=True)
 
         # delete the reminder
@@ -186,99 +233,47 @@ class ReminderListing(commands.Cog):
         if delete_ctx.component.get('label', None) == 'Delete':
             Connector.delete_reminder(reminder._id)
 
-        return delete_ctx
 
+  
+    async def reminder_stm(self, stm):
 
-    async def select_reminder(self, ctx, reminders, page):
+        stm.page = 0
 
-        rem_cnt = ReminderListing._get_reminder_cnt_on_page(reminders, page)
+        stm.reminders = self.get_reminders(stm.scope)
 
-        buttons = [ manage_components.create_button(style=ButtonStyle.secondary, label=str(i+1)) for i in range(rem_cnt)]
-        buttons.append(
-            manage_components.create_button(
-                style=ButtonStyle.primary,
-                label='Go Back'
-            )
-        )
-
-        components = [manage_components.create_actionrow(*buttons[0:5]),]
-        if buttons[5:]:
-            components.append(manage_components.create_actionrow(*buttons[5:]))
-
-        await ctx.edit_origin(components=components)
-
-        selection_ctx = await manage_components.wait_for_component(self.client, components=components)
-        label = selection_ctx.component.get('label', None)
-
-        try:
-            idx = int(label) # keep 1-offset
-        except ValueError:
-            idx = None
-
-        if idx is None:
-            return selection_ctx
-
-        rem = ReminderListing._index_to_reminder(reminders, page, idx)
-        if not rem:
-            return selection_ctx
-
-        # sohw delete prompt
-        # return to menue in any case
-        return await self.delete_reminder(selection_ctx, rem)
-
-
-
-    async def reminder_stm(self, scope, dm):
-        page = 0
-
-        reminders = self._get_reminders(scope)
-        msg, navigation_comp = await self._setup_stm(dm, reminders)
-
-        if not msg:
+        if not stm.reminders:
+            await stm.dm.send('```No reminders for this instance```')
             return
+
+        # for first iteration, the menu message is already up to date
+        re_send_menu = False
 
         while True:
 
+            # always update here, as a reminder could've been elapsed since last iteration
+            stm.reminders = self.get_reminders(stm.scope)
+
+            await self.update_navigation(stm, push_update=False)
+            await self.update_message(stm, re_send=re_send_menu)
+            re_send_menu = False
+
             try:
-                button_ctx = await manage_components.wait_for_component(self.client, components=navigation_comp, timeout=120)
+                comp_ctx = await manage_components.wait_for_component(self.client, components=[*stm.navigation_rows], timeout=10*60)
             except asyncio.exceptions.TimeoutError:
-                await self._exit_stm(dm, msg, navigation_comp)
+                await self._exit_stm(stm)
                 return
 
-            reminders = self._get_reminders(scope)
-            page_cnt = math.ceil(len(reminders) / 9)
-
-
-            if button_ctx.component_id == 'select_reminder':
-                return_ctx = await self.select_reminder(button_ctx, reminders, page)
-                reminders = self._get_reminders(scope)
-                await return_ctx.edit_origin(embed=ReminderListing._get_reminder_list_eb(reminders, page), components=[navigation_comp]) # restore menu
-
-                if len(reminders) == 0:
-                    await self._exit_stm(dm, msg, navigation_comp)
-                    return
-            else:
-                if button_ctx.component_id == 'navigation_prev':
-                    page += 1
-                    
-                elif button_ctx.component_id == 'navigation_next':
-                    page -= 1
-                else:
-                    continue # no match
-                
-                if page < 0:
-                    page = page_cnt - 1
-                elif page >= page_cnt:
-                    page = 0 
-                await self.update_reminder_embed(button_ctx, reminders, page)
-            
+            if comp_ctx.custom_id.startswith('reminder_list_navigation'):
+                await self.process_navigation(comp_ctx, stm)
+            elif comp_ctx.custom_id == 'reminder_list_reminder_selection':
+                await self.process_reminder_edit(comp_ctx, stm)
 
 
     # =====================
     # intro methods
     # =====================
 
-    async def send_intro_dm(self, ctx, intro_message):
+    async def send_intro_dm(self, ctx, intro_embed):
         """create a dm with the user and ack the ctx (with hint to look at DMs)
            if DM creation fails, send an error embed instead
 
@@ -293,7 +288,7 @@ class ReminderListing(commands.Cog):
         dm = await ctx.author.create_dm()
 
         try:
-            await dm.send(intro_message)
+            await dm.send(embed=intro_embed)
         except discord.errors.Forbidden as e:
             embed = discord.Embed(title='Missing DM Permission', 
                                     description='You can only view your reminders in DMs. Please '\
@@ -313,20 +308,26 @@ class ReminderListing(commands.Cog):
         # only used for debug print
         session_id = random.randint(1e3, 1e12)
         print('starting private dm session ' + str(session_id))
-        
-        intro_msg = 'You requested to see all reminders created by you.\n'\
-                        'Keep in mind that the following list will only show reminders that are not related to any server.\n'\
-                        'You need to invoke this command for every server you have setup further reminders.'
-            
-        dm = await self.send_intro_dm(ctx, intro_msg)
+
+
+        intro_eb = discord.Embed(title=f'Private Reminder list', 
+                                description='You requested to see all reminders created by you.\n'\
+                                        'Keep in mind that the following list will only show reminders that are not related to any server.\n'\
+                                        'You need to invoke this command for every server you have setup further reminders.')
+    
+        dm = await self.send_intro_dm(ctx, intro_eb)
 
         if not dm:
             return
 
         scope = ReminderListing.ListingScope(is_private=True, user_id=ctx.author.id)
 
-        await self.reminder_stm(scope, dm)
-        await dm.send('If you wish to edit more reminders, re-invoke the command')
+        stm = ReminderListing.STM()
+        stm.scope = scope
+        stm.dm = dm
+
+        await self.reminder_stm(stm)
+        
 
         print('ending dm session ' + str(session_id))
 
@@ -337,19 +338,23 @@ class ReminderListing(commands.Cog):
         session_id = random.randint(1e3, 1e12)
         print('starting dm session ' + str(session_id))
         
-        intro_msg = 'You requested to see all reminders created by you.\n'\
-                        'Keep in mind that the following list will only show reminders related to the server `{:s}`.\n'\
-                        'You need to invoke this command for every server you have setup further reminders.'.format(ctx.guild.name)
-            
-        dm = await self.send_intro_dm(ctx, intro_msg)
+        intro_eb = discord.Embed(title=f'Reminder list for {ctx.guild.name}', 
+                            description='You requested to see all reminders created by you.\n'\
+                                        'Keep in mind that the following list will only show reminders related to the server `{:s}`.\n'\
+                                        'You need to invoke this command for every server you have setup further reminders.'.format(ctx.guild.name))
+        
+        dm = await self.send_intro_dm(ctx, intro_eb)
 
         if not dm:
             return
 
         scope = ReminderListing.ListingScope(is_private=False, guild_id=ctx.guild.id, user_id=ctx.author.id)
 
-        await self.reminder_stm(scope, dm)
-        await dm.send('If you wish to edit more reminders, re-invoke the command')
+        stm = ReminderListing.STM()
+        stm.scope = scope
+        stm.dm = dm
+
+        await self.reminder_stm(stm)
 
         print('ending dm session ' + str(session_id))
 
