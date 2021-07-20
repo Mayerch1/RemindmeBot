@@ -126,8 +126,10 @@ class ReminderListing(commands.Cog):
         """
         
         from_idx = page*9
+        # the reminders are selected with a:b syntax
+        # which is not inclusive for b
         to_idx = (page*9) + 9
-        to_idx = min(to_idx, len(reminders) - 1)
+        to_idx = min(to_idx, len(reminders))
 
         return reminders[from_idx:to_idx]
 
@@ -297,19 +299,16 @@ class ReminderListing(commands.Cog):
 
         stm.page = 0
 
-        stm.reminders = self.get_reminders(stm.scope)
-
-        if not stm.reminders:
-            await stm.dm.send('```No reminders for this instance```')
-            return
-
         # for first iteration, the menu message is already up to date
         re_send_menu = False
 
         while True:
-
             # always update here, as a reminder could've been elapsed since last iteration
             stm.reminders = self.get_reminders(stm.scope)
+            if not stm.reminders:
+                await stm.dm.send('```No further reminders for this instance```')
+                await self._exit_stm(stm)
+                return
 
             await self.update_navigation(stm, push_update=False)
             await self.update_message(stm, re_send=re_send_menu)
@@ -325,7 +324,6 @@ class ReminderListing(commands.Cog):
                 await self.process_navigation(comp_ctx, stm)
             elif comp_ctx.custom_id == 'reminder_list_reminder_selection':
                 await self.process_reminder_edit(comp_ctx, stm)
-
 
     # =====================
     # intro methods
