@@ -2,6 +2,7 @@ import asyncio
 import math
 from enum import Enum
 import random
+from unidecode import unidecode
 
 import discord
 from discord.ext import commands, tasks
@@ -72,6 +73,15 @@ class ReminderListing(commands.Cog):
 
     @staticmethod
     def _create_reminder_list(reminders):
+        """convert the inputed reminder list
+           into a menu-string, with leading emojis
+
+        Args:
+            reminders ([]]): list of reminders
+
+        Returns:
+            str: reminder list string
+        """
         out_str = 'Sorted by date\n\n'
 
         for i, r in enumerate(reminders):
@@ -82,6 +92,16 @@ class ReminderListing(commands.Cog):
 
     @staticmethod
     def get_reminder_list_eb(reminders, page):
+        """get the menu embed for all reminders
+           in respect to the selected page
+
+        Args:
+            reminders ([]]): reminder list
+            page (int): selected page
+
+        Returns:
+            discord.Embed: the menu embed
+        """
 
         page_cnt = math.ceil(len(reminders) / 9)
         selectables = ReminderListing.get_reminders_on_page(reminders, page)
@@ -94,6 +114,16 @@ class ReminderListing(commands.Cog):
 
     @staticmethod
     def get_reminders_on_page(reminders, page):
+        """select the reminders which are
+           present on the selected page
+
+        Args:
+            reminders ([]): list of reminders
+            page (int): selected page
+
+        Returns:
+            []: list of reminders on page
+        """
         
         from_idx = page*9
         to_idx = (page*9) + 9
@@ -122,7 +152,13 @@ class ReminderListing(commands.Cog):
 
         await stm.menu_msg.edit(components=[*stm.navigation_rows])
 
+
     async def update_navigation(self, stm: STM, push_update=False):
+        """update the navigation and selection row
+           to show the available reminders in the dropdown
+
+           the message is only updated on push_update
+        """
 
         buttons = [
             manage_components.create_button(
@@ -139,11 +175,13 @@ class ReminderListing(commands.Cog):
         stm.navigation_rows = [manage_components.create_actionrow(*buttons)]
 
         selectables = ReminderListing.get_reminders_on_page(stm.reminders, stm.page)
-        reminder_options = [manage_components.create_select_option(label=r.msg[:25],
-                                                                    emoji=lib.input_parser.num_to_emoji(i+1), 
-                                                                    value=str(i)) 
-                                                                    for i, r in enumerate(selectables)]
 
+
+        reminder_options = [manage_components.create_select_option(
+                                label= unidecode(r.msg)[:25] or '*empty reminder*', 
+                                emoji= lib.input_parser.num_to_emoji(i+1), 
+                                value= str(i))
+                                for i, r in enumerate(selectables)]
 
         reminder_selection = (
             manage_components.create_select(
@@ -162,6 +200,14 @@ class ReminderListing(commands.Cog):
 
 
     async def update_message(self, stm, re_send=False):
+        """update the message with the newest components
+           and the current stm.reminders          
+
+        Args:
+            stm ([type]): [description]
+            re_send (bool, optional): will re-send the entire message
+                                      instead of updating the existing msg
+        """
 
         if re_send or not stm.menu_msg:
             if stm.menu_msg:
@@ -173,6 +219,9 @@ class ReminderListing(commands.Cog):
 
 
     async def process_navigation(self, ctx, stm):
+        """advance the menu page in respect to 
+           page limits, handles wrap-around
+        """
 
         if ctx.custom_id == 'reminder_list_navigation_prev':
             stm.page -= 1
@@ -190,6 +239,14 @@ class ReminderListing(commands.Cog):
             
         
     async def process_reminder_edit(self, ctx, stm):
+        """called on selection event of component
+           shows options (currently only delete)
+           for the selected reminder
+
+        Args:
+            ctx (ComponentContext): update event
+            stm ([type]): [description]
+        """
 
         sel_id = ctx.selected_options[0]
         sel_id = int(sel_id)  # must be integer
@@ -208,7 +265,7 @@ class ReminderListing(commands.Cog):
         buttons = [
             manage_components.create_button(
                 style=ButtonStyle.primary,
-                label='Go Back'
+                label='Return '
             ),
             manage_components.create_button(
                 style=ButtonStyle.danger,
@@ -304,6 +361,15 @@ class ReminderListing(commands.Cog):
 
 
     async def show_private_reminders(self, ctx):
+        """create a dm with the user and ack the ctx
+
+        Args:
+            ctx ([type]): [description]
+            intro_message ([type]): [description]
+
+        Returns:
+            DM: messeagable, None if creation failed 
+        """
 
         # only used for debug print
         session_id = random.randint(1e3, 1e12)
