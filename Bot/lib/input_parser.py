@@ -281,9 +281,9 @@ def _parse_fuzzy(input, utcnow, display_tz):
     except dateutil.parser.ParserError as e:
         info = '• ' + ' '.join(e.args)
         remind_parse = None
-    except:
+    except Exception as e:
         remind_parse = None
-        info = '• Unexpected parser error occurred'
+        info = '• Unexpected parser error occurred ({:s})'.format(''.join(e.args))
     else:
         info = ''
 

@@ -94,7 +94,9 @@ class ReminderModule(commands.Cog):
 
         print('starting reminder event loops')
         self.check_pending_reminders.start()
+        self.check_pending_intervals.start()
         self.check_reminder_cnt.start()
+        self.clean_interval_orphans.start()
 
 
     async def print_reminder_dm(self, rem: Reminder, err_msg=None):
@@ -328,6 +330,26 @@ class ReminderModule(commands.Cog):
         print('ReminderModule loaded')
 
 
+    @tasks.loop(hours=24)
+    async def clean_interval_orphans(self):
+        cnt = Connector.delete_orphaned_intervals()
+        print(f'deleted {cnt} orphaned interval(s)')
+
+
+    @tasks.loop(minutes=5)
+    async def check_pending_intervals(self):
+        now = datetime.utcnow()
+
+        pending_intvls = Connector.get_pending_intervals(now.timestamp())
+
+        for interval in pending_intvls:
+            interval.at = interval.next_trigger(now)
+            Connector.update_interval_at(interval)
+            
+        for interval in pending_intvls:
+            await self.print_reminder(interval)
+    
+
     @tasks.loop(minutes=1)
     async def check_pending_reminders(self):
         now = datetime.utcnow()
@@ -337,11 +359,6 @@ class ReminderModule(commands.Cog):
         for reminder in pending_rems:
             await self.print_reminder(reminder)
     
-
-    @check_pending_reminders.before_loop
-    async def check_pending_reminders_before(self):
-        await self.client.wait_until_ready()
-
    
     @tasks.loop(minutes=15)
     async def check_reminder_cnt(self):
@@ -349,7 +366,19 @@ class ReminderModule(commands.Cog):
 
         rems = Connector.get_reminder_cnt()
         Analytics.active_reminders(rems)
-        
+    
+
+    @clean_interval_orphans.before_loop
+    async def clean_interval_orphans_before(self):
+        await self.client.wait_until_ready()
+
+    @check_pending_intervals.before_loop
+    async def check_pending_intervals_before(self):
+        await self.client.wait_until_ready()
+
+    @check_pending_reminders.before_loop
+    async def check_pending_reminders_before(self):
+        await self.client.wait_until_ready()
 
     @check_reminder_cnt.before_loop
     async def check_reminder_cnt_before(self):

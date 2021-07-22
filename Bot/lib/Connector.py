@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import pymongo
 from pymongo import MongoClient
@@ -33,13 +34,16 @@ class Connector:
     def delete_guild(guild_id: int):
         Connector.db.settings.delete_one({'g_id': str(guild_id)})
         Connector.db.reminders.delete_many({'g_id': str(guild_id)})
-        Connector.db.repeating.delete_many({'g_id': str(guild_id)})
+        Connector.db.intervals.delete_many({'g_id': str(guild_id)})
 
 
     @staticmethod
-    def get_timezone(guild_id: int):
-
-        tz_json = Connector.db.settings.find_one({'g_id': str(guild_id)}, {'timezone': 1})
+    def get_timezone(instance_id: int):
+        
+        # the settings key is 'g_id'
+        # however guilds aswell as user ids are supported as key
+        # for backwards compatibility with the database, the key name wasn't changed to instance_id
+        tz_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'timezone': 1})
 
         if not tz_json:
             return 'UTC'
@@ -48,9 +52,12 @@ class Connector:
 
 
     @staticmethod
-    def set_timezone(guild_id: int, timezone_str):
-
-        Connector.db.settings.find_one_and_update({'g_id': str(guild_id)}, {'$set': {'timezone': timezone_str}}, new=False, upsert=True)
+    def set_timezone(instance_id: int, timezone_str):
+        
+        # the settings key is 'g_id'
+        # however guilds aswell as user ids are supported as key
+        # for backwards compatibility with the database, the key name wasn't changed to instance_id
+        Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {'timezone': timezone_str}}, new=False, upsert=True)
 
 
     @staticmethod
@@ -65,6 +72,40 @@ class Connector:
         """
         insert_obj = Connector.db.reminders.insert_one(reminder._to_json())
         return insert_obj.inserted_id
+
+    @staticmethod
+    def add_interval(interval: Reminder.IntervalReminder):
+        
+        insert_obj = Connector.db.intervals.insert_one(interval._to_json())
+        return insert_obj.inserted_id
+
+
+    @staticmethod
+    def update_interval_rules(interval: Reminder.IntervalReminder):
+
+        intvl_js = interval._to_json()
+        Connector.db.intervals.find_one_and_update({'_id': interval._id}, {'$set': {'rdates': intvl_js['rdates'],
+                                                                                    'exdates': intvl_js['exdates'],
+                                                                                    'rrules': intvl_js['rrules'],
+                                                                                    'exrules': intvl_js['exrules']}}, new=False, upsert=False)
+
+    @staticmethod
+    def update_interval_at(interval: Reminder.IntervalReminder):
+        
+        if not interval.at:
+            print(f'WARN: orphaned interval reminder {interval._id}.')
+            at_ts = None
+        else:
+            at_ts = interval._to_json()['at']
+
+        Connector.db.intervals.find_one_and_update({'_id': interval._id}, {'$set': {'at': at_ts}}, new=False, upsert=False)
+
+
+    @staticmethod
+    def delete_orphaned_intervals():
+
+        op = Connector.db.intervals.delete_many({'at': {'$eq': None}})
+        return op.deleted_count
 
 
     @staticmethod
@@ -88,6 +129,15 @@ class Connector:
         Connector.db.reminders.delete_many({'at': {'$lt': timestamp}})
 
         return rems
+
+    @staticmethod
+    def get_pending_intervals(timestamp):
+
+        intvl =  list(Connector.db.intervals.find({'at': {'$lt': timestamp}}))
+        intvl = list(map(Reminder.IntervalReminder, intvl))
+
+        return intvl
+
 
     @staticmethod
     def get_reminder_cnt():
@@ -118,6 +168,17 @@ class Connector:
 
 
     @staticmethod
+    def delete_interval(reminder_id):
+        """delete the reminder with the given id
+
+        Returns:
+            bool: True if reminder deleted successfully
+        """
+        action = Connector.db.intervals.delete_one({'_id': reminder_id})
+        return (action.deleted_count > 0)
+
+
+    @staticmethod
     def get_scoped_reminders(scope: Scope, sort_return=True):
         """request all reminders from the db
            which match the required scope
@@ -140,7 +201,8 @@ class Connector:
             rems = []
 
         if sort_return:
-            rems = sorted(rems, key=lambda r: r.at)
+            #rems = sorted(rems, key=lambda r: r.at or datetime.utcnow())
+            rems = sorted(rems)
         
         return rems
 
@@ -151,7 +213,10 @@ class Connector:
         rems = list(Connector.db.reminders.find({'g_id': str(guild_id), 'author': str(user_id)}))
         rems = list(map(Reminder.Reminder, rems))
 
-        return rems
+        intvl = list(Connector.db.intervals.find({'g_id': str(guild_id), 'author': str(user_id)}))
+        intvl = list(map(Reminder.IntervalReminder, intvl))
+
+        return rems + intvl
 
     @staticmethod
     def _get_user_private_reminders(user_id: int):
@@ -159,7 +224,10 @@ class Connector:
         rems = list(Connector.db.reminders.find({'g_id': None, 'author': str(user_id)}))
         rems = list(map(Reminder.Reminder, rems))
 
-        return rems
+        intvl = list(Connector.db.intervals.find({'g_id': None, 'author': str(user_id)}))
+        intvl = list(map(Reminder.IntervalReminder, intvl))
+
+        return rems + intvl
 
     
 

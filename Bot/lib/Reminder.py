@@ -1,6 +1,6 @@
 import discord # for reminder
 from datetime import datetime
-
+import dateutil.rrule as rr
 
 class Reminder:
 
@@ -37,21 +37,23 @@ class Reminder:
 
 
     def __eq__(self, other):
+        # equals allows None
         return self.at == other.at
 
     def __lt__(self, other):
-        return self.at < other.at
+        return (self.at or datetime.utcnow()) < (other.at or datetime.utcnow())
 
     def __le__(self, other):
-        return self.at <= other.at
+        return (self.at or datetime.utcnow()) <= (other.at or datetime.utcnow())
 
     def __gt__(self, other):
-        return self.at > other.at
+        return (self.at or datetime.utcnow()) > (other.at or datetime.utcnow())
 
     def __ge__(self, other):
-        return self.at >= other.at
+        return (self.at or datetime.utcnow()) >= (other.at or datetime.utcnow())
 
     def __ne__(self, other):
+        # unequals allows None
         return self.at != other.at
 
 
@@ -71,6 +73,8 @@ class Reminder:
 
         if self.at:
             d['at'] = datetime.timestamp(self.at)
+        else:
+            d['at'] = None
 
         return d
 
@@ -128,7 +132,10 @@ class Reminder:
         if self.author != self.target:
             eb.add_field(name='Target user', value=f'<@!{self.target}>')
 
-        eb.add_field(name='Due date', value=self.at.strftime('%Y/%m/%d %H:%M'), inline=False)
+        if self.at:
+            eb.add_field(name='Due date', value=self.at.strftime('%Y/%m/%d %H:%M'), inline=False)
+        else:
+            eb.add_field(name='Due date', value='`No future occurrences`', inline=False)
 
         return eb
 
@@ -198,3 +205,81 @@ class IntervalReminder(Reminder):
             d['first_at'] = datetime.timestamp(self.first_at)
 
         return d
+
+
+    def get_rule_dicts(self):
+        """get a list of dictionaries
+           each describing a set rule (or exclusion)
+
+           'label': is a short title of the rule
+           'descr': is more descriptive about the rule
+        """
+
+        ret = []
+
+        for rule in self.rrules:
+            ret.append({'label': 'Reoccurrence Rule', 'descr': rule[-50:], 'default': False})
+
+        for rule in self.exrules:
+            ret.append({'label': 'Exclusion Rule', 'descr': rule[-50:], 'default': False})
+
+        for date in self.rdates:
+            ret.append({'label': 'Single Occurrence', 'descr': date.strftime('%Y-%m-%d %H:%M'), 'default': False})
+
+        for date in self.exdates:
+            ret.append({'label': 'Single Exclusion', 'descr': date.strftime('%Y-%m-%d %H:%M'), 'default': False})
+        
+        return ret
+
+
+    def delete_rule_idx(self, rule_idx):
+
+        idx_offset = 0
+
+        max_rrule = len(self.rrules)
+        
+        if rule_idx < max_rrule:
+            del self.rrules[rule_idx]
+            return
+        idx_offset = max_rrule
+
+        max_exrule = len(self.exrules)
+        if rule_idx < max_exrule+idx_offset:
+            del self.exrules[rule_idx-idx_offset]
+            return
+        idx_offset += max_exrule
+
+        max_rdate = len(self.rdates)
+        if rule_idx < max_rdate+idx_offset:
+            del self.rdates[rule_idx-idx_offset]
+            return
+        idx_offset += max_rdate
+
+        max_exdate = len(self.exdates)
+        if rule_idx < max_exdate+idx_offset:
+            del self.exdates[rule_idx-idx_offset]
+            return
+        idx_offset += max_exdate
+
+        return
+
+
+    def next_trigger(self, utcnow):
+
+        ruleset = rr.rruleset()
+
+        for rule in self.rrules:
+            ruleset.rrule(rr.rrulestr(rule))
+
+        for rule in self.exrules:
+            ruleset.exrule(rr.rrulestr(rule))
+
+        for date in self.rdates:
+            ruleset.rdate(date)
+
+        for date in self.exdates:
+            ruleset.exdate(date)
+
+
+        next_trigger = ruleset.after(utcnow)
+        return next_trigger

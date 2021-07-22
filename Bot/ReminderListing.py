@@ -12,7 +12,7 @@ from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 from lib.Connector import Connector
-from lib.Reminder import Reminder
+from lib.Reminder import Reminder, IntervalReminder
 import lib.input_parser
 import lib.ReminderRepeater
 
@@ -282,7 +282,10 @@ class ReminderListing(commands.Cog):
         # delete the reminder
         # return to main menu in any case
         if delete_ctx.custom_id == 'reminderlist_edit_delete':
-            Connector.delete_reminder(reminder._id)
+            if isinstance(reminder, IntervalReminder):
+                Connector.delete_interval(reminder._id)
+            else:
+                Connector.delete_reminder(reminder._id)
         elif delete_ctx.custom_id == 'reminderlist_edit_interval':
             await lib.ReminderRepeater.transfer_interval_setup(self.client, stm, reminder)
             resend_menu = True
