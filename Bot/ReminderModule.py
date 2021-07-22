@@ -20,9 +20,11 @@ from datetime import datetime, timedelta
 from lib.Connector import Connector
 from lib.Reminder import Reminder
 import lib.input_parser
+import lib.ReminderRepeater
 
 from lib.Analytics import Analytics
 from ReminderListing import ReminderListing
+
 
 class ReminderModule(commands.Cog):
 
@@ -267,7 +269,7 @@ class ReminderModule(commands.Cog):
       
         if (remind_at-utcnow) < timedelta(minutes=5):
             out_str += '\nBe aware that the reminder can be as much as 1 minute delayed'
-        out_str += '\n**Note:** The parser behavior was changed recently. Make sure your input was interpreted as intended'
+        out_str += '\n\n**Note:** Use `/reminder_list` to convert this reminder into a repeating reminder'
 
         if info:
             out_str += f'\n```Parsing hints:\n{info}```'
@@ -275,10 +277,16 @@ class ReminderModule(commands.Cog):
         # create the button to delete this reminder
         buttons = [
             manage_components.create_button(
+                style=ButtonStyle.primary,
+                label='Set Interval',
+                custom_id=f'direct-interval_{rem_id}',
+                emoji='🔁'
+            ),
+            manage_components.create_button(
                 style=ButtonStyle.danger,
                 label='Delete',
                 emoji='🗑️',
-                custom_id=str(rem_id)
+                custom_id=f'direct-delete_{rem_id}'
             )
         ]
         action_row = manage_components.create_actionrow(*buttons)
@@ -294,20 +302,25 @@ class ReminderModule(commands.Cog):
     @commands.Cog.listener()
     async def on_component(self, ctx: ComponentContext):
 
-        if ctx.component.get('label', '') != 'Delete' or \
-            ctx.component.get('emoji', {}).get('name', '') != '🗑️':
-            return # some other routine must take care of this
+        if ctx.custom_id.count('_') != 1:
+            return
+
+        command, rem_id = ctx.custom_id.split('_')
 
         try:
-            rem_id = ObjectId(ctx.custom_id)
+            rem_id = ObjectId(rem_id)
         except:
             return 
 
-        if Connector.delete_reminder(rem_id):
-            await ctx.send('Deleted the reminder', hidden=True)
-            Analytics.delete_reminder() 
-        else:
-            await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was deleted', hidden=True)
+        
+        if command == 'direct-delete':
+            if Connector.delete_reminder(rem_id):
+                await ctx.send('Deleted the reminder', hidden=True)
+                Analytics.delete_reminder() 
+            else:
+                await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was deleted', hidden=True)
+        elif command == 'direct-interval':
+            await lib.ReminderRepeater.spawn_interval_setup(self.client, ctx, rem_id)
 
 
     @commands.Cog.listener()

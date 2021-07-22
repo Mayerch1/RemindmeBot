@@ -26,7 +26,7 @@ intents.guilds = True
 
 token = open('token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
-slash = SlashCommand(client, sync_commands=True, override_type=True)
+slash = SlashCommand(client, sync_commands=False)
 
 
 @client.event
@@ -109,6 +109,7 @@ async def set_timezone(ctx, value):
     def get_tz_info_eb(zone, name):
 
         offset = datetime.now(zone).strftime('%z')
+        local_time = datetime.now(zone).strftime('%H:%M')
 
         info_str = ''
         if re.match(r'^UTC\+\d+$', name):
@@ -132,6 +133,7 @@ async def set_timezone(ctx, value):
         eb = discord.Embed(title='Timezone configuration',
                            color=col,
                            description=f'The timezone is now set to `{name}` (`UTC{offset}`)\n'\
+                                       f'This corresponds to a local time of `{local_time}`\n'\
                                        f'{info_str}')
         
         return eb
@@ -240,7 +242,11 @@ async def get_help(ctx, page='overview'):
         embed.add_field(name='/remind', value='remind another user after a set time period', inline=False)
         embed.add_field(name='/reminder_list', value='manage all reminders of this server', inline=False)
 
-        embed.add_field(name='\u200b', value='If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874)', inline=False)
+
+        embed.add_field(name='\u200b', 
+                        inline=False,
+                        value='If you find a bug or want to give some feedback, contact us on the [support server](https://discord.gg/vH5syXfP) or on [Github](https://github.com/Mayerch1/RemindmeBot)\n'\
+                              'If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874)' )
 
         return embed
 

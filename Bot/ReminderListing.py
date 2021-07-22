@@ -14,15 +14,9 @@ from discord_slash.model import SlashCommandOptionType, ButtonStyle
 from lib.Connector import Connector
 from lib.Reminder import Reminder
 import lib.input_parser
+import lib.ReminderRepeater
 
 class ReminderListing(commands.Cog):
-
-    class ListingScope:
-        def __init__(self, is_private=False, guild_id=None, user_id=None):
-            self.is_private = is_private
-            self.guild_id = guild_id
-            self.user_id = user_id
-
     class STM():
         def __init__(self):
             self.page = 0
@@ -49,27 +43,7 @@ class ReminderListing(commands.Cog):
     # helper methods
     # =====================
 
-    def get_reminders(self, scope: ListingScope):
-        """request all reminders from the db
-           which match the required scope
-
-        Args:
-            scope (ListingScope): scope of dm instance
-
-        Returns:
-            list: list of reminders
-        """
-
-        rems = []
-
-        if scope.is_private and scope.user_id:
-            rems =  Connector.get_user_private_reminders(scope.user_id)
-        elif scope.user_id and scope.guild_id:
-            rems =  Connector.get_user_reminders(scope.guild_id, scope.user_id)
-        else:
-            rems = []
-
-        return sorted(rems, key=lambda r: r.at)
+ 
 
     @staticmethod
     def _create_reminder_list(reminders):
@@ -257,12 +231,15 @@ class ReminderListing(commands.Cog):
             stm ([type]): [description]
         """
 
+        resend_menu = False
+
         sel_id = ctx.selected_options[0]
         sel_id = int(sel_id)  # must be integer
 
         # update reminders
         # in case some of them have elapsed
-        stm.reminders = self.get_reminders(stm.scope)
+        
+        stm.reminders = Connector.get_scoped_reminders(stm.scope)
 
         reminders = ReminderListing.get_reminders_on_page(stm.reminders, stm.page)
 
@@ -273,12 +250,20 @@ class ReminderListing(commands.Cog):
 
         buttons = [
             manage_components.create_button(
+                style=ButtonStyle.secondary,
+                label='Return ',
+                custom_id='reminderlist_edit_return'
+            ),
+            manage_components.create_button(
                 style=ButtonStyle.primary,
-                label='Return '
+                label='Set Interval',
+                custom_id='reminderlist_edit_interval',
+                emoji='🔁'
             ),
             manage_components.create_button(
                 style=ButtonStyle.danger,
-                label='Delete'
+                label='Delete',
+                custom_id='reminderlist_edit_delete'
             )
         ]
 
@@ -296,11 +281,15 @@ class ReminderListing(commands.Cog):
 
         # delete the reminder
         # return to main menu in any case
-        if delete_ctx.component.get('label', None) == 'Delete':
+        if delete_ctx.custom_id == 'reminderlist_edit_delete':
             Connector.delete_reminder(reminder._id)
+        elif delete_ctx.custom_id == 'reminderlist_edit_interval':
+            await lib.ReminderRepeater.transfer_interval_setup(self.client, stm, reminder)
+            resend_menu = True
+
+        return resend_menu
 
 
-  
     async def reminder_stm(self, stm):
 
         stm.page = 0
@@ -310,7 +299,7 @@ class ReminderListing(commands.Cog):
 
         while True:
             # always update here, as a reminder could've been elapsed since last iteration
-            stm.reminders = self.get_reminders(stm.scope)
+            stm.reminders = Connector.get_scoped_reminders(stm.scope)
             if not stm.reminders:
                 await stm.dm.send('```No further reminders for this instance```')
                 await self._exit_stm(stm)
@@ -329,7 +318,7 @@ class ReminderListing(commands.Cog):
             if comp_ctx.custom_id.startswith('reminder_list_navigation'):
                 await self.process_navigation(comp_ctx, stm)
             elif comp_ctx.custom_id == 'reminder_list_reminder_selection':
-                await self.process_reminder_edit(comp_ctx, stm)
+                re_send_menu = await self.process_reminder_edit(comp_ctx, stm)
 
     # =====================
     # intro methods
@@ -391,7 +380,8 @@ class ReminderListing(commands.Cog):
         if not dm:
             return
 
-        scope = ReminderListing.ListingScope(is_private=True, user_id=ctx.author.id)
+
+        scope = Connector.Scope(is_private=True, user_id=ctx.author.id)
 
         stm = ReminderListing.STM()
         stm.scope = scope
@@ -419,7 +409,7 @@ class ReminderListing(commands.Cog):
         if not dm:
             return
 
-        scope = ReminderListing.ListingScope(is_private=False, guild_id=ctx.guild.id, user_id=ctx.author.id)
+        scope = Connector.Scope(is_private=False, guild_id=ctx.guild.id, user_id=ctx.author.id)
 
         stm = ReminderListing.STM()
         stm.scope = scope

@@ -12,14 +12,10 @@ This bot is inspired by the reddit remindme bot and allows similar usage.
 [Invite the Bot](https://discord.com/api/oauth2/authorize?client_id=831142367397412874&permissions=68608&scope=bot%20applications.commands) or view it's profile on [top.gg](https://top.gg/bot/831142367397412874)
 
 
-This bot is a subset of the bigger [ModBot](https://top.gg/bot/602236567574020133)
-
 ## Some users cannot use the bot?
 
 Make sure the user has the permission to perform `slash`-commands.
 This is a recently introduced discord permission, and can control the access to bot commands.
-
-
 
 
 ## Commands
@@ -29,10 +25,24 @@ This is a recently introduced discord permission, and can control the access to 
 |```remindme <time> <message>```  | reminds you after the given `<time>` period| 
 |```remind <user> <time> <message>``` | reminds another user after the given `<time>` period|
 |```reminder_list``` | manage all your reminders for this server (interactive DM) |
-|```timezone <string>``` | set the timezone of your server, used for end-of-day calculation, defaults to UTC|
+|```timezone [set|get] <string>``` | set the timezone of your server, used for end-of-day calculation, defaults to UTC|
 
 
+### Examples
 
+```
+/remindme 1y Hello future me
+/remindme 2years This is a long time
+/remindme 2 h drink some water
+/remindme eow Buy groceries
+/remindme 5 mi Whatever
+/remindme 2 aug 3pm Is it hot outside?
+/remindme 2021-09-02T12:25:00+02:00 iso is cool
+
+/remind @User 1 mon What's up
+/remind @User 24 dec Merry Christmas
+/remind @User eoy Happy new year
+```
 
 ## Time parsing
 
@@ -66,28 +76,12 @@ At the moment, different parameters cannot be combined.
 		• 23 sept at 3pm, 23 sept at 15:00
 		• 2050
 
-	Note: the parser uses day first and year first
-	      (1.2.2021 -> 1st January)
+	tNote: the parser uses day-first and year-least
+	      (01/02/21 -> 1st January)
 
 	the reminder can occur as much as 1 minute delayed
 ```
 
-
-### Examples
-
-```
-/remindme 1y Hello future me
-/remindme 2years This is a long time
-/remindme 2 h drink some water
-/remindme eow Buy groceries
-/remindme 5 mi Whatever
-/remindme 2 aug 3pm Is it hot outside?
-/remindme 2021-09-02T12:25:00+02:00 iso is cool
-
-/remind @User 1 mon What's up
-/remind @User 24 dec Merry Christmas
-/remind @User eoy Happy new year
-```
 
 ### Note
 The correct plural of the time interval does not matter

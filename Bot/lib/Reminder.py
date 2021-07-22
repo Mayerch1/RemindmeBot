@@ -167,4 +167,34 @@ class Reminder:
 
 
 
+class IntervalReminder(Reminder):
+    
+    def __init__(self, json = {}):
+        if not json:
+            json = {}
 
+        super().__init__(json)
+
+
+        self.first_at = json.get('first_at', None)
+        if self.first_at:
+            self.first_at = datetime.fromtimestamp(self.first_at)
+
+        self.exdates = json.get('exdates', [])
+        self.exrules = json.get('exrules', [])
+        self.rdates = json.get('rdates', [])
+        self.rrules = json.get('rrules', [])
+
+
+    def _to_json(self):
+        d = super()._to_json()
+
+        d['exdates'] = self.exdates
+        d['exrules'] = self.exrules
+        d['rdates'] = self.rdates
+        d['rrules'] = self.rrules
+
+        if self.first_at:
+            d['first_at'] = datetime.timestamp(self.first_at)
+
+        return d

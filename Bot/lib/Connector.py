@@ -10,6 +10,12 @@ class Connector:
 
     client = None
     db = None
+    class Scope():
+        def __init__(self, is_private=False, guild_id=None, user_id=None):
+            self.is_private = is_private
+            self.guild_id = guild_id
+            self.user_id = user_id
+
 
     @staticmethod
     def init():
@@ -83,9 +89,64 @@ class Connector:
 
         return rems
 
+    @staticmethod
+    def get_reminder_cnt():
+        return Connector.db.reminders.count()
+
 
     @staticmethod
-    def get_user_reminders(guild_id: int, user_id: int):
+    def get_reminder_by_id(reminder_id):
+
+        reminder = Connector.db.reminders.find_one({'_id': reminder_id})
+
+        if reminder:
+            return Reminder.Reminder(reminder)
+        else:
+            return None
+
+
+
+    @staticmethod
+    def delete_reminder(reminder_id):
+        """delete the reminder with the given id
+
+        Returns:
+            bool: True if reminder deleted successfully
+        """
+        action = Connector.db.reminders.delete_one({'_id': reminder_id})
+        return (action.deleted_count > 0)
+
+
+    @staticmethod
+    def get_scoped_reminders(scope: Scope, sort_return=True):
+        """request all reminders from the db
+           which match the required scope
+
+        Args:
+            scope (Scope): request scope (guild or private, always user bound)
+            sort_return (bool): sort the reminders by elapsed time
+
+        Returns:
+            list: list of reminders
+        """
+
+        rems = []
+
+        if scope.is_private and scope.user_id:
+            rems =  Connector._get_user_private_reminders(scope.user_id)
+        elif scope.user_id and scope.guild_id:
+            rems =  Connector._get_user_reminders(scope.guild_id, scope.user_id)
+        else:
+            rems = []
+
+        if sort_return:
+            rems = sorted(rems, key=lambda r: r.at)
+        
+        return rems
+
+
+    @staticmethod
+    def _get_user_reminders(guild_id: int, user_id: int):
 
         rems = list(Connector.db.reminders.find({'g_id': str(guild_id), 'author': str(user_id)}))
         rems = list(map(Reminder.Reminder, rems))
@@ -93,21 +154,14 @@ class Connector:
         return rems
 
     @staticmethod
-    def get_user_private_reminders(user_id: int):
+    def _get_user_private_reminders(user_id: int):
 
         rems = list(Connector.db.reminders.find({'g_id': None, 'author': str(user_id)}))
         rems = list(map(Reminder.Reminder, rems))
 
         return rems
 
-    @staticmethod
-    def get_reminder_cnt():
-        return Connector.db.reminders.count()
+    
 
-
-    @staticmethod
-    def delete_reminder(reminder_id):
-
-        action = Connector.db.reminders.delete_one({'_id': reminder_id})
-        return (action.deleted_count > 0)
+    
    
