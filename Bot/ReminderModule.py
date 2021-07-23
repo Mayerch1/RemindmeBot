@@ -333,6 +333,7 @@ class ReminderModule(commands.Cog):
     @tasks.loop(hours=24)
     async def clean_interval_orphans(self):
         cnt = Connector.delete_orphaned_intervals()
+        Analytics.delete_orphans(cnt)
         print(f'deleted {cnt} orphaned interval(s)')
 
 
@@ -398,7 +399,7 @@ class ReminderModule(commands.Cog):
                             ),
                             create_option(
                                 name='time',
-                                description='time/date when the reminder is trigger (or initial date for repeating reminders, see /help syntax)',
+                                description='time/date when the reminder is triggered (or initial date for repeating reminders, see /help syntax)',
                                 required=True,
                                 option_type=SlashCommandOptionType.STRING
                             ),
@@ -418,7 +419,7 @@ class ReminderModule(commands.Cog):
                         options=[
                             create_option(
                                 name='time',
-                                description='time/date when the reminder is trigger (or initial date for repeating reminders, see /help syntax)',
+                                description='time/date when the reminder is triggered (or initial date for repeating reminders, see /help syntax)',
                                 required=True,
                                 option_type=SlashCommandOptionType.STRING
                             ),

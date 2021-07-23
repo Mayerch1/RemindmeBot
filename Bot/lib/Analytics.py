@@ -45,7 +45,29 @@ class Analytics:
         Analytics.reminder_stats(rem)
         
 
+    @staticmethod
+    def convert_to_interval():
+        Analytics.db.counts.find_one_and_update({'g_id': '0'}, {'$inc': {'to_interval_conv': 1}}, new=True, upsert=True)
 
+
+    @staticmethod
+    def convert_to_reminder():
+        Analytics.db.counts.find_one_and_update({'g_id': '0'}, {'$inc': {'to_reminder_conv': 1}}, new=True, upsert=True)
+
+    @staticmethod
+    def delete_orphans(count: int):
+        Analytics.db.counts.find_one_and_update({'g_id': '0'}, {'$inc': {'deleted_orphans': count}}, new=True, upsert=True)
+
+    @staticmethod
+    def add_ruleset():
+        Analytics.db.counts.find_one_and_update({'g_id': '0'}, {'$inc': {'rules_added': 1}}, new=True, upsert=True)
+
+    @staticmethod
+    def rm_ruleset():
+        Analytics.db.counts.find_one_and_update({'g_id': '0'}, {'$inc': {'rules_removed': 1}}, new=True, upsert=True)
+
+
+    @staticmethod
     def reminder_stats(rem: Reminder):
 
         # add this before avg calculation

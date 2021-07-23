@@ -13,6 +13,7 @@ from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 from lib.Connector import Connector
+from lib.Analytics import Analytics
 from lib.Reminder import Reminder, IntervalReminder
 import lib.input_parser
 import util.interaction
@@ -55,6 +56,8 @@ def _reminder_to_interval(reminder: Reminder):
     new_id = Connector.add_interval(reminder)
     Connector.delete_reminder(old_reminder._id)
 
+    Analytics.convert_to_interval()
+
     reminder._id = new_id
     return reminder
 
@@ -69,6 +72,8 @@ def _interval_to_reminder(reminder: IntervalReminder):
 
     new_id = Connector.add_reminder(reminder)
     Connector.delete_interval(old_reminder._id)
+
+    Analytics.convert_to_reminder()
 
     reminder._id = new_id
     return reminder
@@ -97,6 +102,8 @@ def _add_rules(reminder, rrule=None, exrule=None, rdate=None, exdate=None):
     Connector.update_interval_rules(reminder)
     Connector.update_interval_at(reminder)
 
+    Analytics.add_ruleset()
+
     return reminder
 
 
@@ -116,6 +123,7 @@ def _rm_rules(reminder, rule_idx=None):
     # and .at is in the future, set it as default Reminder
     if rules_cnt == 0 and reminder.at > utcnow:
         reminder = _interval_to_reminder(reminder)
+        Analytics.rm_ruleset()
         return reminder
 
     # if reminder has no further occurrence
@@ -127,6 +135,7 @@ def _rm_rules(reminder, rule_idx=None):
     # the reminder is orphaned, a warning can be displayed by a higher layer
     Connector.update_interval_rules(reminder)
     Connector.update_interval_at(reminder)
+    Analytics.rm_ruleset()
 
     return reminder
 
