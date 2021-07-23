@@ -207,6 +207,18 @@ class IntervalReminder(Reminder):
         return d
 
 
+    def get_rule_cnt(self):
+        """return the amount of rules
+           saved for this reminder
+
+        Returns:
+            int: number of rules
+        """
+
+        return len(self.rrules) + len(self.exrules) +\
+                len(self.rdates) + len(self.exdates)
+
+
     def get_rule_dicts(self):
         """get a list of dictionaries
            each describing a set rule (or exclusion)
@@ -267,6 +279,10 @@ class IntervalReminder(Reminder):
     def next_trigger(self, utcnow):
 
         ruleset = rr.rruleset()
+
+        # the date of the initial remindme
+        # is always included by default
+        ruleset.rdate(self.first_at)
 
         for rule in self.rrules:
             ruleset.rrule(rr.rrulestr(rule))

@@ -25,7 +25,7 @@ This is a recently introduced discord permission, and can control the access to 
 |```remindme <time> <message>```  | reminds you after the given `<time>` period| 
 |```remind <user> <time> <message>``` | reminds another user after the given `<time>` period|
 |```reminder_list``` | manage all your reminders for this server (interactive DM) |
-|```timezone [set|get] <string>``` | set the timezone of your server, used for end-of-day calculation, defaults to UTC|
+|```timezone [set/get] <string>``` | set the timezone of your server, used for end-of-day calculation, defaults to UTC|
 
 
 ### Examples

@@ -110,15 +110,21 @@ def _rm_rules(reminder, rule_idx=None):
     reminder.delete_rule_idx(rule_idx)
     reminder.at = reminder.next_trigger(datetime.utcnow())
 
-    # convert the interval into a Reminder
-    # if the first_at attribute is ahead in time
-    if not reminder.at and reminder.first_at > utcnow:
+    rules_cnt = reminder.get_rule_cnt()
+
+    # if reminder has no further rules left over
+    # and .at is in the future, set it as default Reminder
+    if rules_cnt == 0 and reminder.at > utcnow:
         reminder = _interval_to_reminder(reminder)
         return reminder
 
-    # if at is None, and first_at is in the past
-    # the reminder is orphaned, a warning can be displayed by a higher layer
+    # if reminder has no further occurrence
+    # it is kept as orphaned reminder
+    # it may or may not have some rules set
+    # it's deleted in both cases within the next 24h
 
+    # if at is None
+    # the reminder is orphaned, a warning can be displayed by a higher layer
     Connector.update_interval_rules(reminder)
     Connector.update_interval_at(reminder)
 
@@ -126,11 +132,38 @@ def _rm_rules(reminder, rule_idx=None):
 
 
 def _rule_normalize(rule_str, dtstart):
+    """generate the rrule of the given rrule string
+       if the string contains timezone based offsets (iso dates)
+       they are converted into the non-timezone aware utc equivalent
+
+    Args:
+        rule_str ([type]): [description]
+        dtstart ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+
+    try:
+        rule = rr.rrulestr(rule_str)
+    except Exception as e:
+        return None, str(e)
+
+    until = rule._until
+    until_utc = None
+
+    if until:
+        # convert the until date to non-tz aware
+        until_utc = until.astimezone(tz.UTC)
+        until_utc = until_utc.replace(tzinfo=None)
 
     try:
         rule = rr.rrulestr(rule_str, dtstart=dtstart, ignoretz=True)
     except Exception as e:
         return None, str(e)
+
+    if until_utc:
+        rule = rule.replace(until=until_utc)
 
     return rule, None
 
@@ -159,7 +192,7 @@ async def _wait_rrule_input(stm):
 
     while True:
         try:
-            message = await stm.client.wait_for('message', check=msg_check, timeout=5*60)
+            message = await stm.client.wait_for('message', check=msg_check, timeout=10*60)
         except asyncio.exceptions.TimeoutError:
             # abort the deletion
             return None
@@ -447,6 +480,15 @@ async def _show_rule_deletion(stm):
         ]
         stm.navigation_rows.extend([manage_components.create_actionrow(*buttons)])
 
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.secondary,
+                label='Return',
+                custom_id='repeater_del_return'
+            )
+        ]
+        stm.navigation_rows.extend([manage_components.create_actionrow(*buttons)])
+
 
     set_stm_reminder_comps(stm, None)
     await stm.q_msg.edit(embed=eb, components=[*stm.navigation_rows])
@@ -484,6 +526,8 @@ async def _show_rule_deletion(stm):
 
             # TODO: show more info for selected role
             pass
+        elif intvl_ctx.custom_id == 'repeater_del_return':
+            return False
         else:
             return True
 
@@ -491,14 +535,7 @@ async def _show_rule_deletion(stm):
 # STM core methods
 #==================
 
-async def _exit_stm(stm):
-    """exit the stm, disable all components
-        and send a goodbye message
-
-    Args:
-        stm (_STM): stm object
-    """
-    await stm.dm.send('If you wish to edit this reminder again, select it in the `/reminder_list` menu')
+async def _disable_components(stm):
 
     if stm.q_msg:
         for n_row in stm.navigation_rows:
@@ -513,6 +550,18 @@ async def _exit_stm(stm):
             pass
 
 
+async def _exit_stm(stm):
+    """exit the stm, disable all components
+        and send a goodbye message
+
+    Args:
+        stm (_STM): stm object
+    """
+    await stm.dm.send('If you wish to edit this reminder again, select it in the `/reminder_list` menu')
+    await _disable_components(stm)
+    
+
+
 async def _interval_stm(client, dm, reminder, tz_str='UTC'):
 
     stm = _STM()
@@ -522,11 +571,9 @@ async def _interval_stm(client, dm, reminder, tz_str='UTC'):
     stm.timezone = tz_str
 
 
-    warn_eb = discord.Embed(title='WARNING: Experimental Feature',
+    warn_eb = discord.Embed(title='INFO: Experimental Feature',
                             color=0xff833b,
-                            description='This feature is not yet fully developed.\n'\
-                                        'The configuration flow will be altered/refined with future updates.\n')
-    
+                            description='This is released as a beta feature.')
     warn_eb.add_field(name='\u200b', value='If you want to give feedback for this feature, contact us '\
                                      'on the [support server](https://discord.gg/vH5syXfP) '\
                                       'or on [Github](https://github.com/Mayerch1/RemindmeBot)\n')
@@ -537,7 +584,7 @@ async def _interval_stm(client, dm, reminder, tz_str='UTC'):
     eb = stm.reminder.get_info_embed()
     await dm.send(content='Reminder under edit', embed=eb)
 
-    stm.q_msg = await dm.send('.')
+    stm.q_msg = await dm.send('...')
 
     while True:
         
@@ -576,16 +623,25 @@ async def _interval_stm(client, dm, reminder, tz_str='UTC'):
             )
         ]
         stm.navigation_rows = [manage_components.create_actionrow(*buttons)]
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.secondary,
+                label='Return',
+                custom_id='repeater_add_return'
+            )
+        ]
+        stm.navigation_rows.extend([manage_components.create_actionrow(*buttons)])
         await stm.q_msg.edit(content='', embed=eb, components=[*stm.navigation_rows])
 
         try:
-            action_ctx = await manage_components.wait_for_component(stm.client, components=stm.navigation_rows, timeout=10*60)
+            action_ctx = await manage_components.wait_for_component(stm.client, components=[*stm.navigation_rows], timeout=10*60)
         except asyncio.exceptions.TimeoutError:
             # abort the deletion
             await _exit_stm(stm)
             return
 
         await action_ctx.defer(edit_origin=True)
+        await _disable_components(stm)
 
         if action_ctx.custom_id == 'repeater_add_rrule':
             rrule = await _add_rrule(stm)
@@ -603,6 +659,12 @@ async def _interval_stm(client, dm, reminder, tz_str='UTC'):
             exdate = await _add_exdate(stm)
             if exdate:
                 stm.reminder = _add_rules(stm.reminder, exdate=exdate)
+        elif action_ctx.custom_id == 'repeater_add_return':
+            if isinstance(stm.reminder, IntervalReminder):
+                continue
+            else:
+                await _exit_stm(stm)
+                return
 
         
         if not stm.reminder.at:
