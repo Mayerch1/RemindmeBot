@@ -299,7 +299,7 @@ async def _add_date(stm):
     accept = False
     if rdate:
         eb = discord.Embed(title='New single occurrence date',
-                           description='Do you want to add the date `{:s}` as a new single occurrence?'\
+                           description='Do you want to add the date `{:s} UTC` as a new single occurrence?'\
                                         .format(rdate.strftime('%Y-%m-%d %H:%M')))
         msg = await stm.dm.send(embed=eb)
         accept = await util.interaction.wait_confirm_deny(stm.client, msg, 2*60, stm.dm.recipient)

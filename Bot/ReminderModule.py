@@ -29,6 +29,16 @@ from ReminderListing import ReminderListing
 class ReminderModule(commands.Cog):
 
     REMIND_FORMAT_HELP = '```'\
+                'examples:\n'\
+                '\t/remindme 1y Hello future me\n'\
+                '\t/remindme 2 h drink some water\n'\
+                '\t/remindme 1w 2d hello there\n'\
+                '\t/remindme 2021-09-02T12:25:00+02:00 iso is cool\n'\
+                '\n'\
+                '\t/remind @User 1 mon What\'s up\n'\
+                '\t/remind @User 24 dec Merry Christmas\n'\
+                '\t/remind @User eoy Happy new year\n'\
+                '\n\n'\
                 'allowed absolutes are\n'\
                 '\t• eoy - remind at end of year\n'\
                 '\t• eom - remind at end of month\n'\
@@ -56,16 +66,6 @@ class ReminderModule(commands.Cog):
                 '\t• 2050\n'\
                 '\tNote: the parser uses day-first and year-least\n'\
                 '\t      (01/02/21 -> 1st January 2021)\n'\
-                '\n'\
-                'examples:\n'\
-                '\t/remindme 1y Hello future me\n'\
-                '\t/remindme 2 h drink some water\n'\
-                '\t/remindme 1w 2d hello there\n'\
-                '\t/remindme 2021-09-02T12:25:00+02:00 iso is cool\n'\
-                '\n'\
-                '\t/remind @User 1 mon What\'s up\n'\
-                '\t/remind @User 24 dec Merry Christmas\n'\
-                '\t/remind @User eoy Happy new year\n'\
                 '\n'\
                 'the reminder can occur as much as 1 minute delayed```\n'\
                 
@@ -397,8 +397,8 @@ class ReminderModule(commands.Cog):
                                 option_type=SlashCommandOptionType.USER
                             ),
                             create_option(
-                                name='period',
-                                description='the time after you\'re reminded',
+                                name='time',
+                                description='time/date when the reminder is trigger (or initial date for repeating reminders, see /help syntax)',
                                 required=True,
                                 option_type=SlashCommandOptionType.STRING
                             ),
@@ -410,15 +410,15 @@ class ReminderModule(commands.Cog):
                             )
                         ])
     @commands.guild_only()
-    async def add_remind_user(self, ctx, user, period, message):
-        await self.process_reminder(ctx, ctx.author, user, period, message)
+    async def add_remind_user(self, ctx, user, time, message):
+        await self.process_reminder(ctx, ctx.author, user, time, message)
     
    
     @cog_ext.cog_slash(name='remindme', description='set a reminder after a certain time period',
                         options=[
                             create_option(
-                                name='period',
-                                description='the time after you\'re reminded',
+                                name='time',
+                                description='time/date when the reminder is trigger (or initial date for repeating reminders, see /help syntax)',
                                 required=True,
                                 option_type=SlashCommandOptionType.STRING
                             ),
@@ -429,8 +429,8 @@ class ReminderModule(commands.Cog):
                                 option_type=SlashCommandOptionType.STRING
                             )
                         ])
-    async def remindme(self, ctx, period, message):
-        await self.process_reminder(ctx, ctx.author, ctx.author, period, message)
+    async def remindme(self, ctx, time, message):
+        await self.process_reminder(ctx, ctx.author, ctx.author, time, message)
 
 
 def setup(client):
