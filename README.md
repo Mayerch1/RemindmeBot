@@ -6,6 +6,7 @@ This is the Remindme Bot for discord.
 Key features:
 * remind yourself after a certain time period
 * remind other users after a certain time period
+* create complex repeating patterns (ics-rrules)
 
 This bot is inspired by the reddit remindme bot and allows similar usage.
 
@@ -17,6 +18,13 @@ This bot is inspired by the reddit remindme bot and allows similar usage.
 Make sure the user has the permission to perform `slash`-commands.
 This is a recently introduced discord permission, and can control the access to bot commands.
 
+
+## Create Repeating intervals
+
+Create a "normal" interval with `/remindme` or `/remind` and set the `time` argument to be the first occurrence of your repeating event.
+You can then press the `Set Interval` button to add repeating rules for the event.
+
+The bot supports the full `rfc5545`-spec (the smallest interval is limited to daily) and allows the combination of up to 25 independent rules to define your custom repeating patterns.
 
 ## Commands
 

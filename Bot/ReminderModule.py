@@ -67,7 +67,8 @@ class ReminderModule(commands.Cog):
                 '\tNote: the parser uses day-first and year-least\n'\
                 '\t      (01/02/21 -> 1st January 2021)\n'\
                 '\n'\
-                'the reminder can occur as much as 1 minute delayed```\n'\
+                'the reminder can occur as much as 1 minute delayed\n'\
+                'repeating reminders can occur as much as 5 minutes delayed```\n'\
                 
     HELP_FOOTER = 'If you find a bug in the parser, please reach out to us.\n'\
                     'Contact details are at `Get Support` on [top.gg](https://top.gg/bot/831142367397412874)'\
@@ -96,6 +97,7 @@ class ReminderModule(commands.Cog):
         self.check_pending_reminders.start()
         self.check_pending_intervals.start()
         self.check_reminder_cnt.start()
+        self.check_interval_cnt.start()
         self.clean_interval_orphans.start()
 
 
@@ -271,7 +273,6 @@ class ReminderModule(commands.Cog):
       
         if (remind_at-utcnow) < timedelta(minutes=5):
             out_str += '\nBe aware that the reminder can be as much as 1 minute delayed'
-        out_str += '\n\n**Note:** Use `/reminder_list` to convert this reminder into a repeating reminder'
 
         if info:
             out_str += f'\n```Parsing hints:\n{info}```'
@@ -314,13 +315,22 @@ class ReminderModule(commands.Cog):
         except:
             return 
 
+        # make sure the user owns the reminder
+        author_id = Connector.get_reminder_author_id(rem_id)
+        if not author_id:
+            await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was deleted', hidden=True)
+            return
+        elif author_id != ctx.author.id:
+            await ctx.send('You\'re not the author of this reminder', hidden=True)
+            return
         
+        # either edit the interval, or delete the reminder
         if command == 'direct-delete':
             if Connector.delete_reminder(rem_id):
                 await ctx.send('Deleted the reminder', hidden=True)
                 Analytics.delete_reminder() 
             else:
-                await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was deleted', hidden=True)
+                await ctx.send('Failed to delete reminder due to an unknown issue', hidden=True)
         elif command == 'direct-interval':
             await lib.ReminderRepeater.spawn_interval_setup(self.client, ctx, rem_id)
 
@@ -367,6 +377,11 @@ class ReminderModule(commands.Cog):
 
         rems = Connector.get_reminder_cnt()
         Analytics.active_reminders(rems)
+
+    @tasks.loop(minutes=30)
+    async def check_interval_cnt(self):
+        intvls = Connector.get_interval_cnt()
+        Analytics.active_intervals(intvls)
     
 
     @clean_interval_orphans.before_loop
@@ -383,6 +398,10 @@ class ReminderModule(commands.Cog):
 
     @check_reminder_cnt.before_loop
     async def check_reminder_cnt_before(self):
+        await self.client.wait_until_ready()
+
+    @check_interval_cnt.before_loop
+    async def check_interval_cnt_before(self):
         await self.client.wait_until_ready()
 
     # =====================

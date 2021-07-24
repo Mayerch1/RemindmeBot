@@ -108,10 +108,9 @@ class Reminder:
 
         if author:
             eb.set_author(name=author.display_name, icon_url=author.avatar_url)
-
         elif self.target != self.author:
             # fallback if author couldn't be determined
-            eb.add_field(name='delivered by', value=f'<@!{self.author}>')
+            eb.add_field(name='delivered by', value=f'<@!{self.author}>', inline=False)
 
         return eb
 
@@ -168,7 +167,7 @@ class Reminder:
 
         if self.g_id and self.last_msg_id:
             url = f'https://discord.com/channels/{self.g_id}/{self.ch_id}/{self.last_msg_id}'
-            eb.add_field(name='\u200B', value=f'[jump to the chat]({url})')
+            eb.add_field(name='\u200B', value=f'[jump to the chat]({url})', inline=False)
 
         return eb
 

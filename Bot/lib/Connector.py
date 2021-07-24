@@ -145,12 +145,28 @@ class Connector:
 
 
     @staticmethod
+    def get_interval_cnt():
+        return Connector.db.intervals.count()
+
+
+    @staticmethod
     def get_reminder_by_id(reminder_id):
 
         reminder = Connector.db.reminders.find_one({'_id': reminder_id})
 
         if reminder:
             return Reminder.Reminder(reminder)
+        else:
+            return None
+
+
+    @staticmethod
+    def get_reminder_author_id(reminder_id):
+
+        reminder = Connector.db.reminders.find_one({'_id': reminder_id}, {'author': 1})
+
+        if reminder:
+            return int(reminder['author'])
         else:
             return None
 

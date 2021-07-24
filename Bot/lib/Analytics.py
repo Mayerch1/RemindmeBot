@@ -110,3 +110,7 @@ class Analytics:
     @staticmethod
     def active_reminders(rem_cnt: int):
         Analytics.db.counts.find_one_and_update({'g_id': '0'}, {'$set': {'active_reminders': rem_cnt}}, new=True, upsert=True)
+
+    @staticmethod
+    def active_intervals(intvl_cnt: int):
+        Analytics.db.counts.find_one_and_update({'g_id': '0'}, {'$set': {'active_intervals': intvl_cnt}}, new=True, upsert=True)
