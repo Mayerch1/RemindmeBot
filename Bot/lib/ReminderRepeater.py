@@ -121,7 +121,7 @@ def _rm_rules(reminder, rule_idx=None):
 
     # if reminder has no further rules left over
     # and .at is in the future, set it as default Reminder
-    if rules_cnt == 0 and reminder.at > utcnow:
+    if rules_cnt == 0 and reminder.at and reminder.at > utcnow:
         reminder = _interval_to_reminder(reminder)
         Analytics.rm_ruleset()
         return reminder
@@ -306,6 +306,7 @@ async def _add_date(stm):
     rdate = await _wait_input_date(stm)
 
     accept = False
+    msg = None
     if rdate:
         localized_date = rdate.replace(tzinfo=tz.UTC).astimezone(tz.gettz(stm.timezone))
         eb = discord.Embed(title='New single occurrence date',
