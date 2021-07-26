@@ -749,15 +749,16 @@ async def spawn_interval_setup(client, ctx: ComponentContext, reminder_id: Objec
     # test if the bot can send a message to the newly created DM channel
     # or if the creation has failed, notify the user accordingly
     try:
-        test_msg = await dm.send('.')
+        test_msg = await dm.send('...')
     except discord.errors.Forbidden as e:
         embed = discord.Embed(title='Missing DM Permission', 
-                                description='You can only view your reminders in DMs. Please '\
+                                description='You can only edit intervals in your DMs. Please '\
                                             '[change your preferences]({:s}) and invoke this '\
                                             'command again.\n You can revert the changes later on.'.format(r'https://support.discord.com/hc/en-us/articles/217916488-Blocking-Privacy-Settings-'),
                                 color=0xff0000)
 
         await ctx.send(embed=embed, hidden=True)
+        return
     
     await ctx.send('Have a look at your DMs to edit this reminder', hidden=True)
     await test_msg.delete()
