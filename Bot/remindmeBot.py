@@ -4,7 +4,8 @@ import discord
 from discord.ext import commands
 from discord_slash import SlashContext, SlashCommand
 from discord_slash.utils.manage_commands import create_option, create_choice
-from discord_slash.model import SlashCommandOptionType
+from discord_slash.utils import manage_components
+from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 import difflib
 from datetime import datetime
@@ -26,7 +27,7 @@ intents.guilds = True
 
 token = open('token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
-slash = SlashCommand(client, sync_commands=True)
+slash = SlashCommand(client, sync_commands=False)
 
 
 @client.event
@@ -245,8 +246,8 @@ async def get_help(ctx, page='overview'):
 
         embed.add_field(name='\u200b', 
                         inline=False,
-                        value='If you find a bug or want to give some feedback, contact us on the [support server](https://discord.gg/vH5syXfP) or on [Github](https://github.com/Mayerch1/RemindmeBot)\n'\
-                              'If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874)' )
+                        value='If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874).\n'\
+                              'If you find a bug contact us on [Github](https://github.com/Mayerch1/RemindmeBot) on join the support server.')
 
         return embed
 
@@ -302,9 +303,30 @@ async def get_help(ctx, page='overview'):
         return '**Remindme Help** - parser syntax and example usage' + ReminderModule.REMIND_FORMAT_HELP
 
 
+    def get_help_components():
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.URL,
+                label='Invite Me',
+                url='https://discord.com/oauth2/authorize?client_id=831142367397412874&permissions=84992&scope=bot%20applications.commands'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.URL,
+                label='Support Server',
+                url='https://discord.gg/vH5syXfP'
+            )
+        ]
+
+        return [manage_components.create_actionrow(*buttons)]
+
+    
+
+    comps = []
+
     if page == 'overview':
         eb = get_overview_eb()
         fallback = get_overview_str()
+        comps = get_help_components()
     elif page == 'syntax':
         eb = get_syntax_eb()
         fallback = get_syntax_str()
@@ -313,9 +335,10 @@ async def get_help(ctx, page='overview'):
         fallback = get_timezone_str()
 
     try:
-        await ctx.send(embed=eb)
+        msg =await ctx.send(embed=eb, components=comps)
     except discord.errors.Forbidden:
-        await ctx.send(fallback)
+        msg = await ctx.send(fallback)
+
 
 
 @client.event

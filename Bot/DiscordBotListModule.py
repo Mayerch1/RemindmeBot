@@ -45,14 +45,8 @@ class DiscordBotList(commands.Cog):
 
         r = requests.post(url, data=payload, headers=headers)
 
-        if r.status_code == 502:
-            print(f'DBL Server Count Post failed with 502: Bad Gateway')
-        elif r.status_code == 503:
-            print(f'DBL Server Count Post failed with 503: Service Unavailable')
-        elif r.status_code == 504:
-            print(f'DBL Server Count Post failed with 504: Gateway Timeout')
-        elif r.status_code != 200:
-            print(f'DBL Server Count Post failed with {r.status_code}: {r.content}')
+        if r.status_code >= 300:
+            print(f'DBL Server Count Post failed with {r.status_code}')
 
 
     @tasks.loop(minutes=30)
