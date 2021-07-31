@@ -58,7 +58,7 @@ class TopGG(commands.Cog):
         """This function runs every 30 minutes to automatically update your server count."""
 
         server_count = len(self.client.guilds)
-        Analytics.current_guilds(server_count)
+        Analytics.guild_cnt(server_count)
 
         payload = {
             'server_count': server_count

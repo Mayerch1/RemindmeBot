@@ -1,0 +1,17 @@
+global:
+  scrape_interval:     60s # By default, scrape targets every 15 seconds.
+
+
+scrape_configs:
+  - job_name: 'prometheus'
+
+    scrape_interval: 1d
+
+    static_configs:
+      - targets: ['localhost:9090']
+ 
+  - job_name: 'remindmeBot'
+    # Override the global default and scrape targets from this job every 5 seconds.
+    scrape_interval: 15m
+    static_configs:
+      - targets: ['bot:9091']

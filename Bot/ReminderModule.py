@@ -22,7 +22,7 @@ from lib.Reminder import Reminder
 import lib.input_parser
 import lib.ReminderRepeater
 
-from lib.Analytics import Analytics
+from lib.Analytics import Analytics, Types
 from ReminderListing import ReminderListing
 
 
@@ -228,7 +228,12 @@ class ReminderModule(commands.Cog):
             
             embed = discord.Embed(title='Failed to create the reminder', description=out_str)
             await ctx.send(embed=embed, hidden=True)
-            Analytics.invalid_f_string()
+            
+            if interval == timedelta(hours=0):
+                Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)
+            else:
+                Analytics.reminder_creation_failed(Types.CreationFailed.PAST_DATE)
+
             return
 
         await ctx.defer() # allow more headroom for response latency, before command fails
@@ -252,10 +257,7 @@ class ReminderModule(commands.Cog):
         # the id is required in case the users wishes to abort
         rem_id = Connector.add_reminder(rem)
 
-        if rem.author == rem.target:
-            Analytics.add_self_reminder(rem)
-        else:
-            Analytics.add_foreign_reminder(rem)
+        Analytics.reminder_created(rem)
         
         # convert reminder period to readable delta
         # convert utc date into readable local time (locality based on server settings)
@@ -328,7 +330,7 @@ class ReminderModule(commands.Cog):
         if command == 'direct-delete':
             if Connector.delete_reminder(rem_id):
                 await ctx.send('Deleted the reminder', hidden=True)
-                Analytics.delete_reminder() 
+                Analytics.reminder_deleted(Types.DeleteAction.DIRECT_BTN) 
             else:
                 await ctx.send('Failed to delete reminder due to an unknown issue', hidden=True)
         elif command == 'direct-interval':
@@ -343,11 +345,14 @@ class ReminderModule(commands.Cog):
     @tasks.loop(hours=24)
     async def clean_interval_orphans(self):
         cnt = Connector.delete_orphaned_intervals()
-        Analytics.delete_orphans(cnt)
+
+        for _ in range(cnt):
+            Analytics.reminder_deleted(Types.DeleteAction.ORPHAN)
+
         print(f'deleted {cnt} orphaned interval(s)')
 
 
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=2)
     async def check_pending_intervals(self):
         now = datetime.utcnow()
 
@@ -376,12 +381,12 @@ class ReminderModule(commands.Cog):
         now = datetime.utcnow()
 
         rems = Connector.get_reminder_cnt()
-        Analytics.active_reminders(rems)
+        Analytics.reminder_cnt(rems)
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=15)
     async def check_interval_cnt(self):
         intvls = Connector.get_interval_cnt()
-        Analytics.active_intervals(intvls)
+        Analytics.interval_cnt(intvls)
     
 
     @clean_interval_orphans.before_loop

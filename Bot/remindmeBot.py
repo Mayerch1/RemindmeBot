@@ -339,6 +339,8 @@ async def get_help(ctx, page='overview'):
     except discord.errors.Forbidden:
         msg = await ctx.send(fallback)
 
+    Analytics.help_page_called(page)
+
 
 
 @client.event
@@ -354,12 +356,12 @@ async def on_ready():
 @client.event
 async def on_guild_remove(guild):
     Connector.delete_guild(guild.id)
-    Analytics.delete_guild(guild.id)
+    Analytics.guild_removed()
     print(f'removed from guild (total count: {len(client.guilds)})')
 
 @client.event
 async def on_guild_join(guild):
-    Analytics.add_guild(guild.id)
+    Analytics.guild_added()
     print(f'added to guild (total count: {len(client.guilds)})')
 
 
