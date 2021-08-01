@@ -274,7 +274,7 @@ class ReminderModule(commands.Cog):
              out_str = f'Reminding {target.name} in `{delta_str}` at `{at_str}`.'
       
         if (remind_at-utcnow) < timedelta(minutes=5):
-            out_str += '\nBe aware that the reminder can be as much as 1 minute delayed'
+            out_str += '\nCall `/reminder_list` to edit all pending reminders'
 
         if info:
             out_str += f'\n```Parsing hints:\n{info}```'

@@ -39,6 +39,7 @@ async def on_slash_command_error(ctx, error):
         await ctx.send('This command is only to be used on servers')
     else:
         print(error)
+        Analytics.register_exception(error)
         raise error
 
 
@@ -51,6 +52,7 @@ async def on_command_error(cmd, error):
         pass # silently catch these
     else:
         print(error)
+        Analytics.register_exception(error)
         raise error
 
 

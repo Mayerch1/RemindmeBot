@@ -111,6 +111,11 @@ class Analytics:
         ['shard']
     )
 
+    UNEXPECTED_EXCEPTION = Counter(
+        'unexpected_exception_cnt', 'Hold all caught unhandled exceptions',
+        ['shard', 'ex_type']
+    )
+
     app = Flask(__name__)
 
     @staticmethod
@@ -213,3 +218,7 @@ class Analytics:
     @staticmethod
     def ruleset_removed(shard:int =0):
         Analytics.RULESET_REMOVED_CNT.labels(str(shard)).inc()
+
+    @staticmethod
+    def register_exception(exception, shard:int = 0):
+        Analytics.UNEXPECTED_EXCEPTION.labels(str(shard), type(exception).__name__).inc()
