@@ -23,6 +23,7 @@ class ReminderListing(commands.Cog):
             self.dm = None
             self.scope = None
             self.menu_msg = None
+            self.tz_str = None
             self.navigation_rows = []
             self.reminders = []
 
@@ -268,7 +269,7 @@ class ReminderListing(commands.Cog):
         ]
 
         action_row = manage_components.create_actionrow(*buttons)
-        await ctx.edit_origin(embed=reminder.get_info_embed(), components=[action_row])
+        await ctx.edit_origin(embed=reminder.get_info_embed(stm.tz_str), components=[action_row])
         
 
         try:
@@ -389,6 +390,7 @@ class ReminderListing(commands.Cog):
         stm = ReminderListing.STM()
         stm.scope = scope
         stm.dm = dm
+        stm.tz_str = Connector.get_timezone(ctx.author.id)
 
         await self.reminder_stm(stm)
         
@@ -417,6 +419,7 @@ class ReminderListing(commands.Cog):
         stm = ReminderListing.STM()
         stm.scope = scope
         stm.dm = dm
+        stm.tz_str = Connector.get_timezone(ctx.guild.id)
 
         await self.reminder_stm(stm)
 

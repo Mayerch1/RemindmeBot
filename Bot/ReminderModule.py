@@ -15,8 +15,6 @@ from discord_slash.utils.manage_commands import create_option, create_choice
 from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
-from datetime import datetime, timedelta
-
 from lib.Connector import Connector
 from lib.Reminder import Reminder
 import lib.input_parser
@@ -195,21 +193,19 @@ class ReminderModule(commands.Cog):
     async def process_reminder(self, ctx, author, target, period, message):
 
         if ctx.guild:
-            tz_str = Connector.get_timezone(author.guild.id)
-
+            instance_id = author.guild.id
             # try and get the last message, for providing a jump link
             try:
                 last_msg = await ctx.channel.history(limit=1).flatten()
             except:
                 last_msg = None
-
             last_msg = last_msg[0] if last_msg else None
         else:
-            tz_str = 'UTC'
+            instance_id = author.id
             last_msg = None
 
-        err = False
-
+        tz_str = Connector.get_timezone(instance_id)
+        
         utcnow = datetime.utcnow()
         remind_at, info = lib.input_parser.parse(period, utcnow, tz_str)
 

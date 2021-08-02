@@ -1,5 +1,6 @@
 import discord # for reminder
 from datetime import datetime
+from dateutil import tz
 import dateutil.rrule as rr
 
 class Reminder:
@@ -116,7 +117,7 @@ class Reminder:
 
         
 
-    def get_info_embed(self):
+    def get_info_embed(self, tz_str='UTC'):
         """return info embed of this reminders
            used for reminder management.
            Shows due-date, instead of link to channel
@@ -132,9 +133,15 @@ class Reminder:
             eb.add_field(name='Target user', value=f'<@!{self.target}>')
 
         if self.at:
-            eb.add_field(name='Due date', value=self.at.strftime('%Y/%m/%d %H:%M'), inline=False)
+            if tz_str == 'UTC':
+                at_str = self.at.strftime('%Y/%m/%d %H:%M UTC')
+            else:
+                at_str = self.at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)).strftime('%Y/%m/%d %H:%M %Z')
         else:
-            eb.add_field(name='Due date', value='`No future occurrences`', inline=False)
+            at_str = '`No future occurrences`'
+
+
+        eb.add_field(name='Due date', value=at_str, inline=False)
 
         return eb
 
@@ -167,6 +174,10 @@ class Reminder:
 
         if self.g_id and self.last_msg_id:
             url = f'https://discord.com/channels/{self.g_id}/{self.ch_id}/{self.last_msg_id}'
+            eb.add_field(name='\u200B', value=f'[jump to the chat]({url})', inline=False)
+        elif self.last_msg_id:
+            # private dm
+            url = f'https://discord.com/channels/@me/9/{self.last_msg_id}'
             eb.add_field(name='\u200B', value=f'[jump to the chat]({url})', inline=False)
 
         return eb

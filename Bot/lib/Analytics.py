@@ -221,4 +221,6 @@ class Analytics:
 
     @staticmethod
     def register_exception(exception, shard:int = 0):
-        Analytics.UNEXPECTED_EXCEPTION.labels(str(shard), type(exception).__name__).inc()
+        ex_type = type(exception).__name__
+        print(f'exposing exception counter \'{ex_type}\'')
+        Analytics.UNEXPECTED_EXCEPTION.labels(str(shard), ex_type).inc()

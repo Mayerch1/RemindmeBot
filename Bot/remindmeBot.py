@@ -56,11 +56,11 @@ async def on_command_error(cmd, error):
         raise error
 
 
-async def get_timezone(ctx):
-    await ctx.send('Timezone is set to `{:s}`'.format(Connector.get_timezone(ctx.guild.id)), hidden=True)
+async def get_timezone(ctx, instance_id):
+    await ctx.send('Timezone is set to `{:s}`'.format(Connector.get_timezone(instance_id)), hidden=True)
 
 
-async def set_timezone(ctx, value):
+async def set_timezone(ctx, instance_id, value):
 
     def get_tz_error_str(zone, closest_tz):
 
@@ -145,7 +145,7 @@ async def set_timezone(ctx, value):
     tz_obj = tz.gettz(value)
   
     if tz_obj:
-        Connector.set_timezone(ctx.guild.id, value)
+        Connector.set_timezone(instance_id, value)
 
         try:
             await ctx.send(embed=get_tz_info_eb(tz_obj, value))
@@ -196,18 +196,21 @@ async def set_timezone(ctx, value):
                     ]) 
 async def set_timezone_cmd(ctx, mode, timezone=None):
 
-    if not ctx.guild:
-        await ctx.send('Setting the timezone is currently only supported on servers. Your private timezone is fixed to `UTC` (for now).')
-        return
+    # if no guild is present
+    # assume dm context
+    if ctx.guild:
+        instance_id = ctx.guild.id
+    else:
+        instance_id = ctx.author.id
 
     if mode == 'get':
-        await get_timezone(ctx)
+        await get_timezone(ctx, instance_id)
     else:
         if not timezone:
             await ctx.send('You need to specify the `timezone` parameter for this `mode`', hidden=True)
             return
 
-        await set_timezone(ctx, timezone)
+        await set_timezone(ctx, instance_id, timezone)
 
 
 @client.slash.slash(name='help', description='Show the help page for this bot',
