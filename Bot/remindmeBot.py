@@ -1,8 +1,9 @@
 import re
 import discord
+import asyncio
 
 from discord.ext import commands
-from discord_slash import SlashContext, SlashCommand
+from discord_slash import SlashContext, SlashCommand, ComponentContext
 from discord_slash.utils.manage_commands import create_option, create_choice
 from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
@@ -28,6 +29,9 @@ intents.guilds = True
 token = open('token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
 slash = SlashCommand(client, sync_commands=False)
+
+FEEDBACK_CHANNEL = 872104333007785984
+FEEDBACK_MENTION = 872107119988588566
 
 
 @client.event
@@ -319,6 +323,11 @@ async def get_help(ctx, page='overview'):
                 style=ButtonStyle.URL,
                 label='Support Server',
                 url='https://discord.gg/vH5syXfP'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.gray,
+                label='Direct Feedback',
+                custom_id='help_direct_feedback'
             )
         ]
 
@@ -346,6 +355,59 @@ async def get_help(ctx, page='overview'):
 
     Analytics.help_page_called(page)
 
+
+async def send_feedback(ctx):
+    """give the user the option to send some quick
+       feedback to the devs
+    """
+
+    dm = await ctx.author.create_dm()
+
+    try:
+        dm_test = await dm.send('*Direct Feedback*')
+        channel = dm
+    except discord.errors.Forbidden:
+        dm_test = None
+        channel = ctx.channel
+
+
+    def msg_check(msg):
+        return msg.author.id == ctx.author.id and msg.channel.id == channel.id
+
+    q = await channel.send('If you want to send some feedback, '\
+                       'just type a short sentence into the chat.\n'\
+                       'Your feedback will be used to improve the bot')
+
+    try:
+        feedback = await client.wait_for('message', check=msg_check, timeout=2*60)
+    except asyncio.exceptions.TimeoutError:
+        # abort the deletion
+        await q.delete()
+        await dm_test.edit(content='*Direct Feedback* (timeout, please invoke again)') if dm_test else None
+        return
+
+
+    feedback_ch = client.get_channel(FEEDBACK_CHANNEL)
+
+    if feedback_ch:
+        feedback_str = f'<@&{FEEDBACK_MENTION}> New Feedback:\n'
+        feedback_str += f'Author: {ctx.author.mention} ({ctx.author.name})\n\n'
+
+        content = feedback.clean_content.replace('\n', '\n> ') # make sure multiline doesn't break quote style
+        feedback_str += f'> {content}\n'
+        await feedback_ch.send(feedback_str)
+        await channel.send('Thanks for giving feedback to improve the bot')
+    else:
+        await channel.send('There was an issue when saving your feedback.\n'\
+                           'Please report this bug on the *support server* or on *GitHub*')
+
+
+@client.event
+async def on_component(ctx: ComponentContext):
+
+    if ctx.custom_id == 'help_direct_feedback':
+        await ctx.defer(edit_origin=True)
+        await send_feedback(ctx)
 
 
 @client.event
