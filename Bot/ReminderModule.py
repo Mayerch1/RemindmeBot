@@ -247,17 +247,26 @@ class ReminderModule(commands.Cog):
         rem.msg = message
         rem.at = remind_at
         rem.author = author.id
-        rem.target = target.id
-        rem.target_name = target.name
+        
         rem.created_at = utcnow
         rem.last_msg_id = last_msg.id if last_msg else None
 
-        # everyone requires a special case
-        # as it cannot be mentioned by using the id
-        if ctx.guild and ctx.guild.default_role == target:
-            rem.target_mention = '@everyone'
+        if isinstance(target, int):
+            # use user-mention (no &) as fallback
+            # as it's more likely to not resolve a user
+            rem.target = target
+            rem.target_name = f'<@{target}>'
+            rem.target_mention = f'<@{target}>'
+            print('failed to resolve mentionable')
         else:
-            rem.target_mention = target.mention
+            rem.target = target.id
+            rem.target_name = target.name
+            # everyone requires a special case
+            # as it cannot be mentioned by using the id
+            if ctx.guild and ctx.guild.default_role == target:
+                rem.target_mention = '@everyone'
+            else:
+                rem.target_mention = target.mention
 
         # the id is required in case the users wishes to abort
         rem_id = Connector.add_reminder(rem)
@@ -444,6 +453,8 @@ class ReminderModule(commands.Cog):
     async def add_remind_user(self, ctx, target, time, message):
 
         target_resolve = ctx.guild.get_member(int(target)) or ctx.guild.get_role(int(target))
+        target_resolve = target_resolve or int(target) # if resolve failed, use plain id
+
         await self.process_reminder(ctx, ctx.author, target_resolve, time, message)
     
    
