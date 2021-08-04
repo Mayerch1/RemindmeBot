@@ -28,7 +28,7 @@ intents.guilds = True
 
 token = open('token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
-slash = SlashCommand(client, sync_commands=False)
+slash = SlashCommand(client, sync_commands=True)
 
 FEEDBACK_CHANNEL = 872104333007785984
 FEEDBACK_MENTION = 872107119988588566
@@ -426,10 +426,22 @@ async def on_guild_remove(guild):
     Analytics.guild_removed()
     print(f'removed from guild (total count: {len(client.guilds)})')
 
+
 @client.event
 async def on_guild_join(guild):
     Analytics.guild_added()
-    print(f'added to guild (total count: {len(client.guilds)})')
+    guild_cnt = len(client.guilds)
+    print(f'added to guild (total count: {guild_cnt})')
+
+    if not guild.system_channel:
+        return
+
+    eb = discord.Embed(title=f'You\'re the {guild_cnt}th server I\'ve been added to', 
+                       description='Here\'s a cool gif, just for you')
+    eb.set_image(url='https://media.giphy.com/media/kyLYXonQYYfwYDIeZl/giphy.gif')
+
+    if guild_cnt == 500 or (guild_cnt%1000) == 0:
+        await guild.system_channel.send(embed=eb)
 
 
 def main():

@@ -35,7 +35,7 @@ class ReminderModule(commands.Cog):
                 '\n'\
                 '\t/remind @User 1 mon What\'s up\n'\
                 '\t/remind @User 24 dec Merry Christmas\n'\
-                '\t/remind @User eoy Happy new year\n'\
+                '\t/remind @Role eoy Happy new year\n'\
                 '\n\n'\
                 'allowed absolutes are\n'\
                 '\t• eoy - remind at end of year\n'\
@@ -61,7 +61,7 @@ class ReminderModule(commands.Cog):
                 'natural dates are supported, you can try different formats\n'\
                 '\t• 5 jul, 5th july, july 5\n'\
                 '\t• 23 sept at 3pm, 23 sept at 15:00\n'\
-                '\t• 2050\n'\
+                '\t• 2030\n'\
                 '\tNote: the parser uses day-first and year-least\n'\
                 '\t      (01/02/21 -> 1st January 2021)\n'\
                 '\n'\
@@ -156,7 +156,8 @@ class ReminderModule(commands.Cog):
         if perms.send_messages and perms.embed_links:
             try:
                 # embed does not hold user mention
-                await channel.send(f'<@!{rem.target}>', embed=eb)
+                await channel.send(rem.target_mention or f'<@{rem.target}>', embed=eb, 
+                                   allowed_mentions=discord.AllowedMentions.all())
                 return
             except discord.errors.Forbidden:
                 pass
@@ -247,8 +248,16 @@ class ReminderModule(commands.Cog):
         rem.at = remind_at
         rem.author = author.id
         rem.target = target.id
+        rem.target_name = target.name
         rem.created_at = utcnow
         rem.last_msg_id = last_msg.id if last_msg else None
+
+        # everyone requires a special case
+        # as it cannot be mentioned by using the id
+        if ctx.guild and ctx.guild.default_role == target:
+            rem.target_mention = '@everyone'
+        else:
+            rem.target_mention = target.mention
 
         # the id is required in case the users wishes to abort
         rem_id = Connector.add_reminder(rem)
@@ -267,7 +276,7 @@ class ReminderModule(commands.Cog):
         if target == author:
             out_str = f'Reminding you in `{delta_str}` at `{at_str}`.'
         else:
-             out_str = f'Reminding {target.name} in `{delta_str}` at `{at_str}`.'
+             out_str = f'Reminding {rem.target_mention} in `{delta_str}` at `{at_str}`.'
       
         if (remind_at-utcnow) < timedelta(minutes=5):
             out_str += '\nCall `/reminder_list` to edit all pending reminders'
@@ -293,7 +302,8 @@ class ReminderModule(commands.Cog):
         action_row = manage_components.create_actionrow(*buttons)
 
         # delta_to_str cannot take relative delta
-        msg = await ctx.send(out_str, delete_after=300, components=[action_row])
+        msg = await ctx.send(out_str, delete_after=300, components=[action_row], 
+                            allowed_mentions=discord.AllowedMentions.none())
 
 
     # =====================
@@ -412,10 +422,10 @@ class ReminderModule(commands.Cog):
     @cog_ext.cog_slash(name='remind', description='set a reminder for another user',
                         options=[
                             create_option(
-                                name='user',
-                                description='the user you want to remind',
+                                name='target',
+                                description='the user or role you want to remind',
                                 required=True,
-                                option_type=SlashCommandOptionType.USER
+                                option_type=SlashCommandOptionType.MENTIONABLE
                             ),
                             create_option(
                                 name='time',
@@ -431,8 +441,10 @@ class ReminderModule(commands.Cog):
                             )
                         ])
     @commands.guild_only()
-    async def add_remind_user(self, ctx, user, time, message):
-        await self.process_reminder(ctx, ctx.author, user, time, message)
+    async def add_remind_user(self, ctx, target, time, message):
+
+        target_resolve = ctx.guild.get_member(int(target)) or ctx.guild.get_role(int(target))
+        await self.process_reminder(ctx, ctx.author, target_resolve, time, message)
     
    
     @cog_ext.cog_slash(name='remindme', description='set a reminder after a certain time period',

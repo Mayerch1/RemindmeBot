@@ -31,7 +31,7 @@ The bot supports the full `rfc5545`-spec (the smallest interval is limited to da
 |Commands||
 |---|---|
 |```remindme <time> <message>```  | reminds you after the given `<time>` period| 
-|```remind <user> <time> <message>``` | reminds another user after the given `<time>` period|
+|```remind <mentionable> <time> <message>``` | reminds another user/role after the given `<time>` period|
 |```reminder_list``` | manage all your reminders for this server (interactive DM) |
 |```timezone [set/get] <string>``` | set the timezone of your server, used for end-of-day calculation, defaults to UTC|
 
@@ -48,8 +48,8 @@ The bot supports the full `rfc5545`-spec (the smallest interval is limited to da
 /remindme 2021-09-02T12:25:00+02:00 iso is cool
 
 /remind @User 1 mon What's up
-/remind @User 24 dec Merry Christmas
-/remind @User eoy Happy new year
+/remind @Role 24 dec Merry Christmas
+/remind @everyone eoy Happy new year
 ```
 
 ## Time parsing
@@ -82,9 +82,9 @@ At the moment, different parameters cannot be combined.
 	dates are supported, you can try different formats
 		• 5 jul, 5th july, july 5
 		• 23 sept at 3pm, 23 sept at 15:00
-		• 2050
+		• 2030
 
-	tNote: the parser uses day-first and year-least
+	Note: the parser uses day-first and year-least
 	      (01/02/21 -> 1st January)
 
 	the reminder can occur as much as 1 minute delayed

@@ -196,10 +196,10 @@ def _parse_relative(args, utcnow):
             info = info + f'• Ignoring {arg}, as required numerical part is missing\n'
         else:
             if arg[1].startswith('y'):
-                    intvl = relativedelta(years=arg[0])
-                    
+                intvl = relativedelta(years=arg[0])
+
             elif arg[1].startswith('mo'):
-                    intvl = relativedelta(months=arg[0])
+                intvl = relativedelta(months=arg[0])
 
             elif arg[1].startswith('w'):
                 intvl = relativedelta(weeks=arg[0])
@@ -222,8 +222,12 @@ def _parse_relative(args, utcnow):
             
         total_intvl += intvl
 
+    try:
+        eval_interval = utcnow + total_intvl
+    except Exception as e:
+        return (utcnow, 'The interval is out of bounds/not a number')
 
-    return (utcnow + total_intvl, info)
+    return (eval_interval, info)
 
 
 def _parse_iso(input, utcnow, display_tz):

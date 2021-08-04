@@ -22,6 +22,9 @@ class Reminder:
         target = json.get('target', None)
         self.target = int(target) if target else None
 
+        self.target_mention = json.get('target_mention', None)
+        self.target_name = json.get('target_name', None)
+
         author = json.get('author', None)
         self.author = int(author) if author else None
 
@@ -66,6 +69,8 @@ class Reminder:
         d['g_id'] = str(self.g_id) if self.g_id else None
         d['ch_id'] = str(self.ch_id) if self.ch_id else None
         d['target'] = str(self.target) if self.target else None
+        d['target_mention'] = self.target_mention
+        d['target_name'] = self.target_name
         d['author'] = str(self.author) if self.author else None
         d['last_msg_id'] = str(self.last_msg_id) if self.last_msg_id else None
         
@@ -91,14 +96,14 @@ class Reminder:
         """
 
         if self.target == self.author:
-            out_str = f'<@!{self.target}> Reminder: {self.msg}'
+            out_str = self.target_mention or f'<@!{self.target}>'
+            out_str += f' Reminder: {self.msg}'
         else:
-            out_str = f'<@!{self.target}> Reminder: {self.msg} (delivered by <@!{self.author}>)'
+            out_str = self.target_mention or f'<@!{self.target}>'
+            out_str += f' Reminder: {self.msg} (delivered by <@!{self.author}>)'
 
         out_str += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
         return out_str
-
-
 
 
     def _get_embed_body(self, title, author=None):
@@ -115,7 +120,6 @@ class Reminder:
 
         return eb
 
-        
 
     def get_info_embed(self, tz_str='UTC'):
         """return info embed of this reminders
@@ -130,7 +134,7 @@ class Reminder:
 
 
         if self.author != self.target:
-            eb.add_field(name='Target user', value=f'<@!{self.target}>')
+            eb.add_field(name='Target user', value=self.target_name or f'<@!{self.target}>')
 
         if self.at:
             if tz_str == 'UTC':
@@ -181,7 +185,6 @@ class Reminder:
             eb.add_field(name='\u200B', value=f'[jump to the chat]({url})', inline=False)
 
         return eb
-
 
 
 class IntervalReminder(Reminder):

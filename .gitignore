@@ -22,6 +22,7 @@ servers_bak.json
 tmp/
 data/db/**
 data/db2/**
+prometheus_data/**
 
 # ---> Python
 # Byte-compiled / optimized / DLL files
