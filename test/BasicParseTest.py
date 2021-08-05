@@ -195,3 +195,33 @@ class BasicParseTest(unittest.TestCase):
         self.assertEqual(at, at_cmp)
         self.assertEqual(at2, at2_cmp)
         self.assertEqual(at3, at3_cmp)
+
+
+    def test_overflow_relative(self):
+        # gracefully fail overflows
+        at, _ = p.parse('100000y', self.utcnow)
+        self.assertEqual(at, self.utcnow)
+
+
+    def test_overflow_iso(self):
+        # iso overflow must not throw an exception either
+        at, _ = p.parse('10000-08-05T15:21:21Z', self.utcnow)
+        self.assertEqual(at, self.utcnow)
+
+
+    def test_overflow_fuzzy(self):
+        # fuzzy parser must not throw exception on overflow
+        at, _ = p.parse('1st august 10000', self.utcnow)
+        self.assertEqual(at, self.utcnow)
+
+
+    def test_epoch_overflow(self):
+        # reminders are stored in unix timestmaps
+        # but datetime can represent greater intervals
+        # those cannot be stored and must be failed
+
+        # choose target date which is out of unix epoch
+        # but doesn't overflow the datetime object
+        at, _ = p.parse('1st August 5000', self.utcnow)
+        self.assertEqual(at, self.utcnow)
+

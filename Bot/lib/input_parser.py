@@ -37,36 +37,6 @@ def num_to_emoji(num: int):
     else:
         return '*️⃣'
 
-def emoji_to_num(emoji):
-    """convert unicode emoji back to integer
-    Arguments:
-        emoji {str} -- unicode to convert back, only supports single digits
-    Returns:
-        [int] -- number of emoji, None if emoji was not a number
-    """
-    if emoji == '1️⃣':
-        return 1
-    elif emoji == '2️⃣':
-        return 2
-    elif emoji == '3️⃣':
-        return 3
-    elif emoji == '4️⃣':
-        return 4
-    elif emoji == '5️⃣':
-        return 5
-    elif emoji == '6️⃣':
-        return 6
-    elif emoji == '7️⃣':
-        return 7
-    elif emoji == '8️⃣':
-        return 8
-    elif emoji == '9️⃣':
-        return 9
-    elif emoji == '0️⃣':
-        return 0
-    else:
-        return None    
-
 
 def _to_int(num_str: str, base: int=10):
         
@@ -130,7 +100,7 @@ def _parse_absolute(args, utcnow, now_local):
         now_local (datetime): local datetime (tz-aware)
 
     Returns:
-        (datetime, str): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
+        (datetime, str, exception): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
                          info string for parsing errors/warnings
     """
 
@@ -166,7 +136,7 @@ def _parse_absolute(args, utcnow, now_local):
             info = info + f'• ignoring {arg}, as absolute and relative intervals cannot be mixed\n'
 
 
-    return (utcnow + total_intvl, info)
+    return (utcnow + total_intvl, info, None)
             
 
 def _parse_relative(args, utcnow):
@@ -181,8 +151,9 @@ def _parse_relative(args, utcnow):
         utcnow (datetime): current utc datetime
 
     Returns:
-        (datetime, str): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
-                         info string for parsing errors/warnings
+        (datetime, str, exception): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
+                                    info string for parsing errors/warnings
+                                    exception if one was caught, which is of interest for further processing
     """
 
     total_intvl = timedelta(hours=0)
@@ -224,10 +195,10 @@ def _parse_relative(args, utcnow):
 
     try:
         eval_interval = utcnow + total_intvl
-    except Exception as e:
-        return (utcnow, 'The interval is out of bounds/not a number')
+    except ValueError as ex:
+        return (utcnow, 'The interval is out of bounds/not a number', ex)
 
-    return (eval_interval, info)
+    return (eval_interval, info, None)
 
 
 def _parse_iso(input, utcnow, display_tz):
@@ -260,7 +231,7 @@ def _parse_iso(input, utcnow, display_tz):
     remind_utc = remind_aware.astimezone(tz.UTC)
     remind_at = remind_utc.replace(tzinfo=None)
 
-    return (remind_at, info)
+    return (remind_at, info, None)
 
 
 def _parse_fuzzy(input, utcnow, display_tz):
@@ -275,7 +246,7 @@ def _parse_fuzzy(input, utcnow, display_tz):
         display_tz (tzfile): the timezone of the guild/user
 
     Returns:
-        (datetime, str): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
+        (datetime, str, exception): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
                          info string for parsing errors/warnings
     """
 
@@ -299,7 +270,7 @@ def _parse_fuzzy(input, utcnow, display_tz):
     else:
         remind_at = utcnow
 
-    return (remind_at, info)
+    return (remind_at, info, None)
 
 
 def parse(input, utcnow, timezone='UTC'):
@@ -335,17 +306,21 @@ def parse(input, utcnow, timezone='UTC'):
     args = _join_spaced_args(args)
     
 
-    remind_at, info = _parse_absolute(args, utcnow, tz_now)
+    remind_at, info, ex = _parse_absolute(args, utcnow, tz_now)
+    early_abort = (ex != None)
 
-    if remind_at == utcnow:
-        remind_at, info = _parse_relative(args, utcnow)
+    if remind_at == utcnow and not early_abort:
+        remind_at, info, ex = _parse_relative(args, utcnow)
+        early_abort = (ex != None)
 
-    if remind_at == utcnow:
-        remind_at, info = _parse_iso(input, utcnow, display_tz)
-
+    if remind_at == utcnow and not early_abort:
+        remind_at, info, ex = _parse_iso(input, utcnow, display_tz)
+        early_abort = (ex != None)
+        
     # filter out queries which use 1m, as this is required to fail due to ambiguity with minutes/month
-    if remind_at == utcnow and not re.match(r'-?\d+\W?m', input):
-        remind_at, info = _parse_fuzzy(input, utcnow, display_tz)
+    if remind_at == utcnow and not re.match(r'-?\d+\W?m', input) and not early_abort:
+        remind_at, info, ex = _parse_fuzzy(input, utcnow, display_tz)
+        early_abort = (ex != None)
 
     # negative intervals are not allowed
     if remind_at < utcnow:
@@ -353,5 +328,13 @@ def parse(input, utcnow, timezone='UTC'):
         info += '  current utc-time is:  {:s}\n'.format(utcnow.strftime('%Y-%m-%d %H:%M'))
         info += '  interpreted input is: {:s}\n'.format(remind_at.strftime('%Y-%m-%d %H:%M'))
         # return negative intervals, but keep warning
+    else:
+        # protect against out of epoch dates
+        try:
+            datetime.timestamp(remind_at)
+        except OSError:
+            info =  '• the given date is exceeding the linux epoch\n'
+            info += '  please choose an earlier date'
+            return (utcnow, info)
 
     return (remind_at, info)
