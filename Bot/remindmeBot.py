@@ -18,8 +18,6 @@ from pytz import common_timezones as pytz_common_timezones
 from lib.Connector import Connector
 from lib.Analytics import Analytics
 
-from ReminderModule import ReminderModule
-
 
 intents = discord.Intents()
 intents.reactions = True
@@ -29,9 +27,6 @@ intents.guilds = True
 token = open('token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
 slash = SlashCommand(client, sync_commands=True)
-
-FEEDBACK_CHANNEL = 872104333007785984
-FEEDBACK_MENTION = 872107119988588566
 
 
 @client.event
@@ -46,7 +41,6 @@ async def on_slash_command_error(ctx, error):
         Analytics.register_exception(error)
         raise error
 
-
 @client.event
 async def on_command_error(cmd, error):
 
@@ -58,6 +52,7 @@ async def on_command_error(cmd, error):
         print(error)
         Analytics.register_exception(error)
         raise error
+
 
 
 async def get_timezone(ctx, instance_id):
@@ -217,199 +212,6 @@ async def set_timezone_cmd(ctx, mode, timezone=None):
         await set_timezone(ctx, instance_id, timezone)
 
 
-@client.slash.slash(name='help', description='Show the help page for this bot',
-                    options=[
-                        create_option(
-                            name='page',
-                            description='choose the subpage to display',
-                            required=False,
-                            option_type=SlashCommandOptionType.STRING,
-                            choices=[
-                                create_choice(
-                                    name='overview',
-                                    value='overview'
-                                ),
-                                create_choice(
-                                    name='syntax',
-                                    value='syntax'
-                                ),
-                                create_choice(
-                                    name='timezones',
-                                    value='timezones'
-                                )
-                            ]
-                        )
-                    ])
-async def get_help(ctx, page='overview'):
-
-    def get_overview_eb():
-
-        embed = discord.Embed(title='Remindme Help', description='Reminding you whenever you want')
-
-        embed.add_field(name='/help [page]', value='show the help page or choose a submenu [page]', inline=False)
-        embed.add_field(name='/timezone', value='set/get the timezone of this server', inline=False)
-        embed.add_field(name='/remindme', value='reminding you after a set time period', inline=False)
-        embed.add_field(name='/remind', value='remind another user after a set time period', inline=False)
-        embed.add_field(name='/reminder_list', value='manage all reminders of this server', inline=False)
-
-
-        embed.add_field(name='\u200b', 
-                        inline=False,
-                        value='If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874).\n'\
-                              'If you find a bug contact us on [Github](https://github.com/Mayerch1/RemindmeBot) on join the support server.')
-
-        return embed
-
-    def get_overview_str():
-        return '**Remindme Help**\n'\
-                '```Reminding you whenever you want\n'\
-                '\n'\
-                'help          Shows this message\n'\
-                'timezone      set/get the timezone of this server\n'\
-                'remindme      reminding you after a set time period\n'\
-                'remind        remind another user after a set time period\n'\
-                'reminder_list manage all your reminders for this server\n\n'\
-                'please assign \'Embed Links\' permissions for better formatting```'
-
-    def get_timezone_eb():
-
-        eb = discord.Embed(title='Remindme Help', description='timezone help')
-
-        eb.add_field(name='/timezone get', value='get the current timezone', inline=False)
-        eb.add_field(name='/timezone set', value='set a new timezone', inline=False)
-
-        eb.add_field(name='\u200B', 
-                    value='• Allowed timezones are any strings defined by the IANA\n'\
-                          '• Some timezones are marked as \'deprecated\' but can be used with a warning\n'\
-                          '• geo-referencing timezones (e.g. `Europe/Berlin`) should be preferred\n'\
-                          '  over more general (and deprecated) timezones (e.g. `CET`)', inline=False)
-
-        eb.add_field(name='\u200b', value='If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874)', inline=False)
-
-        return eb
-
-    def get_timezone_str():
-        return '**Remindme Help** - timezones\n'\
-               '```'\
-               '/timezone get     get the current timezone\n'\
-               '/timezone set     set a new timezone\n\n'\
-               '• Allowed timezones are any strings defined by the IANA\n'\
-               '• Some timezones are marked as \'deprecated\' but can be used with a warning\n'\
-               '• geo-referencing timezones (Europe/Berlin) should be preferred\n'\
-               '  over more general (and deprecated) timezones (CET)'\
-               '```'
-
-    def get_syntax_eb():
-
-        eb = discord.Embed(title='Remindme Help', 
-                           description='This syntax is used whenever a user invokes `/remindme` or `/remind`\n'\
-                                      f'{ReminderModule.REMIND_FORMAT_HELP}\n'\
-                                      f'{ReminderModule.HELP_FOOTER}')
-        
-        return eb
-
-    def get_syntax_str():
-        return '**Remindme Help** - parser syntax and example usage' + ReminderModule.REMIND_FORMAT_HELP
-
-
-    def get_help_components():
-        buttons = [
-            manage_components.create_button(
-                style=ButtonStyle.URL,
-                label='Invite Me',
-                url='https://discord.com/oauth2/authorize?client_id=831142367397412874&permissions=84992&scope=bot%20applications.commands'
-            ),
-            manage_components.create_button(
-                style=ButtonStyle.URL,
-                label='Support Server',
-                url='https://discord.gg/vH5syXfP'
-            ),
-            manage_components.create_button(
-                style=ButtonStyle.gray,
-                label='Direct Feedback',
-                custom_id='help_direct_feedback'
-            )
-        ]
-
-        return [manage_components.create_actionrow(*buttons)]
-
-    
-
-    comps = []
-
-    if page == 'overview':
-        eb = get_overview_eb()
-        fallback = get_overview_str()
-        comps = get_help_components()
-    elif page == 'syntax':
-        eb = get_syntax_eb()
-        fallback = get_syntax_str()
-    elif page == 'timezones':
-        eb = get_timezone_eb()
-        fallback = get_timezone_str()
-
-    try:
-        msg =await ctx.send(embed=eb, components=comps)
-    except discord.errors.Forbidden:
-        msg = await ctx.send(fallback)
-
-    Analytics.help_page_called(page)
-
-
-async def send_feedback(ctx):
-    """give the user the option to send some quick
-       feedback to the devs
-    """
-
-    dm = await ctx.author.create_dm()
-
-    try:
-        dm_test = await dm.send('*Direct Feedback*')
-        channel = dm
-    except discord.errors.Forbidden:
-        dm_test = None
-        channel = ctx.channel
-
-
-    def msg_check(msg):
-        return msg.author.id == ctx.author.id and msg.channel.id == channel.id
-
-    q = await channel.send('If you want to send some feedback, '\
-                       'just type a short sentence into the chat.\n'\
-                       'Your feedback will be used to improve the bot')
-
-    try:
-        feedback = await client.wait_for('message', check=msg_check, timeout=2*60)
-    except asyncio.exceptions.TimeoutError:
-        # abort the deletion
-        await q.delete()
-        await dm_test.edit(content='*Direct Feedback* (timeout, please invoke again)') if dm_test else None
-        return
-
-
-    feedback_ch = client.get_channel(FEEDBACK_CHANNEL)
-
-    if feedback_ch:
-        feedback_str = f'<@&{FEEDBACK_MENTION}> New Feedback:\n'
-        feedback_str += f'Author: {ctx.author.mention} ({ctx.author.name})\n\n'
-
-        content = feedback.clean_content.replace('\n', '\n> ') # make sure multiline doesn't break quote style
-        feedback_str += f'> {content}\n'
-        await feedback_ch.send(feedback_str)
-        await channel.send('Thanks for giving feedback to improve the bot')
-    else:
-        await channel.send('There was an issue when saving your feedback.\n'\
-                           'Please report this bug on the *support server* or on *GitHub*')
-
-
-@client.event
-async def on_component(ctx: ComponentContext):
-
-    if ctx.custom_id == 'help_direct_feedback':
-        await ctx.defer(edit_origin=True)
-        await send_feedback(ctx)
-
-
 @client.event
 async def on_ready():
     # debug log
@@ -452,6 +254,7 @@ def main():
     client.load_extension(f'DiscordBotListModule')
     client.load_extension(f'ReminderModule')
     client.load_extension(f'ReminderListing')
+    client.load_extension(f'HelpModule')
     client.run(token)
 
 
