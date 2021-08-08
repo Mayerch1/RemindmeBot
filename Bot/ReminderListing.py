@@ -220,8 +220,8 @@ class ReminderListing(commands.Cog):
             stm.page = 0
 
         await ctx.defer(edit_origin=True)
-            
-        
+
+
     async def process_reminder_edit(self, ctx, stm):
         """called on selection event of component
            shows options (currently only delete)

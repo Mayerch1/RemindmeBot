@@ -258,13 +258,17 @@ class ReminderModule(commands.Cog):
             rem.target_name = f'<@{target}>'
             rem.target_mention = f'<@{target}>'
             print('failed to resolve mentionable')
+        elif isinstance(target, discord.member.Member):
+            rem.target = target.id
+            rem.target_name = target.mention
+            rem.target_mention = target.mention
         else:
             rem.target = target.id
             rem.target_name = target.name
             # everyone requires a special case
             # as it cannot be mentioned by using the id
             if ctx.guild and ctx.guild.default_role == target:
-                rem.target_mention = '@everyone'
+                rem.target_mention = target.name # @everyone
             else:
                 rem.target_mention = target.mention
 
@@ -453,7 +457,12 @@ class ReminderModule(commands.Cog):
     async def add_remind_user(self, ctx, target, time, message):
 
         target_resolve = ctx.guild.get_member(int(target)) or ctx.guild.get_role(int(target))
-        target_resolve = target_resolve or int(target) # if resolve failed, use plain id
+        
+        if not target_resolve:
+            target_resolve = await ctx.guild.fetch_member(int(target))
+            
+        # if resolve failed, use plain id
+        target_resolve = target_resolve or int(target) 
 
         await self.process_reminder(ctx, ctx.author, target_resolve, time, message)
     
