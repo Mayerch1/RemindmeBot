@@ -16,6 +16,8 @@ from lib.Reminder import Reminder, IntervalReminder
 import lib.input_parser
 import lib.ReminderRepeater
 
+from lib.Analytics import Analytics, Types
+
 class ReminderListing(commands.Cog):
     class STM():
         def __init__(self):
@@ -285,8 +287,10 @@ class ReminderListing(commands.Cog):
         if delete_ctx.custom_id == 'reminderlist_edit_delete':
             if isinstance(reminder, IntervalReminder):
                 Connector.delete_interval(reminder._id)
+                Analytics.interval_deleted(Types.DeleteAction.LISTING)
             else:
                 Connector.delete_reminder(reminder._id)
+                Analytics.reminder_deleted(Types.DeleteAction.LISTING)
         elif delete_ctx.custom_id == 'reminderlist_edit_interval':
             await lib.ReminderRepeater.transfer_interval_setup(self.client, stm, reminder)
             resend_menu = True

@@ -106,11 +106,16 @@ class Reminder:
         return out_str
 
 
-    def _get_embed_body(self, title, author=None):
+    def _get_embed_body(self, title, author=None, tz_str='UTC'):
         eb = discord.Embed(title=title, description=f'{self.msg}', color=0xffcc00)
 
         if self.created_at:
-            eb.set_footer(text='created at {:s}'.format(self.created_at.strftime('%Y-%m-%d %H:%M')))
+            if tz_str == 'UTC':
+                at_str = self.created_at.strftime('%Y-%m-%d %H:%M UTC')
+            else:
+                at_str = self.created_at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)).strftime('%Y/%m/%d %H:%M %Z')
+
+            eb.set_footer(text='created at {:s}'.format(at_str))
 
         if author:
             eb.set_author(name=author.display_name, icon_url=author.avatar_url)
@@ -130,7 +135,7 @@ class Reminder:
             [type]: [description]
         """
 
-        eb = self._get_embed_body('Reminder Info')
+        eb = self._get_embed_body('Reminder Info', tz_str=tz_str)
 
 
         if self.author != self.target:
@@ -150,7 +155,7 @@ class Reminder:
         return eb
 
 
-    async def get_embed(self, client, is_dm=False):
+    async def get_embed(self, client, is_dm=False, tz_str='UTC'):
         """return embed of this reminders
            will resolve user mentions.
            Used for elapsed reminders
@@ -174,7 +179,7 @@ class Reminder:
             author = None
             title = f'Reminder'
 
-        eb = self._get_embed_body(title, author)
+        eb = self._get_embed_body(title, author=author, tz_str=tz_str)
 
         if self.g_id and self.last_msg_id:
             url = f'https://discord.com/channels/{self.g_id}/{self.ch_id}/{self.last_msg_id}'

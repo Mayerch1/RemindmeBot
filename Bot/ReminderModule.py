@@ -82,11 +82,28 @@ class ReminderModule(commands.Cog):
             conv_int = None
         finally:
             return conv_int
+
+
+    @staticmethod
+    def delta_to_str(delta):
+            ret_str = ''
+            secs = delta.total_seconds()
+
+            hours, rem = divmod(secs, 3600)
+            mins, secs = divmod(rem, 60)
+            
+            if hours > 48:
+                return '{:d} days ({:02d} hours)'.format(int(hours/24), int(hours))
+            elif hours > 0:
+                return '{:02d} h {:02d} m'.format(int(hours), int(mins))
+            else:
+                return '{:d} minutes'.format(int(mins))
     
 
     # =====================
     # internal functions
     # =====================
+
 
     def __init__(self, client):
         self.client = client
@@ -127,10 +144,10 @@ class ReminderModule(commands.Cog):
                 await dm.send(rem.get_string())
             except discord.errors.Forbidden:
                 print(f'failed to send reminder as DM fallback')
+                Analytics.reminder_not_delivered(rem)
 
 
     async def print_reminder(self, rem: Reminder):
-
         # reminder is a DM reminder
         if not rem.g_id:
             await self.print_reminder_dm(rem)
@@ -173,22 +190,6 @@ class ReminderModule(commands.Cog):
 
         err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
         await self.print_reminder_dm(rem, err)
-
-
-    @staticmethod
-    def delta_to_str(delta):
-            ret_str = ''
-            secs = delta.total_seconds()
-
-            hours, rem = divmod(secs, 3600)
-            mins, secs = divmod(rem, 60)
-            
-            if hours > 48:
-                return '{:d} days ({:02d} hours)'.format(int(hours/24), int(hours))
-            elif hours > 0:
-                return '{:02d} h {:02d} m'.format(int(hours), int(mins))
-            else:
-                return '{:d} minutes'.format(int(mins))
 
 
     async def process_reminder(self, ctx, author, target, period, message):

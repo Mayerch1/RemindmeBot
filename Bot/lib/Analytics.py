@@ -115,6 +115,11 @@ class Analytics:
         'unexpected_exception_cnt', 'Hold all caught unhandled exceptions',
         ['shard', 'ex_type']
     )
+    
+    UNDELIVERED_REMINDER = Counter(
+        'undelivered_reminders', 'Reminders which couldn\'t be shown to the user',
+        ['shard', 'type', 'scope', 'target']
+    )
 
     app = Flask(__name__)
 
@@ -182,6 +187,10 @@ class Analytics:
     @staticmethod
     def reminder_deleted(action: Types.DeleteAction, shard:int =0):
         Analytics.REMINDER_DELETED_CNT.labels(str(shard), Types.ReminderType.ONE_SHOT.name, action.name).inc()
+        
+    @staticmethod
+    def interval_deleted(action: Types.DeleteAction, shard:int =0):
+        Analytics.REMINDER_DELETED_CNT.labels(str(shard), Types.ReminderType.REPEATING.name, action.name).inc()
 
     @staticmethod
     def guild_added():
@@ -224,3 +233,23 @@ class Analytics:
         ex_type = type(exception).__name__
         print(f'exposing exception counter \'{ex_type}\'')
         Analytics.UNEXPECTED_EXCEPTION.labels(str(shard), ex_type).inc()
+        
+    @staticmethod
+    def reminder_not_delivered(reminder, shard:int = 0):
+        
+        if isinstance(reminder, IntervalReminder):
+            r_type = Types.ReminderType.REPEATING
+        else:
+            r_type = Types.ReminderType.ONE_SHOT
+
+        if reminder.author == reminder.target:
+            r_tgt = Types.ReminderTarget.SELF
+        else:
+            r_tgt = Types.ReminderTarget.FOREIGN
+
+        if reminder.g_id:
+            r_scope = Types.ReminderScope.GUILD
+        else:
+            r_scope = Types.ReminderScope.PRIVATE
+
+        Analytics.UNDELIVERED_REMINDER.labels(str(shard), r_type.name, r_scope.name, r_tgt.name).inc()
