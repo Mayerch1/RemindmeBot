@@ -16,7 +16,7 @@ from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 from lib.Connector import Connector
-from lib.Reminder import Reminder
+from lib.Reminder import Reminder, IntervalReminder
 import lib.input_parser
 import lib.ReminderRepeater
 
@@ -210,29 +210,42 @@ class ReminderModule(commands.Cog):
         
         utcnow = datetime.utcnow()
         remind_at, info = lib.input_parser.parse(period, utcnow, tz_str)
+        rrule = None
+        
+        if isinstance(remind_at, datetime):
+            interval = (remind_at - utcnow)
+            if remind_at is None or interval <= timedelta(hours=0):
+                if info != '':
+                    out_str = f'```Parsing hints:\n{info}```\n'
+                else:
+                    out_str = ''
 
-        interval = remind_at - utcnow
-        if interval <= timedelta(hours=0):
+                if interval == timedelta(hours=0):
+                    # only append full help on invalid strings
+                    # not on negative intervals
+                    out_str += ReminderModule.REMIND_FORMAT_HELP
+                out_str += ReminderModule.HELP_FOOTER
+                
+                embed = discord.Embed(title='Failed to create the reminder', description=out_str)
+                await ctx.send(embed=embed, hidden=True)
+                
+                if interval == timedelta(hours=0):
+                    Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)
+                else:
+                    Analytics.reminder_creation_failed(Types.CreationFailed.PAST_DATE)
+                return  # error exit
+        elif remind_at is None:
             if info != '':
                 out_str = f'```Parsing hints:\n{info}```\n'
             else:
                 out_str = ''
-
-            if interval == timedelta(hours=0):
-                # only append full help on invalid strings
-                # not on negative intervals
-                out_str += ReminderModule.REMIND_FORMAT_HELP
             out_str += ReminderModule.HELP_FOOTER
-            
             embed = discord.Embed(title='Failed to create the reminder', description=out_str)
             await ctx.send(embed=embed, hidden=True)
-            
-            if interval == timedelta(hours=0):
-                Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)
-            else:
-                Analytics.reminder_creation_failed(Types.CreationFailed.PAST_DATE)
-
-            return
+            Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
+            return  
+        elif isinstance(remind_at, str):
+            rrule, info = lib.input_parser.rrule_normalize(remind_at, utcnow)
 
         await ctx.defer() # allow more headroom for response latency, before command fails
         rem = Reminder()
@@ -251,6 +264,7 @@ class ReminderModule(commands.Cog):
         
         rem.created_at = utcnow
         rem.last_msg_id = last_msg.id if last_msg else None
+        
 
         if isinstance(target, int):
             # use user-mention (no &) as fallback
@@ -273,26 +287,37 @@ class ReminderModule(commands.Cog):
             else:
                 rem.target_mention = target.mention
 
-        # the id is required in case the users wishes to abort
-        rem_id = Connector.add_reminder(rem)
+        if rrule:
+            old_rem = rem
+            old_rem.at = utcnow
+            rem = IntervalReminder(old_rem._to_json())
+            rem.first_at = old_rem.at
+            rem.rrules.append(str(rrule))
+            
+            rem.at = rem.next_trigger(utcnow)
 
-        Analytics.reminder_created(rem)
+            rem_id = Connector.add_interval(rem)
+            Analytics.reminder_created(rem, direct_interval=True)
+        else:
+            # the id is required in case the users wishes to abort
+            rem_id = Connector.add_reminder(rem)
+            Analytics.reminder_created(rem)
         
         # convert reminder period to readable delta
         # convert utc date into readable local time (locality based on server settings)
-        delta_str = ReminderModule.delta_to_str(remind_at-utcnow)
+        delta_str = ReminderModule.delta_to_str(rem.at-utcnow)
         if tz_str == 'UTC':
             # this workaround is required, as system uses german term for UTC
-            at_str = remind_at.strftime('%Y/%m/%d %H:%M UTC')
+            at_str = rem.at.strftime('%Y/%m/%d %H:%M UTC')
         else:
-            at_str = remind_at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)).strftime('%Y/%m/%d %H:%M %Z')
+            at_str = rem.at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)).strftime('%Y/%m/%d %H:%M %Z')
 
         if target == author:
             out_str = f'Reminding you in `{delta_str}` at `{at_str}`.'
         else:
              out_str = f'Reminding {rem.target_mention} in `{delta_str}` at `{at_str}`.'
       
-        if (remind_at-utcnow) < timedelta(minutes=5):
+        if (rem.at-utcnow) < timedelta(minutes=5):
             out_str += '\nCall `/reminder_list` to edit all pending reminders'
 
         if info:
@@ -302,7 +327,7 @@ class ReminderModule(commands.Cog):
         buttons = [
             manage_components.create_button(
                 style=ButtonStyle.primary,
-                label='Set Interval',
+                label='Edit Interval' if isinstance(rem, IntervalReminder) else 'Set Interval',
                 custom_id=f'direct-interval_{rem_id}',
                 emoji='🔁'
             ),
@@ -338,7 +363,7 @@ class ReminderModule(commands.Cog):
             return 
 
         # make sure the user owns the reminder
-        author_id = Connector.get_reminder_author_id(rem_id)
+        author_id = Connector.get_author_of_id(rem_id)
         if not author_id:
             await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was deleted', hidden=True)
             return

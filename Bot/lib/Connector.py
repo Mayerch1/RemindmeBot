@@ -158,12 +158,30 @@ class Connector:
             return Reminder.Reminder(reminder)
         else:
             return None
+        
+    @staticmethod
+    def get_interval_by_id(interval_id):
+
+        interval = Connector.db.intervals.find_one({'_id': interval_id})
+
+        if interval:
+            return Reminder.IntervalReminder(interval)
+        else:
+            return None
 
 
     @staticmethod
-    def get_reminder_author_id(reminder_id):
+    def get_author_of_id(reminder_id):
+        """return the author id of the given reminder id
+           can be a plain reminder or an interval
+           
+           None if id not found
+        """
 
         reminder = Connector.db.reminders.find_one({'_id': reminder_id}, {'author': 1})
+        
+        if not reminder:
+            reminder = Connector.db.intervals.find_one({'_id': reminder_id}, {'author': 1})
 
         if reminder:
             return int(reminder['author'])

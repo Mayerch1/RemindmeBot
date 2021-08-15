@@ -206,12 +206,12 @@ class BasicParseTest(unittest.TestCase):
     def test_overflow_iso(self):
         # iso overflow must not throw an exception either
         at, _ = p.parse('10000-08-05T15:21:21Z', self.utcnow)
-        self.assertEqual(at, self.utcnow)
+        self.assertEqual(at, self.utcnow+timedelta(hours=1)) # parser will return +1 on error
 
 
     def test_overflow_fuzzy(self):
         # fuzzy parser must not throw exception on overflow
-        at, _ = p.parse('1st august 10000', self.utcnow)
+        at, _ = p.parse('00:00 1st jan 10000', self.utcnow)
         self.assertEqual(at, self.utcnow)
 
 
@@ -222,6 +222,6 @@ class BasicParseTest(unittest.TestCase):
 
         # choose target date which is out of unix epoch
         # but doesn't overflow the datetime object
-        at, _ = p.parse('1st August 5000', self.utcnow)
+        at, _ = p.parse('00:00 1st jan 5000', self.utcnow)
         self.assertEqual(at, self.utcnow)
 

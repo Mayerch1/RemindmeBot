@@ -147,7 +147,7 @@ class Analytics:
     #=========================
 
     @staticmethod
-    def reminder_created(reminder: Reminder, shard:int =0, from_interval=False):
+    def reminder_created(reminder: Reminder, shard:int =0, from_interval=False, direct_interval=False):
         
         if isinstance(reminder, IntervalReminder):
             r_type = Types.ReminderType.REPEATING
@@ -166,7 +166,7 @@ class Analytics:
 
         if from_interval:
             r_creation = Types.ReminderCreation.FROM_REPEATING
-        elif isinstance(reminder, IntervalReminder):
+        elif isinstance(reminder, IntervalReminder) and not direct_interval:
             r_creation = Types.ReminderCreation.FROM_ONE_SHOT
         else:
             r_creation = Types.ReminderCreation.NEW

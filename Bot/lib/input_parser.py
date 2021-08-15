@@ -5,6 +5,28 @@ from datetime import datetime, timedelta
 import dateutil.parser
 from dateutil.relativedelta import *
 from dateutil import tz
+import dateutil.rrule as rr
+from parsedatetime import parsedatetime
+
+from recurrent.src.recurrent.event_parser import RecurringEvent
+
+
+_parse_consts = parsedatetime.Constants(localeID='en_US', usePyICU=True)
+_parse_consts.useMeridian = False
+_parse_consts.use24 = True
+_parse_consts.dateFormats = {
+    'full': 'EEEE, d. MMMM yyyy',
+    'long': 'd. MMMM yyyy',
+    'medium': 'dd.MM.yyyy',
+    'short': 'dd.MM.yy',
+}
+_parse_consts.timeFormats = {
+    'full': 'HH:mm:ss v',
+    'long': 'HH:mm:ss z',
+    'medium': 'HH:mm:ss',
+    'short': 'HH:mm',
+}
+_parse_consts.dp_order = ['d', 'm', 'y']
 
 
 def num_to_emoji(num: int):
@@ -250,17 +272,37 @@ def _parse_fuzzy(input, utcnow, display_tz):
                          info string for parsing errors/warnings
     """
 
-    try:
-        remind_parse = dateutil.parser.parse(input, fuzzy=True, dayfirst=True, yearfirst=False)
+    info = ''
+
+    r = RecurringEvent(now_date=utcnow, preferred_time_range=(0,12), parse_constants=_parse_consts)
+    remind_parse = r.parse(input)
+
+    if remind_parse is None:
+        # try additional approach
+        # this is mainly executed to get a verbose error message
+        # which is not provided by recurrent
+        try:
+            remind_parse = dateutil.parser.parse(input, fuzzy=True, dayfirst=True, yearfirst=False)
+        except dateutil.parser.ParserError as e:
+            info = '• ' + ' '.join(e.args)
+            remind_parse = None
+        except Exception as e:
+            remind_parse = None
+            info = '• Unexpected parser error occurred ({:s})'.format(''.join(e.args))
+        else:
+            info = ''
+    
+    remind_at = None
+    if isinstance(remind_parse, datetime):
         remind_parse = remind_parse.replace(tzinfo=display_tz)
-    except dateutil.parser.ParserError as e:
-        info = '• ' + ' '.join(e.args)
-        remind_parse = None
-    except Exception as e:
-        remind_parse = None
-        info = '• Unexpected parser error occurred ({:s})'.format(''.join(e.args))
-    else:
-        info = ''
+        remind_utc = remind_parse.astimezone(tz.UTC)
+        remind_at = remind_utc.replace(tzinfo=None)
+    elif isinstance(remind_parse, str):
+        remind_at = remind_parse
+    
+    return (remind_at, info, None)
+    
+    
 
     # convert the given time from timezone to UTC
     # the resulting remind_at is not timezone aware
@@ -287,8 +329,11 @@ def parse(input, utcnow, timezone='UTC'):
         e: [description]
 
     Returns:
-        (Datetime, str): Datetime: input target, returns utcnow on failure, might return dates in the past
+        (Datetime, str): Datetime: input target, returns utcnow on failure, might return dates in the past, can be None
                          str: info string on why the parser failed/ignored parts of the input
+ 
+        (str, str):      str: rrule of reocurring event, can be None
+                         str: info string on why the parser failed/gnored parst of the input
     """
     err = False
 
@@ -323,12 +368,12 @@ def parse(input, utcnow, timezone='UTC'):
         early_abort = (ex != None)
 
     # negative intervals are not allowed
-    if remind_at < utcnow:
+    if isinstance(remind_at, datetime) and remind_at < utcnow:
         info += '• the given date must be in the future\n'
         info += '  current utc-time is:  {:s}\n'.format(utcnow.strftime('%Y-%m-%d %H:%M'))
         info += '  interpreted input is: {:s}\n'.format(remind_at.strftime('%Y-%m-%d %H:%M'))
         # return negative intervals, but keep warning
-    else:
+    elif isinstance(remind_at, datetime):
         # protect against out of epoch dates
         try:
             datetime.timestamp(remind_at)
@@ -338,3 +383,41 @@ def parse(input, utcnow, timezone='UTC'):
             return (utcnow, info)
 
     return (remind_at, info)
+
+
+
+def rrule_normalize(rrule_str, dtstart):
+    """generate the rrule of the given rrule string
+       if the string contains timezone based offsets (iso dates)
+       they are converted into the non-timezone aware utc equivalent
+
+    Args:
+        rule_str ([type]): [description]
+        dtstart ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+
+    try:
+        rule = rr.rrulestr(rrule_str)
+    except Exception as e:
+        return None, str(e)
+
+    until = rule._until
+    until_utc = None
+
+    if until:
+        # convert the until date to non-tz aware
+        until_utc = until.astimezone(tz.UTC)
+        until_utc = until_utc.replace(tzinfo=None)
+
+    try:
+        rule = rr.rrulestr(rrule_str, dtstart=dtstart, ignoretz=True)
+    except Exception as e:
+        return None, str(e)
+
+    if until_utc:
+        rule = rule.replace(until=until_utc)
+
+    return rule, None

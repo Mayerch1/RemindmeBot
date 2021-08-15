@@ -192,7 +192,6 @@ async def _wait_rrule_input(stm):
     """
 
     dtstart = stm.reminder.first_at if isinstance(stm.reminder, IntervalReminder) else stm.reminder.at
-    beta_limit = datetime(year=2022, month=1, day=1, hour=0, minute=0, second=0)
 
     def msg_check(msg):
         return msg.channel.id == stm.dm.id and\
@@ -210,7 +209,7 @@ async def _wait_rrule_input(stm):
         # test if the rule is valid by RFC
         # next check if the selected parameters
         # are within the allowed range,
-        rule, error = _rule_normalize(rrule_input, dtstart)
+        rule, error = lib.input_parser.rrule_normalize(rrule_input, dtstart)
         
         if not rule and error:
             embed = discord.Embed(title='Invalid rrule',
@@ -733,7 +732,10 @@ async def spawn_interval_setup(client, ctx: ComponentContext, reminder_id: Objec
     """
 
     dm = await ctx.author.create_dm()
+    
     reminder = Connector.get_reminder_by_id(reminder_id)
+    if not reminder:
+        reminder = Connector.get_interval_by_id(reminder_id)
 
 
     if not ctx.guild_id:
