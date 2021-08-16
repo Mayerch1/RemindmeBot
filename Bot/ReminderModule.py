@@ -228,6 +228,7 @@ class ReminderModule(commands.Cog):
                 out_str = f'```Parsing hints:\n{info}```\n'
             else:
                 out_str = ''
+            out_str += ReminderModule.REMIND_FORMAT_HELP
             out_str += ReminderModule.HELP_FOOTER
             embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
             await ctx.send(embed=embed, hidden=True)
@@ -240,6 +241,7 @@ class ReminderModule(commands.Cog):
                     out_str = f'```Parsing hints:\n{info}```\n'
                 else:
                     out_str = ''
+                out_str += ReminderModule.REMIND_FORMAT_HELP
                 out_str += ReminderModule.HELP_FOOTER
                 embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
                 await ctx.send(embed=embed, hidden=True)
