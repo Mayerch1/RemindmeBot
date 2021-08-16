@@ -377,6 +377,9 @@ class ReminderModule(commands.Cog):
             if Connector.delete_reminder(rem_id):
                 await ctx.send('Deleted the reminder', hidden=True)
                 Analytics.reminder_deleted(Types.DeleteAction.DIRECT_BTN) 
+            elif Connector.delete_interval(rem_id):
+                await ctx.send('Deleted the reminder', hidden=True)
+                Analytics.interval_deleted(Types.DeleteAction.DIRECT_BTN) 
             else:
                 await ctx.send('Failed to delete reminder due to an unknown issue', hidden=True)
         elif command == 'direct-interval':
