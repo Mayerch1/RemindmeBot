@@ -1,0 +1,3 @@
+[submodule "Bot/lib/recurrent"]
+	path = Bot/lib/recurrent
+	url = https://github.com/Mayerch1/recurrent
