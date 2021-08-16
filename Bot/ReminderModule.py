@@ -36,6 +36,9 @@ class ReminderModule(commands.Cog):
                 '\t/remind @User 1 mon What\'s up\n'\
                 '\t/remind @User 24 dec Merry Christmas\n'\
                 '\t/remind @Role eoy Happy new year\n'\
+                '\n'\
+                '\t/remindme every friday at 20:15 do stuff\n'\
+                '\t/remind @User every year at 1st july happy birthday\n'\
                 '\n\n'\
                 'allowed absolutes are\n'\
                 '\t• eoy - remind at end of year\n'\
@@ -62,6 +65,7 @@ class ReminderModule(commands.Cog):
                 '\t• 5 jul, 5th july, july 5\n'\
                 '\t• 23 sept at 3pm, 23 sept at 15:00\n'\
                 '\t• 2030\n'\
+                '\t• every other week\n'\
                 '\tNote: the parser uses day-first and year-least\n'\
                 '\t      (01/02/21 -> 1st January 2021)\n'\
                 '\n'\

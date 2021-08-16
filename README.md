@@ -21,6 +21,15 @@ This is a recently introduced discord permission, and can control the access to 
 
 ## Create Repeating intervals
 
+There's two ways of setting interval reminders. Through natural language, or by directly inputting `rrules` based on `rfc5545`.
+
+### Natural Language
+
+Create a reminder with `/remindme` or `/remind` and specify the interval as natural language when setting the `time` argument.
+This could be e.g. `every week` or `first monday each month` or `every friday at 20`.
+
+### Inputting Rules
+
 Create a "normal" interval with `/remindme` or `/remind` and set the `time` argument to be the first occurrence of your repeating event.
 You can then press the `Set Interval` button to add repeating rules for the event.
 
@@ -50,6 +59,9 @@ The bot supports the full `rfc5545`-spec (the smallest interval is limited to da
 /remind @User 1 mon What's up
 /remind @Role 24 dec Merry Christmas
 /remind @everyone eoy Happy new year
+
+/remindme every friday at 20:15 do stuff
+/remind @User every year at 1st july happy birthday
 ```
 
 ## Time parsing

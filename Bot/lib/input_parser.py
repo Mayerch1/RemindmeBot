@@ -8,7 +8,7 @@ from dateutil import tz
 import dateutil.rrule as rr
 from parsedatetime import parsedatetime
 
-from recurrent.src.recurrent.event_parser import RecurringEvent
+from lib.recurrent.src.recurrent.event_parser import RecurringEvent
 
 
 _parse_consts = parsedatetime.Constants(localeID='en_US', usePyICU=True)
