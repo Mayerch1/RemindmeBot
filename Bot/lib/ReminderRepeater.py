@@ -223,16 +223,6 @@ async def _wait_rrule_input(stm):
                                   description='Unknown error occurred while parsing the rrule.\nPlease try again.')
             stm.q_msg = await stm.dm.send(embed=embed)
             continue
-
-
-        if 'hourly' in rrule_input or\
-             'minutely' in rrule_input or\
-             'secondly' in rrule_input:
-
-            embed = discord.Embed(title='Invalid rrule',
-                                  color=0xff0000,
-                                  description='Hourly repetitions are not supported in beta.')
-            stm.q_msg = await stm.dm.send(embed=embed)
         else:
             return rule
 
@@ -534,8 +524,6 @@ async def _show_rule_deletion(stm):
             set_stm_reminder_comps(stm, selected_idx)
             await stm.q_msg.edit(components=[*stm.navigation_rows])
 
-            # TODO: show more info for selected role
-            pass
         elif intvl_ctx.custom_id == 'repeater_del_return':
             return False
         else:

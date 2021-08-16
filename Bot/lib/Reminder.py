@@ -85,6 +85,50 @@ class Reminder:
         return d
 
 
+    
+    def get_interval_string(self, now=None):
+        """get a string describing the interval until reminder is triggered
+           if self.at is None, returns verbose string showing no future occurrence
+
+        Returns:
+            [str]: [description]
+        """
+
+        if not self.at:
+            return 'No future occurrence'
+        
+        if not now:
+            now = datetime.utcnow()  
+          
+        delta = self.at - now
+        total_secs = int(max(0, delta.total_seconds()))
+
+        hours, rem = divmod(total_secs, 3600)
+        mins, secs = divmod(rem, 60)
+        
+        days, rem = divmod(total_secs, 3600*24)
+        hour_days = int(rem/3600)
+        
+        weeks, rem = divmod(total_secs, 3600*24*7)
+        days_weeks = int(rem/(3600*24))
+        
+        years, rem = divmod(total_secs, 3600*24*365)
+        weeks_years = int(rem/(3600*24*7))
+
+
+        if weeks > 104:
+            return '{:d} years and {:d} weeks'.format(years, weeks_years)
+        elif weeks > 10:
+            return '{:d} weeks and {:d} days'.format(weeks, days_weeks)
+        elif days > 14:
+            return '{:d} days and {:d} hours'.format(days, hour_days)
+        elif hours > 48:
+            return '{:d} days ({:02d} hours)'.format(int(hours/24), int(hours))
+        elif hours > 0:
+            return '{:02d} h {:02d} m'.format(int(hours), int(mins))
+        else:
+            return '{:d} minutes'.format(int(mins))
+
     def get_string(self):
         """return string description of this reminder
 
@@ -223,6 +267,30 @@ class IntervalReminder(Reminder):
             d['first_at'] = datetime.timestamp(self.first_at)
 
         return d
+
+
+    async def get_embed(self, client, is_dm=False, tz_str='UTC'):
+        """return embed of this reminders
+           will resolve user mentions.
+           Used for elapsed reminders
+
+        Args:
+            client ([type]): bot client object, for resolving user names
+            is_dm (bool, optional): legacy, is ignored
+
+        Returns:
+            discord.Embed: embed of reminder
+        """
+        
+        eb = await super().get_embed(client, is_dm, tz_str)
+        
+        
+        in_str = self.get_interval_string()
+        prefix = 'Next in ' if self.at else ''
+        
+        eb.set_footer(text=f'{prefix}{in_str}', icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
+        
+        return eb
 
 
     def get_rule_cnt(self):

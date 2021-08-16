@@ -84,21 +84,6 @@ class ReminderModule(commands.Cog):
             return conv_int
 
 
-    @staticmethod
-    def delta_to_str(delta):
-            ret_str = ''
-            secs = delta.total_seconds()
-
-            hours, rem = divmod(secs, 3600)
-            mins, secs = divmod(rem, 60)
-            
-            if hours > 48:
-                return '{:d} days ({:02d} hours)'.format(int(hours/24), int(hours))
-            elif hours > 0:
-                return '{:02d} h {:02d} m'.format(int(hours), int(mins))
-            else:
-                return '{:d} minutes'.format(int(mins))
-    
 
     # =====================
     # internal functions
@@ -226,7 +211,7 @@ class ReminderModule(commands.Cog):
                     out_str += ReminderModule.REMIND_FORMAT_HELP
                 out_str += ReminderModule.HELP_FOOTER
                 
-                embed = discord.Embed(title='Failed to create the reminder', description=out_str)
+                embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
                 await ctx.send(embed=embed, hidden=True)
                 
                 if interval == timedelta(hours=0):
@@ -240,12 +225,22 @@ class ReminderModule(commands.Cog):
             else:
                 out_str = ''
             out_str += ReminderModule.HELP_FOOTER
-            embed = discord.Embed(title='Failed to create the reminder', description=out_str)
+            embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
             await ctx.send(embed=embed, hidden=True)
             Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
             return  
         elif isinstance(remind_at, str):
             rrule, info = lib.input_parser.rrule_normalize(remind_at, utcnow)
+            if not rrule:
+                if info != '':
+                    out_str = f'```Parsing hints:\n{info}```\n'
+                else:
+                    out_str = ''
+                out_str += ReminderModule.HELP_FOOTER
+                embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
+                await ctx.send(embed=embed, hidden=True)
+                Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
+                return  
 
         await ctx.defer() # allow more headroom for response latency, before command fails
         rem = Reminder()
@@ -305,7 +300,7 @@ class ReminderModule(commands.Cog):
         
         # convert reminder period to readable delta
         # convert utc date into readable local time (locality based on server settings)
-        delta_str = ReminderModule.delta_to_str(rem.at-utcnow)
+        delta_str = rem.get_interval_string(utcnow)
         if tz_str == 'UTC':
             # this workaround is required, as system uses german term for UTC
             at_str = rem.at.strftime('%Y/%m/%d %H:%M UTC')
@@ -317,8 +312,8 @@ class ReminderModule(commands.Cog):
         else:
              out_str = f'Reminding {rem.target_mention} in `{delta_str}` at `{at_str}`.'
       
-        if (rem.at-utcnow) < timedelta(minutes=5):
-            out_str += '\nCall `/reminder_list` to edit all pending reminders'
+        out_str += '\nCall `/reminder_list` to edit all pending reminders'
+        out_str += '\n**Note:** The parsing behaviour changed recently, make sure the reminder was parsed correctly'
 
         if info:
             out_str += f'\n```Parsing hints:\n{info}```'

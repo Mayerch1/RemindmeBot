@@ -396,7 +396,7 @@ def rrule_normalize(rrule_str, dtstart):
         dtstart ([type]): [description]
 
     Returns:
-        [type]: [description]
+        (rule, str): normalized rule (to utc) None on failure, error string
     """
 
     try:
@@ -419,5 +419,13 @@ def rrule_normalize(rrule_str, dtstart):
 
     if until_utc:
         rule = rule.replace(until=until_utc)
-
-    return rule, None
+        
+        
+    norm_str = str(rule).lower()
+    
+    if 'hourly' in norm_str or\
+       'minutely' in norm_str or\
+       'secondly' in norm_str:     
+        return (None, 'Hourly repetitions are not supported in beta. Join the support server (`/help`) to request access.')
+    else:
+        return rule, None
