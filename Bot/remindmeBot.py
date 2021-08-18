@@ -8,13 +8,6 @@ from discord_slash.utils.manage_commands import create_option, create_choice
 from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
-import difflib
-from datetime import datetime
-from dateutil import tz
-from dateutil.zoneinfo import getzoneinfofile_stream, ZoneInfoFile
-
-from pytz import common_timezones as pytz_common_timezones
-
 from lib.Connector import Connector
 from lib.Analytics import Analytics
 
@@ -41,6 +34,7 @@ async def on_slash_command_error(ctx, error):
         Analytics.register_exception(error)
         raise error
 
+
 @client.event
 async def on_command_error(cmd, error):
 
@@ -52,164 +46,6 @@ async def on_command_error(cmd, error):
         print(error)
         Analytics.register_exception(error)
         raise error
-
-
-
-async def get_timezone(ctx, instance_id):
-    await ctx.send('Timezone is set to `{:s}`'.format(Connector.get_timezone(instance_id)), hidden=True)
-
-
-async def set_timezone(ctx, instance_id, value):
-
-    def get_tz_error_str(zone, closest_tz):
-
-        err_str = 'The timezone `{:s}` is not valid'.format(zone)
-        if closest_tz:
-            err_str += '\nDid you mean `{:s}`?'.format('`, `'.join(closest_tz))
-
-        err_str += '\n\nYou can have a look at all available timezones on this wikipedia list '\
-                  'https://en.wikipedia.org/wiki/List_of_tz_database_time_zones'
-
-        return err_str
-
-    def get_tz_error_eb(zone, closest_tz):
-
-        if closest_tz:
-            tz_propose = 'Did you mean `{:s}`?'.format('`, `'.join(closest_tz))
-        else:
-            tz_propose = ''
-
-        eb = discord.Embed(title='Invalid Timezone configuration',
-                           color=0xde4b55,
-                           description=f'The timezone `{zone}` is not valid\n'\
-                                       f'{tz_propose}\n'\
-                                       f'You can have a look at all available timezones on this wikipedia '\
-                                        '[list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)')
-
-        return eb
-
-
-    def get_tz_info_str(zone, name):
-
-        offset = datetime.now(zone).strftime('%z')
-        out_str = f'Timezone is now set to `{name}` (`UTC{offset}`)'
-
-        if re.match(r'^UTC\+\d+$', name):
-            out_str += '\n• Consider using your local timezone (instead of `UTC+X`), in order to automatically adjust to daylight-saving*'
-        elif name.lower() == 'mst':
-            out_str += '\n• Consider using `MST7MDT` to respect daylight saving during winter'
-        elif name.lower() == 'est':
-            out_str += '\n• Consider using `EST5EDT` to respect daylight saving during winter'
-
-        if name not in pytz_common_timezones:
-            out_str += f'\n• `{name}` seems to be a deprecated timezone and could be discontinued in future versions.\n'\
-                       f'• Try and use a geo-referenced timezone that _observes_ `{name}` instead (e.g. `Europe/Berlin`)'
-
-        return out_str
-
-
-    def get_tz_info_eb(zone, name):
-
-        offset = datetime.now(zone).strftime('%z')
-        local_time = datetime.now(zone).strftime('%H:%M')
-
-        info_str = ''
-        if re.match(r'^UTC\+\d+$', name):
-            info_str += '\n• Consider using your local timezone (instead of `UTC+X`), in order to automatically adjust to daylight-saving*'
-        elif name.lower() == 'mst':
-            info_str += '\n• Consider using `MST7MDT` to respect daylight saving during winter'
-        elif name.lower() == 'est':
-            info_str += '\n• Consider using `EST5EDT` to respect daylight saving during winter'
-
-        if name not in pytz_common_timezones:
-            info_str += f'\n• `{name}` seems to be a deprecated timezone and could be discontinued in future versions.\n'\
-                       f'• Try and use a geo-referenced timezone that _observes_ `{name}` instead (e.g. `Europe/Berlin`)'
-
-        if not info_str:
-            # no warnings means green embed
-            col = 0x69eb67
-        else:
-            # some non-critical warnings will show slightly yellow embed
-            col = 0xcceb67
-
-        eb = discord.Embed(title='Timezone configuration',
-                           color=col,
-                           description=f'The timezone is now set to `{name}` (`UTC{offset}`)\n'\
-                                       f'This corresponds to a local time of `{local_time}`\n'\
-                                       f'{info_str}')
-        
-        return eb
-
-
-    tz_obj = tz.gettz(value)
-  
-    if tz_obj:
-        Connector.set_timezone(instance_id, value)
-
-        try:
-            await ctx.send(embed=get_tz_info_eb(tz_obj, value))
-        except discord.errors.Forbidden as e:
-            await ctx.send(get_tz_info_str(tz_obj, value))
-
-    else:
-        all_zones = list(ZoneInfoFile(getzoneinfofile_stream()).zones.keys())
-        closest_tz = difflib.get_close_matches(value, all_zones, n=4)
-
-        if value.lower() == 'pst':
-            closest_tz = ['PST8PDT']  # manual override
-        elif value.lower() == 'cst':
-            closest_tz = ['CST6CDT']  # manual override
-
-        try:
-            await ctx.send(embed=get_tz_error_eb(value, closest_tz), hidden=True)
-        except discord.errors.Forbidden as e:
-            await ctx.send(get_tz_error_str(value, closest_tz), hidden=True)
-        
-
-
-@client.slash.slash(name='timezone', description='Set the timezone of this server',
-                    options=[
-                        create_option(
-                            name='mode',
-                            description='choose to get/set the timezone',
-                            required=True,
-                            option_type=SlashCommandOptionType.STRING,
-                            choices=[
-                                create_choice(
-                                    name='get',
-                                    value='get'
-                                ),
-                                create_choice(
-                                    name='set',
-                                    value='set'
-                                )
-                            ]
-
-                        ),
-                        create_option(
-                            name='timezone',
-                            description='string code for your time-zone, only when using set',
-                            required=False,
-                            option_type=SlashCommandOptionType.STRING
-                        )
-                    ]) 
-async def set_timezone_cmd(ctx, mode, timezone=None):
-
-    # if no guild is present
-    # assume dm context
-    if ctx.guild:
-        instance_id = ctx.guild.id
-    else:
-        instance_id = ctx.author.id
-
-    if mode == 'get':
-        await get_timezone(ctx, instance_id)
-    else:
-        if not timezone:
-            await ctx.send('You need to specify the `timezone` parameter for this `mode`', hidden=True)
-            return
-
-        await set_timezone(ctx, instance_id, timezone)
 
 
 @client.event
@@ -255,6 +91,7 @@ def main():
     client.load_extension(f'ReminderModule')
     client.load_extension(f'ReminderListing')
     client.load_extension(f'HelpModule')
+    client.load_extension(f'TimezoneModule')
     client.run(token)
 
 

@@ -120,6 +120,12 @@ class Analytics:
         'undelivered_reminders', 'Reminders which couldn\'t be shown to the user',
         ['shard', 'type', 'scope', 'target']
     )
+    
+    TIMEZONE_SET = Counter(
+        'timezone_set', 'Timezone set by a server',
+        ['shard', 'country_code', 'timezone', 'deprecated']
+    )
+    
 
     app = Flask(__name__)
 
@@ -253,3 +259,8 @@ class Analytics:
             r_scope = Types.ReminderScope.PRIVATE
 
         Analytics.UNDELIVERED_REMINDER.labels(str(shard), r_type.name, r_scope.name, r_tgt.name).inc()
+        
+    @staticmethod
+    def set_timezone(timezone_str: str, country_code: str, deprecated: bool, shard:int = 0):
+        Analytics.TIMEZONE_SET.labels(str(shard), country_code, timezone_str, deprecated).inc()
+    
