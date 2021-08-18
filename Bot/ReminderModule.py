@@ -7,6 +7,7 @@ from dateutil import tz
 from bson import ObjectId
 
 import copy
+from pytz import common_timezones as pytz_common_timezones, country_timezones
 
 import discord
 from discord.ext import commands, tasks
@@ -96,6 +97,12 @@ class ReminderModule(commands.Cog):
 
     def __init__(self, client):
         self.client = client
+        
+        self.timezone_country = {}
+        for countrycode in country_timezones:
+            timezones = country_timezones[countrycode]
+            for timezone in timezones:
+                self.timezone_country[timezone] = countrycode
 
         print('starting reminder event loops')
         self.check_pending_reminders.start()
@@ -298,11 +305,11 @@ class ReminderModule(commands.Cog):
             rem.at = rem.next_trigger(utcnow)
 
             rem_id = Connector.add_interval(rem)
-            Analytics.reminder_created(rem, direct_interval=True)
+            Analytics.reminder_created(rem, country_code=self.timezone_country.get(tz_str, 'UNK'), direct_interval=True)
         else:
             # the id is required in case the users wishes to abort
             rem_id = Connector.add_reminder(rem)
-            Analytics.reminder_created(rem)
+            Analytics.reminder_created(rem, country_code=self.timezone_country.get(tz_str, 'UNK'))
         
         # convert reminder period to readable delta
         # convert utc date into readable local time (locality based on server settings)

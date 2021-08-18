@@ -47,6 +47,11 @@ class Analytics:
         'reminder_created_cnt', 'Created Reminders Count', 
         ['shard', 'type', 'scope', 'target', 'creation_type']
     )
+    
+    REMINDER_CREATED_LOCALE = Counter(
+        'reminder_created_locale', 'Created Reminders Count by Country', 
+        ['shard', 'country_code']
+    )
 
     REMINDER_DURATION = Histogram(
         'reminder_duration', 'Show Duration information of created reminders',
@@ -153,7 +158,7 @@ class Analytics:
     #=========================
 
     @staticmethod
-    def reminder_created(reminder: Reminder, shard:int =0, from_interval=False, direct_interval=False):
+    def reminder_created(reminder: Reminder, shard:int =0, from_interval=False, direct_interval=False, country_code='UNK'):
         
         if isinstance(reminder, IntervalReminder):
             r_type = Types.ReminderType.REPEATING
@@ -186,6 +191,10 @@ class Analytics:
                                                 r_tgt.name, 
                                                 r_creation.name
                                             ).inc()
+        
+        # this is a dedicated counter to reduce the cardinality
+        # of the 'main' counter
+        Analytics.REMINDER_CREATED_LOCALE.labels(str(shard), country_code).inc()
 
         Analytics.REMINDER_DURATION.observe(interval)
 
