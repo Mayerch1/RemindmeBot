@@ -125,7 +125,7 @@ class TimezoneModule(commands.Cog):
             options = [
                 manage_components.create_select_option(
                     label=opt,
-                    #emoji='🔹' if opt in pytz_common_timezones else '🔸',
+                    emoji='🔹' if opt in pytz_common_timezones else '🔸',
                     value=opt) for opt in tz_list
             ]
             
