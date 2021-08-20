@@ -33,8 +33,10 @@ class Connector:
     @staticmethod
     def delete_guild(guild_id: int):
         Connector.db.settings.delete_one({'g_id': str(guild_id)})
-        Connector.db.reminders.delete_many({'g_id': str(guild_id)})
-        Connector.db.intervals.delete_many({'g_id': str(guild_id)})
+        rem_cursor = Connector.db.reminders.delete_many({'g_id': str(guild_id)})
+        intvl_cursor = Connector.db.intervals.delete_many({'g_id': str(guild_id)})
+        
+        return (rem_cursor.deleted_count, intvl_cursor.deleted_count)
 
 
     @staticmethod

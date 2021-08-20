@@ -9,7 +9,7 @@ from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 from lib.Connector import Connector
-from lib.Analytics import Analytics
+from lib.Analytics import Analytics, Types
 
 
 intents = discord.Intents()
@@ -60,8 +60,12 @@ async def on_ready():
 
 @client.event
 async def on_guild_remove(guild):
-    Connector.delete_guild(guild.id)
+    del_rem, del_intvl = Connector.delete_guild(guild.id)
+    
     Analytics.guild_removed()
+    Analytics.reminder_deleted(Types.DeleteAction.KICK, count=del_rem)
+    Analytics.interval_deleted(Types.DeleteAction.KICK, count=del_intvl)
+
     print(f'removed from guild (total count: {len(client.guilds)})')
 
 

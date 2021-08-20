@@ -34,6 +34,7 @@ class Types:
         LISTING = 0
         DIRECT_BTN = 1
         ORPHAN = 2
+        KICK = 3
 
     class CreationFailed(Enum):
         INVALID_F_STR = 0
@@ -200,12 +201,12 @@ class Analytics:
 
 
     @staticmethod
-    def reminder_deleted(action: Types.DeleteAction, shard:int =0):
-        Analytics.REMINDER_DELETED_CNT.labels(str(shard), Types.ReminderType.ONE_SHOT.name, action.name).inc()
+    def reminder_deleted(action: Types.DeleteAction, shard:int =0, count:int = 1):
+        Analytics.REMINDER_DELETED_CNT.labels(str(shard), Types.ReminderType.ONE_SHOT.name, action.name).inc(count)
         
     @staticmethod
-    def interval_deleted(action: Types.DeleteAction, shard:int =0):
-        Analytics.REMINDER_DELETED_CNT.labels(str(shard), Types.ReminderType.REPEATING.name, action.name).inc()
+    def interval_deleted(action: Types.DeleteAction, shard:int =0, count:int = 1):
+        Analytics.REMINDER_DELETED_CNT.labels(str(shard), Types.ReminderType.REPEATING.name, action.name).inc(count)
 
     @staticmethod
     def guild_added():
