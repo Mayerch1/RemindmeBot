@@ -89,7 +89,6 @@ class ReminderModule(commands.Cog):
             return conv_int
 
 
-
     # =====================
     # internal functions
     # =====================
@@ -242,18 +241,20 @@ class ReminderModule(commands.Cog):
             Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
             return  
         elif isinstance(remind_at, str):
-            rrule, info = lib.input_parser.rrule_normalize(remind_at, utcnow)
+            rrule, info = lib.input_parser.rrule_normalize(remind_at, utcnow, instance_id)
             if not rrule:
                 if info != '':
                     out_str = f'```Parsing hints:\n{info}```\n'
                 else:
-                    out_str = ''
-                out_str += ReminderModule.REMIND_FORMAT_HELP
+                    # only show general help, if normalizing doesn't give
+                    # specific error
+                    out_str += ReminderModule.REMIND_FORMAT_HELP
+
                 out_str += ReminderModule.HELP_FOOTER
                 embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
                 await ctx.send(embed=embed, hidden=True)
                 Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
-                return  
+                return
 
         await ctx.defer() # allow more headroom for response latency, before command fails
         rem = Reminder()
@@ -272,7 +273,7 @@ class ReminderModule(commands.Cog):
         
         rem.created_at = utcnow
         rem.last_msg_id = last_msg.id if last_msg else None
-        
+
 
         if isinstance(target, int):
             # use user-mention (no &) as fallback

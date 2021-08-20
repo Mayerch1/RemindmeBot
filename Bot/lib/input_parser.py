@@ -10,6 +10,8 @@ from parsedatetime import parsedatetime
 
 from lib.recurrent.src.recurrent.event_parser import RecurringEvent
 
+HOURLY_WHITELIST = [
+]
 
 _parse_consts = parsedatetime.Constants(localeID='en_US', usePyICU=True)
 _parse_consts.useMeridian = False
@@ -386,7 +388,7 @@ def parse(input, utcnow, timezone='UTC'):
 
 
 
-def rrule_normalize(rrule_str, dtstart):
+def rrule_normalize(rrule_str, dtstart, instance_id=None):
     """generate the rrule of the given rrule string
        if the string contains timezone based offsets (iso dates)
        they are converted into the non-timezone aware utc equivalent
@@ -419,13 +421,15 @@ def rrule_normalize(rrule_str, dtstart):
 
     if until_utc:
         rule = rule.replace(until=until_utc)
-        
-        
+
+
     norm_str = str(rule).lower()
-    
-    if 'hourly' in norm_str or\
-       'minutely' in norm_str or\
-       'secondly' in norm_str:     
+
+    if 'hourly' in norm_str and (instance_id not in HOURLY_WHITELIST):
         return (None, 'Hourly repetitions are not supported in beta. Join the support server (`/help`) to request access.')
+    elif 'minutely' in norm_str:
+        return (None, 'Minutely repetitions are not supported by this bot (yet)')
+    elif 'secondly' in norm_str:
+        return (None, 'Secondly repetitions are classified as spam by the discord TOS.')
     else:
         return rule, None

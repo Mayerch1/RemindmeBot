@@ -24,6 +24,7 @@ class _STM():
         self.client = None
         self.timezone = None
         self.dm = None
+        self.instance_id = None
         self.reminder = None
         self.q_msg = None
         self.navigation_rows = []
@@ -209,7 +210,7 @@ async def _wait_rrule_input(stm):
         # test if the rule is valid by RFC
         # next check if the selected parameters
         # are within the allowed range,
-        rule, error = lib.input_parser.rrule_normalize(rrule_input, dtstart)
+        rule, error = lib.input_parser.rrule_normalize(rrule_input, dtstart, stm.instance_id)
         
         if not rule and error:
             embed = discord.Embed(title='Invalid rrule',
@@ -560,13 +561,14 @@ async def _exit_stm(stm):
     
 
 
-async def _interval_stm(client, dm, reminder, tz_str='UTC'):
+async def _interval_stm(client, dm, reminder, instance_id, tz_str='UTC'):
 
     stm = _STM()
     stm.client = client
     stm.dm = dm
     stm.reminder = reminder
     stm.timezone = tz_str
+    stm.instance_id = instance_id
 
 
     warn_eb = discord.Embed(title='INFO: Experimental Feature',
@@ -701,7 +703,7 @@ async def transfer_interval_setup(client, dm_stm, reminder):
     tz_str = Connector.get_timezone(tz_instance)
 
 
-    await _interval_stm(client, dm, reminder, tz_str)
+    await _interval_stm(client, dm, reminder, tz_str=tz_str, instance_id=tz_instance)
 
     
 async def spawn_interval_setup(client, ctx: ComponentContext, reminder_id: ObjectId):
@@ -718,13 +720,13 @@ async def spawn_interval_setup(client, ctx: ComponentContext, reminder_id: Objec
         ctx (ComponentContext): the component click context  
         reminder_id (ObjectId): id of the requested reminder
     """
-
+    
+    instance_id = ctx.guild.id if ctx.guild else ctx.author.id
     dm = await ctx.author.create_dm()
     
     reminder = Connector.get_reminder_by_id(reminder_id)
     if not reminder:
         reminder = Connector.get_interval_by_id(reminder_id)
-
 
     if not ctx.guild_id:
         tz_str = Connector.get_timezone(ctx.author_id)
@@ -751,4 +753,4 @@ async def spawn_interval_setup(client, ctx: ComponentContext, reminder_id: Objec
     
     await ctx.send('Have a look at your DMs to edit this reminder', hidden=True)
     await test_msg.delete()
-    await _interval_stm(client, dm, reminder, tz_str)
+    await _interval_stm(client, dm, reminder, tz_str=tz_str, instance_id=instance_id)
