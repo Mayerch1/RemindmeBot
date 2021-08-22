@@ -3,6 +3,8 @@ from datetime import datetime
 from dateutil import tz
 import dateutil.rrule as rr
 
+import lib.input_parser
+
 class Reminder:
 
     def __init__(self, json = {}):
@@ -159,7 +161,8 @@ class Reminder:
             else:
                 at_str = self.created_at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)).strftime('%Y/%m/%d %H:%M %Z')
 
-            eb.set_footer(text='created at {:s}'.format(at_str))
+            eb.timestamp = self.created_at
+            eb.set_footer(text='created: ')
 
         if author:
             eb.set_author(name=author.display_name, icon_url=author.avatar_url)
@@ -168,9 +171,40 @@ class Reminder:
             eb.add_field(name='delivered by', value=f'<@!{self.author}>', inline=False)
 
         return eb
+    
+
+    def get_tiny_embed(self, title='New Reminder Created', now=None, info=None, rrule_override=None):
+        """return a tiny info embed of the reminder
+           used upon reminder creation, to not bloat main chat
+           Show interval till next/first trigger
+           
+           rrule_override is ignored
+
+        Returns:
+            [type]: [description]
+        """
+
+        if not now:
+            now = datetime.utcnow()
+        
+        if self.target == self.author:
+            description = 'Reminding you in '
+        else:
+            tgt_str = self.target_name or f'<@!{self.target}>'
+            description = f'Reminding {tgt_str} in'
+ 
+        description += self.get_interval_string(now)
+        
+        if info:
+            description += f'\n```Parsing hints:\n{info}```' 
+    
+        eb = discord.Embed(title=title, description=description, color=0x409fe2)
+        eb.timestamp = self.at.replace(tzinfo=tz.UTC)
+        
+        return eb
 
 
-    def get_info_embed(self, tz_str='UTC'):
+    def get_info_embed(self, tz_str='UTC', title='Reminder Info'):
         """return info embed of this reminders
            used for reminder management.
            Shows due-date, instead of link to channel
@@ -179,11 +213,12 @@ class Reminder:
             [type]: [description]
         """
 
-        eb = self._get_embed_body('Reminder Info', tz_str=tz_str)
+        eb = self._get_embed_body(title, tz_str=tz_str)
+        eb.color = 0x409fe2
 
 
         if self.author != self.target:
-            eb.add_field(name='Target user', value=self.target_name or f'<@!{self.target}>')
+            eb.add_field(name='Target user/role', value=self.target_name or f'<@!{self.target}>')
 
         if self.at:
             if tz_str == 'UTC':
@@ -267,6 +302,71 @@ class IntervalReminder(Reminder):
             d['first_at'] = datetime.timestamp(self.first_at)
 
         return d
+
+
+    def get_tiny_embed(self, title='New Interval Created', now=None, info=None, rrule_override=None):
+        """return a tiny info embed of the reminder
+           used upon reminder creation, to not bloat main chat
+           Show interval till next/first trigger
+
+        Returns:
+            [type]: [description]
+        """
+
+        if not now:
+            now = datetime.utcnow()
+        
+        if self.target == self.author:
+            description = 'Reminding you '
+        else:
+            tgt_str = self.target_name or f'<@!{self.target}>'
+            description = f'Reminding {tgt_str} '
+
+        description += f'the first time in {self.get_interval_string(now)}'
+        description += '\n\nCall `/reminder_list` to edit all pending reminders'
+        
+        if info:
+            description += f'\n```Parsing hints:\n{info}```' 
+    
+        eb = discord.Embed(title=title, description=description, color=0x409fe2)
+        #eb.timestamp = self.at.replace(tzinfo=tz.UTC)
+        
+        
+        if rrule_override:
+            rrule = rrule_override
+        elif self.rrules:
+            rule_str = self.rrules[0]
+            rrule = rr.rrulestr(rule_str)
+        else:
+            rrule = None
+
+        if rrule:
+            interval_txt = lib.input_parser.rrule_to_english(rrule, now=now)
+        else:
+            interval_txt = '\u200b'
+
+        eb.set_footer(text=interval_txt, icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
+        
+        return eb
+
+
+    def get_info_embed(self, tz_str='UTC', title='Interval Info'):
+        """return info embed of this reminders
+           used for reminder management.
+           Shows due-date, instead of link to channel
+
+        Returns:
+            [type]: [description]
+        """
+        eb = super().get_info_embed(tz_str=tz_str, title=title)
+        eb.timestamp = discord.Embed.Empty
+        
+        in_str = self.get_interval_string()
+        prefix = 'Next in ' if self.at else ''
+        
+        eb.set_footer(text=f'{prefix}{in_str}', icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
+
+        return eb
 
 
     async def get_embed(self, client, is_dm=False, tz_str='UTC'):

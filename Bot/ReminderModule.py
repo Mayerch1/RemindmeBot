@@ -154,7 +154,7 @@ class ReminderModule(commands.Cog):
         # no need to resolve author, target is sufficient
 
         if not channel:
-            err = f'`You are receiving this dm, as the reminder channel on \'{guild.name}\' is not existing anymore.`'
+            err = f'`You are receiving this dm, as the reminder was created in a thread or as the channel on \'{guild.name}\' is not existing anymore.`'
             await self.print_reminder_dm(rem, err)
             return
 
@@ -311,34 +311,6 @@ class ReminderModule(commands.Cog):
             # the id is required in case the users wishes to abort
             rem_id = Connector.add_reminder(rem)
             Analytics.reminder_created(rem, country_code=self.timezone_country.get(tz_str, 'UNK'))
-        
-        
-        delta_str = rem.get_interval_string(utcnow)
-        if isinstance(rem, IntervalReminder):
-            title = 'New Interval Created'
-            description = f'the first time in {delta_str}'
-            description += '\n\nCall `/reminder_list` to edit all pending reminders'
-        else:
-            title = 'New Reminder Created'
-            description = f'in {delta_str}'
-
-
-        if target == author:
-            description = f'Reminding you ' + description
-        else:
-            description = f'Reminding {rem.target_mention} ' + description
-
-        if info:
-            description += f'\n```Parsing hints:\n{info}```'
-        
-            
-        eb = discord.Embed(title=title, description=description)
-        eb.color = 0x409fe2
-        eb.timestamp = rem.at.replace(tzinfo=tz.UTC)
-        
-        if isinstance(rem, IntervalReminder):
-            interval_txt = lib.input_parser.rrule_to_english(rrule)
-            eb.set_footer(text=interval_txt, icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
 
 
         # create the button to delete this reminder
@@ -358,8 +330,8 @@ class ReminderModule(commands.Cog):
         ]
         action_row = manage_components.create_actionrow(*buttons)
         
-        # delta_to_str cannot take relative delta
-        msg = await ctx.send(embed=eb, delete_after=300, components=[action_row], 
+        tiny_embed = rem.get_tiny_embed(info=info, rrule_override=rrule)
+        msg = await ctx.send(embed=tiny_embed, delete_after=300, components=[action_row], 
                             allowed_mentions=discord.AllowedMentions.none())
 
 
