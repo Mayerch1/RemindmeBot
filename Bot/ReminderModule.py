@@ -312,26 +312,35 @@ class ReminderModule(commands.Cog):
             rem_id = Connector.add_reminder(rem)
             Analytics.reminder_created(rem, country_code=self.timezone_country.get(tz_str, 'UNK'))
         
-        # convert reminder period to readable delta
-        # convert utc date into readable local time (locality based on server settings)
+        
         delta_str = rem.get_interval_string(utcnow)
-        if tz_str == 'UTC':
-            # this workaround is required, as system uses german term for UTC
-            at_str = rem.at.strftime('%Y/%m/%d %H:%M UTC')
+        if isinstance(rem, IntervalReminder):
+            title = 'New Interval Created'
+            description = f'the first time in {delta_str}'
+            description += '\n\nCall `/reminder_list` to edit all pending reminders'
         else:
-            at_str = rem.at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)).strftime('%Y/%m/%d %H:%M %Z')
+            title = 'New Reminder Created'
+            description = f'in {delta_str}'
+
 
         if target == author:
-            out_str = f'Reminding you in `{delta_str}` at `{at_str}`.'
+            description = f'Reminding you ' + description
         else:
-             out_str = f'Reminding {rem.target_mention} in `{delta_str}` at `{at_str}`.'
-      
-        out_str += '\nCall `/reminder_list` to edit all pending reminders'
-        out_str += '\n**Note:** The parsing behaviour changed recently, make sure the reminder was parsed correctly'
+            description = f'Reminding {rem.target_mention} ' + description
 
         if info:
-            out_str += f'\n```Parsing hints:\n{info}```'
+            description += f'\n```Parsing hints:\n{info}```'
         
+            
+        eb = discord.Embed(title=title, description=description)
+        eb.color = 0x409fe2
+        eb.timestamp = rem.at.replace(tzinfo=tz.UTC)
+        
+        if isinstance(rem, IntervalReminder):
+            interval_txt = lib.input_parser.rrule_to_english(rrule)
+            eb.set_footer(text=interval_txt, icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
+
+
         # create the button to delete this reminder
         buttons = [
             manage_components.create_button(
@@ -348,9 +357,9 @@ class ReminderModule(commands.Cog):
             )
         ]
         action_row = manage_components.create_actionrow(*buttons)
-
+        
         # delta_to_str cannot take relative delta
-        msg = await ctx.send(out_str, delete_after=300, components=[action_row], 
+        msg = await ctx.send(embed=eb, delete_after=300, components=[action_row], 
                             allowed_mentions=discord.AllowedMentions.none())
 
 

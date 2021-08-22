@@ -388,6 +388,27 @@ def parse(input, utcnow, timezone='UTC'):
 
 
 
+def rrule_to_english(rrule, now=None):
+    """convert a rrule or rrule string back to an english natural interval
+       can aswell suport datetime objects as input
+
+    Args:
+        rrule (rrule.rrule or str or datetime.datetime): input argument 
+        now (datetime.datetime, optional): current time for parser. Defaults to utcnow()
+
+    Returns:
+        [str]: description of inputted interval or date in english
+    """
+    
+    if not now:
+        now = datetime.utcnow()
+
+    r = RecurringEvent(now_date=now, preferred_time_range=(0,12), parse_constants=_parse_consts)
+    text = r.format(rrule)
+    
+    return text
+
+
 def rrule_normalize(rrule_str, dtstart, instance_id=None):
     """generate the rrule of the given rrule string
        if the string contains timezone based offsets (iso dates)
