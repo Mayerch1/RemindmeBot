@@ -97,7 +97,7 @@ At the moment, different parameters cannot be combined.
 		• 2030
 
 	Note: the parser uses day-first and year-least
-	      (01/02/21 -> 1st January)
+	      (01/02/03 -> 1st February 2003)
 
 	the reminder can occur as much as 1 minute delayed
 ```

@@ -151,7 +151,7 @@ class Reminder:
 
 
     def _get_embed_body(self, title, author=None, tz_str='UTC'):
-        eb = discord.Embed(title=title, description=f'{self.msg}', color=0xffcc00)
+        eb = discord.Embed(title=title, description=f'{self.msg}', color=0xe4ff1e)
 
         if self.created_at:
             if tz_str == 'UTC':

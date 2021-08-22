@@ -68,7 +68,7 @@ class ReminderModule(commands.Cog):
                 '\t• 2030\n'\
                 '\t• every other week\n'\
                 '\tNote: the parser uses day-first and year-least\n'\
-                '\t      (01/02/21 -> 1st January 2021)\n'\
+                '\t      (01/02/03 -> 1st February 2003)\n'\
                 '\n'\
                 'the reminder can occur as much as 1 minute delayed\n'\
                 'repeating reminders can occur as much as 5 minutes delayed```\n'\
