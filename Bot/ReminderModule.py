@@ -119,6 +119,7 @@ class ReminderModule(commands.Cog):
             target = await self.client.fetch_user(rem.target)
         except discord.errors.NotFound:
             print(f'cannot find user {rem.target} for reminder DM fallback')
+            Analytics.reminder_not_delivered(rem, Types.DeliverFailureReason.USER_FETCH)
             return
 
         # dm if channel not existing anymor
@@ -139,7 +140,7 @@ class ReminderModule(commands.Cog):
                 await dm.send(rem.get_string())
             except discord.errors.Forbidden:
                 print(f'failed to send reminder as DM fallback')
-                Analytics.reminder_not_delivered(rem)
+                Analytics.reminder_not_delivered(rem, Types.DeliverFailureReason.DM_SEND)
 
 
     async def print_reminder(self, rem: Reminder):
@@ -149,12 +150,12 @@ class ReminderModule(commands.Cog):
             return
 
         guild = self.client.get_guild(rem.g_id)
-        channel = guild.get_channel(rem.ch_id)
+        channel = guild.get_channel(rem.ch_id) if guild else None
 
         # no need to resolve author, target is sufficient
-
         if not channel:
-            err = f'`You are receiving this dm, as the reminder was created in a thread or as the channel on \'{guild.name}\' is not existing anymore.`'
+            guild_name = guild.name if guild else 'Unresolved Guild'
+            err = f'`You are receiving this dm, as the reminder was created in a thread or as the channel on \'{guild_name}\' is not existing anymore.`'
             await self.print_reminder_dm(rem, err)
             return
 

@@ -39,6 +39,10 @@ class Types:
     class CreationFailed(Enum):
         INVALID_F_STR = 0
         PAST_DATE = 1
+        
+    class DeliverFailureReason(Enum):
+        DM_SEND = 0
+        USER_FETCH = 1
 
 class Analytics:
 
@@ -124,7 +128,7 @@ class Analytics:
     
     UNDELIVERED_REMINDER = Counter(
         'undelivered_reminders', 'Reminders which couldn\'t be shown to the user',
-        ['shard', 'type', 'scope', 'target']
+        ['shard', 'type', 'scope', 'target', 'reason']
     )
     
     TIMEZONE_SET = Counter(
@@ -251,7 +255,7 @@ class Analytics:
         Analytics.UNEXPECTED_EXCEPTION.labels(str(shard), ex_type).inc()
         
     @staticmethod
-    def reminder_not_delivered(reminder, shard:int = 0):
+    def reminder_not_delivered(reminder, reason:Types.DeliverFailureReason, shard:int = 0):
         
         if isinstance(reminder, IntervalReminder):
             r_type = Types.ReminderType.REPEATING
@@ -268,7 +272,7 @@ class Analytics:
         else:
             r_scope = Types.ReminderScope.PRIVATE
 
-        Analytics.UNDELIVERED_REMINDER.labels(str(shard), r_type.name, r_scope.name, r_tgt.name).inc()
+        Analytics.UNDELIVERED_REMINDER.labels(str(shard), r_type.name, r_scope.name, r_tgt.name, reason.name).inc()
         
     @staticmethod
     def set_timezone(timezone_str: str, country_code: str, deprecated: bool, shard:int = 0):
