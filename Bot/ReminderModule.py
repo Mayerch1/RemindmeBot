@@ -331,6 +331,9 @@ class ReminderModule(commands.Cog):
         ]
         action_row = manage_components.create_actionrow(*buttons)
         
+        if not ctx.channel:
+            info = 'If this command was invoked in a thread, you will receive the reminder as a DM. Make sure you can receive DMs from me.'
+            
         tiny_embed = rem.get_tiny_embed(info=info, rrule_override=rrule)
         msg = await ctx.send(embed=tiny_embed, delete_after=300, components=[action_row], 
                             allowed_mentions=discord.AllowedMentions.none())
