@@ -9,8 +9,10 @@ This bot is inspired by the reddit remindme bot and allows similar usage.
 * Set the timezone of your server
 
 
-<img src="https://imgur.com/1V7Dsh7.gif" alt="Create Reminder" width="500"/>
-<img src="https://imgur.com/tXG9Wxa.gif" alt="Create Interval" width="500"/>
+<img src="https://imgur.com/YE9qXOE.gif" alt="Create Reminder">
+
+
+<img src="https://imgur.com/lQrUmkF.gif" alt="Create Interval"/>
 
 ---
 
