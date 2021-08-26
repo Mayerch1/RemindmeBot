@@ -10,8 +10,6 @@ from parsedatetime import parsedatetime
 
 from lib.recurrent.src.recurrent.event_parser import RecurringEvent
 
-HOURLY_WHITELIST = [
-]
 
 _parse_consts = parsedatetime.Constants(localeID='en_US', usePyICU=True)
 _parse_consts.useMeridian = False
@@ -446,9 +444,7 @@ def rrule_normalize(rrule_str, dtstart, instance_id=None):
 
     norm_str = str(rule).lower()
 
-    if 'hourly' in norm_str and (instance_id not in HOURLY_WHITELIST):
-        return (None, 'Hourly repetitions are not supported in beta. Join the support server (`/help`) to request access.')
-    elif 'minutely' in norm_str:
+    if 'minutely' in norm_str:
         return (None, 'Minutely repetitions are not supported by this bot (yet)')
     elif 'secondly' in norm_str:
         return (None, 'Secondly repetitions are classified as spam by the discord TOS.')

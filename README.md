@@ -1,22 +1,27 @@
 # Remindme Bot
 
-This is the Remindme Bot for discord.
-
-
-Key features:
-* remind yourself after a certain time period
-* remind other users after a certain time period
-* create complex repeating patterns (ics-rrules)
-
 This bot is inspired by the reddit remindme bot and allows similar usage.
+
+* Create as many Reminders as you want (no rate limit, or vote bounties)
+* Create intervals (shortest interval is hourly)
+* Remind other users and roles (@everyone)
+* Create complex repeating patterns (ics-rrules, rfc-5545)
+* Set the timezone of your server
+
+
+<img src="https://imgur.com/1V7Dsh7.gif" alt="Create Reminder" width="500"/>
+<img src="https://imgur.com/tXG9Wxa.gif" alt="Create Interval" width="500"/>
+
+---
 
 [Invite the Bot](https://discord.com/api/oauth2/authorize?client_id=831142367397412874&permissions=68608&scope=bot%20applications.commands) or view it's profile on [top.gg](https://top.gg/bot/831142367397412874)
 
 
 ## Some users cannot use the bot?
 
-Make sure the user has the permission to perform `slash`-commands.
+Make sure the user has the permission to `Use Application commands`.
 This is a recently introduced discord permission, and can control the access to bot commands.
+By default `@everyone` is allowed to use `slash`-commands.
 
 
 ## Create Repeating intervals
@@ -33,7 +38,7 @@ This could be e.g. `every week` or `first monday each month` or `every friday at
 Create a "normal" interval with `/remindme` or `/remind` and set the `time` argument to be the first occurrence of your repeating event.
 You can then press the `Set Interval` button to add repeating rules for the event.
 
-The bot supports the full `rfc5545`-spec (the smallest interval is limited to daily) and allows the combination of up to 25 independent rules to define your custom repeating patterns.
+The bot supports the full `rfc5545`-spec and allows the combination of up to 25 independent rules to define your custom repeating patterns and to add exception rules.
 
 ## Commands
 
