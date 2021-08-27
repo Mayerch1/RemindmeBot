@@ -27,6 +27,8 @@ services:
       - MONGO_PORT
       - MONGO_ROOT_USER
       - MONGO_ROOT_PASS
+      - BOT_ROOT_PREFIX
+      - ADMIN_GUILD
 
     restart: always
     networks:

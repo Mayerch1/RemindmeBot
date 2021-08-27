@@ -74,7 +74,7 @@ class HelpModule(commands.Cog):
         
         if page not in page_list:
             print('ERROR: unknown help page')
-            await ctx.send(f'Error, unknown help page {page}')
+            await ctx.send(f'Error, unknown help page `{page}`')
             return
         
         def get_overview_eb():
@@ -91,7 +91,7 @@ class HelpModule(commands.Cog):
             embed.add_field(name='\u200b', 
                             inline=False,
                             value='If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874).\n'\
-                                'If you find a bug contact us on [Github](https://github.com/Mayerch1/RemindmeBot) on join the support server.')
+                                'If you find a bug contact us on [Github](https://github.com/Mayerch1/RemindmeBot) or join the support server.')
 
             return embed
 
@@ -119,7 +119,7 @@ class HelpModule(commands.Cog):
                             '• geo-referencing timezones (e.g. `Europe/Berlin`) should be preferred\n'\
                             '  over more general (and deprecated) timezones (e.g. `CET`)', inline=False)
 
-            eb.add_field(name='\u200b', value='If you like this bot, you can leave a vote at [top.gg](https://top.gg/bot/831142367397412874)', inline=False)
+            eb.add_field(name='\u200b', value='If you find a bug or want to give feedback, join the support server.', inline=False)
 
             return eb
 
@@ -148,6 +148,7 @@ class HelpModule(commands.Cog):
 
 
         def get_help_components(current_page='overview'):
+            
             buttons = [
                 manage_components.create_button(
                     style=ButtonStyle.URL,
@@ -168,30 +169,39 @@ class HelpModule(commands.Cog):
             row_1 = manage_components.create_actionrow(*buttons)
             
             
-            # handle wrap-around of page navigation
-            page_idx = page_list.index(current_page)
-            max_idx = len(page_list)-1
-            next_idx = 0 if page_idx==max_idx else page_idx+1
-            prev_idx = max_idx if page_idx == 0 else page_idx-1
-            
-            buttons = [
-                manage_components.create_button(
-                    style=ButtonStyle.secondary,
-                    label=f'Page {page_idx+1}/{len(page_list)}',
-                    disabled=True
+            options = [
+                manage_components.create_select_option(
+                    label='Overview Page',
+                    description='List all available commands',
+                    value='overview',
+                    emoji='🌐',
+                    default=(current_page=='overview')
                 ),
-                manage_components.create_button(
-                    style=ButtonStyle.secondary,
-                    emoji='⏪',
-                    custom_id=f'help_navigate_{page_list[prev_idx]}'
+                manage_components.create_select_option(
+                    label='Syntax Page',
+                    description='Show the reminder syntax, display examples',
+                    value='syntax',
+                    emoji='✏️',
+                    default=(current_page=='syntax')
                 ),
-                manage_components.create_button(
-                    style=ButtonStyle.secondary,
-                    emoji='⏩',
-                    custom_id=f'help_navigate_{page_list[next_idx]}'
+                manage_components.create_select_option(
+                    label='Timezone Page',
+                    description='Show timezone instructions',
+                    value='timezones',
+                    emoji='🕚',
+                    default=(current_page=='timezones')
                 ),
             ]
-            row_2 = manage_components.create_actionrow(*buttons)
+            help_selection = (
+                manage_components.create_select(
+                    custom_id='help_navigation',
+                    placeholder='Please select a category',
+                    min_values=1,
+                    max_values=1,
+                    options=options
+                )
+            )
+            row_2 = manage_components.create_actionrow(help_selection)
             return [row_1, row_2]
 
 
@@ -235,10 +245,10 @@ class HelpModule(commands.Cog):
         if ctx.custom_id == 'help_direct_feedback':
             await ctx.defer(edit_origin=True)
             await self.send_feedback(ctx)
-            
-        if ctx.custom_id.startswith('help_navigate_'):
-            id_split = ctx.custom_id.split('_')
-            await self.send_help_page(ctx, id_split[-1])
+        
+        elif ctx.custom_id == 'help_navigation':
+            sel_id = ctx.selected_options[0]
+            await self.send_help_page(ctx, sel_id)
         
         
         

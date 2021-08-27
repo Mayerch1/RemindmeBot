@@ -97,6 +97,7 @@ def main():
     client.load_extension(f'ReminderListing')
     client.load_extension(f'HelpModule')
     client.load_extension(f'TimezoneModule')
+    client.load_extension(f'AdminModule')
     
     client.load_extension(f'botLists.TopGGModule')
     client.load_extension(f'botLists.DiscordBotListModule')

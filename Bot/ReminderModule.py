@@ -74,8 +74,7 @@ class ReminderModule(commands.Cog):
                 'repeating reminders can occur as much as 5 minutes delayed```\n'\
                 
     HELP_FOOTER = 'If you find a bug in the parser, please reach out to us.\n'\
-                    'Contact details are at `Get Support` on [top.gg](https://top.gg/bot/831142367397412874)'\
-                    ' or on [Github](https://github.com/Mayerch1/RemindmeBot)'
+                  'You can contact us on [Github](https://github.com/Mayerch1/RemindmeBot) or join the support server.'
 
 
     @staticmethod
@@ -110,6 +109,13 @@ class ReminderModule(commands.Cog):
         self.check_interval_cnt.start()
         self.clean_interval_orphans.start()
 
+    def cog_unload(self):
+        print('cancelling reminder event loops')
+        self.check_pending_reminders.cancel()
+        self.check_pending_intervals.cancel()
+        self.check_reminder_cnt.cancel()
+        self.check_interval_cnt.cancel()
+        self.clean_interval_orphans.cancel()
 
     async def print_reminder_dm(self, rem: Reminder, err_msg=None):
         # fallback to dm
