@@ -8,8 +8,6 @@ from discord_slash.utils.manage_commands import create_option, create_choice, cr
 from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle, SlashCommandPermissionType
 
-from lib.Analytics import Analytics
-from ReminderModule import ReminderModule
 
 FEEDBACK_CHANNEL = 872104333007785984
 FEEDBACK_MENTION = 872107119988588566
@@ -36,19 +34,18 @@ class AdminModule(commands.Cog):
     # =====================
     # commands functions
     # =====================
-    
-    @cog_ext.permission(
-        guild_id=ADMIN_GUILD,
-        permissions=[
-            create_permission(
-                id=140149964020908032,  # owner
-                id_type=SlashCommandPermissionType.USER,
-                permission=True
-            )
-        ]
-    )
+
     @cog_ext.cog_slash(name='reload', guild_ids=[ADMIN_GUILD], description='Reload an updated added Cog',
                         default_permission=False,
+                        permissions={
+                            ADMIN_GUILD: [
+                                create_permission(
+                                id=140149964020908032,  # owner
+                                id_type=SlashCommandPermissionType.USER,
+                                permission=True
+                                )
+                            ]
+                        },
                         options=[
                             create_option(
                                 name='module',
