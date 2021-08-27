@@ -1,23 +1,10 @@
 # sensitive data
-**/botListToken.txt
-**/topGGToken.txt
-**/topGGToken.txt.bak
-**/topGGSecret.txt
-**/topGGSecret.txt.bak
-**/token.txt
+Bot/tokens/**
+
 **/log.txt
-**/proposals.txt
 **/settings.json
-**/servers.json
-**/servers_test.json
-**/db_username.txt
-**/db_password.txt
-**/db_host.txt
 **/whitelist.txt
 testFile.py
-
-calendar_bak.json
-servers_bak.json
 
 tmp/
 data/db/**

@@ -2,11 +2,12 @@
 
 This bot is inspired by the reddit remindme bot and allows similar usage.
 
-* Create as many Reminders as you want (no rate limit, or vote bounties)
+* Create as many Reminders as you want (no rate limit or vote bounties)
 * Create intervals (shortest interval is hourly)
 * Remind other users and roles (@everyone)
 * Create complex repeating patterns (ics-rrules, rfc-5545)
 * Set the timezone of your server
+* Minimal Permissions required
 
 
 <img src="https://imgur.com/YE9qXOE.gif" alt="Create Reminder">

@@ -5,36 +5,33 @@ from discord.ext import commands, tasks
 import requests
 import json
 
-from lib.Analytics import Analytics
 
-
-class TopGG(commands.Cog):
+class DiscordBotList(commands.Cog):
 
     def __init__(self, client):
-        self.BASE = 'https://top.gg/api'
+        BotDir = os.getenv('BOT_ROOT_PREFIX')
 
+        self.BASE = 'https://discordbotlist.com/api/v1'
         self.user_agent = "remindMeBot (https://github.com/Mayerch1/RemindmeBot)"
 
-        if os.path.exists('topGGToken.txt'):
+        if os.path.exists(f'{BotDir}tokens/botListToken.txt'):
             self.client = client
-            self.token = open('topGGToken.txt', 'r').readline()[:-1]
-
-            #self.dblpy = dbl.DBLClient(self.client, self.token, autopost=True)
-            #self.dblpy = dbl.DBLClient(self.bot, self.token)
-            print('Started topGG server')
+            self.token = open(f'{BotDir}tokens/botListToken.txt', 'r').readline()[:-1]
+            
+            print('Started DBL job')
             self.update_stats.start()
 
         else:
-            print('Ignoring TopGG, no Token')
+            print('Ignoring DBL, no Token')
         
 
     def cog_unload(self):
         self.update_stats.cancel()
 
-
+    
     async def post_count(self, url, payload):
         if not self.token:
-            print('no topGGToken')
+            print('no DBL token')
             return
 
         url = self.BASE + url
@@ -50,7 +47,7 @@ class TopGG(commands.Cog):
         r = requests.post(url, data=payload, headers=headers)
 
         if r.status_code >= 300:
-            print(f'TopGG Server Count Post failed with {r.status_code}')
+            print(f'DBL Server Count Post failed with {r.status_code}')
 
 
     @tasks.loop(minutes=30)
@@ -58,18 +55,15 @@ class TopGG(commands.Cog):
         """This function runs every 30 minutes to automatically update your server count."""
 
         server_count = len(self.client.guilds)
-        Analytics.guild_cnt(server_count)
 
         payload = {
-            'server_count': server_count
+            'guilds': server_count
         }
-        if self.client.shard_count:
-            payload["shard_count"] = self.client.shard_count
+
         if self.client.shard_id:
             payload["shard_id"] = self.client.shard_id
 
         await self.post_count( f'/bots/{self.client.user.id}/stats', payload=payload)
-
 
     @update_stats.before_loop
     async def update_stats_before(self):
@@ -77,4 +71,4 @@ class TopGG(commands.Cog):
 
 
 def setup(client):
-    client.add_cog(TopGG(client))
+    client.add_cog(DiscordBotList(client))

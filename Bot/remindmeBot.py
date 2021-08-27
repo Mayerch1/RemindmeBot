@@ -1,3 +1,4 @@
+import os
 import re
 import discord
 import asyncio
@@ -17,7 +18,9 @@ intents.reactions = True
 intents.messages = True
 intents.guilds = True
 
-token = open('token.txt', 'r').read()
+BotDir = os.getenv('BOT_ROOT_PREFIX')
+
+token = open(f'{BotDir}tokens/token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
 slash = SlashCommand(client, sync_commands=True)
 
@@ -90,12 +93,15 @@ def main():
     Connector.init()
     Analytics.init()
 
-    client.load_extension(f'TopGGModule')
-    client.load_extension(f'DiscordBotListModule')
     client.load_extension(f'ReminderModule')
     client.load_extension(f'ReminderListing')
     client.load_extension(f'HelpModule')
     client.load_extension(f'TimezoneModule')
+    
+    client.load_extension(f'botLists.TopGGModule')
+    client.load_extension(f'botLists.DiscordBotListModule')
+    client.load_extension(f'botLists.BotsGGModule')
+
     client.run(token)
 
 
