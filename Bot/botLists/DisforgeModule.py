@@ -8,33 +8,33 @@ import json
 from lib.Analytics import Analytics
 
 
-class DLSpace(commands.Cog):
+class Disforge(commands.Cog):
 
     def __init__(self, client):
         BotDir = os.getenv('BOT_ROOT_PREFIX')
-
-        self.BASE = 'https://api.discordlist.space/v2'
+        
+        self.BASE = 'https://disforge.com/api'
         self.user_agent = "remindMeBot (https://github.com/Mayerch1/RemindmeBot)"
 
-        if os.path.exists(f'{BotDir}tokens/dlSpace.txt'):
+        if os.path.exists(f'{BotDir}tokens/disforge.txt'):
             self.client = client
-            self.token = open(f'{BotDir}tokens/dlSpace.txt', 'r').readline()[:-1]
+            self.token = open(f'{BotDir}tokens/disforge.txt', 'r').readline()[:-1]
 
-            print('starting DLSpace job')
+            print('starting Disforge job')
             self.update_stats.start()
 
         else:
-            print('ignoring DLSpace, no Token')
+            print('ignoring Disforge, no Token')
         
 
     def cog_unload(self):
-        print('stopping DLSpace job')
+        print('stopping Disforge job')
         self.update_stats.cancel()
 
 
     async def post_count(self, url, payload):
         if not self.token:
-            print('no DLSpace Token')
+            print('no Disforge Token')
             return
 
         url = self.BASE + url
@@ -50,7 +50,7 @@ class DLSpace(commands.Cog):
         r = requests.post(url, data=payload, headers=headers)
 
         if r.status_code >= 300:
-            print(f'DLSpace Server Count Post failed with {r.status_code}')
+            print(f'Disforge Server Count Post failed with {r.status_code}')
 
 
     @tasks.loop(minutes=30)
@@ -61,10 +61,10 @@ class DLSpace(commands.Cog):
         Analytics.guild_cnt(server_count)
 
         payload = {
-            'serverCount': server_count
+            'servers': server_count
         }
 
-        await self.post_count( f'/bots/{self.client.user.id}', payload=payload)
+        await self.post_count( f'/botstats/{self.client.user.id}', payload=payload)
 
 
     @update_stats.before_loop
@@ -73,4 +73,4 @@ class DLSpace(commands.Cog):
 
 
 def setup(client):
-    client.add_cog(DLSpace(client))
+    client.add_cog(Disforge(client))

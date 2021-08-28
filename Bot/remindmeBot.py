@@ -103,6 +103,8 @@ def main():
     client.load_extension(f'botLists.DiscordBotListModule')
     client.load_extension(f'botLists.BotsGGModule')
     client.load_extension(f'botLists.DLSpaceModule')
+    client.load_extension(f'botLists.DisforgeModule')
+    client.load_extension(f'botLists.DiscordsModule')
 
     client.run(token)
 
