@@ -102,6 +102,7 @@ def main():
     client.load_extension(f'botLists.TopGGModule')
     client.load_extension(f'botLists.DiscordBotListModule')
     client.load_extension(f'botLists.BotsGGModule')
+    client.load_extension(f'botLists.DLSpaceModule')
 
     client.run(token)
 

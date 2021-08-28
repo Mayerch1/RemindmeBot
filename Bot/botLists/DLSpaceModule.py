@@ -12,29 +12,29 @@ class TopGG(commands.Cog):
 
     def __init__(self, client):
         BotDir = os.getenv('BOT_ROOT_PREFIX')
-        
-        self.BASE = 'https://top.gg/api'
+
+        self.BASE = 'https://api.discordlist.space/v2'
         self.user_agent = "remindMeBot (https://github.com/Mayerch1/RemindmeBot)"
 
-        if os.path.exists(f'{BotDir}tokens/topGGToken.txt'):
+        if os.path.exists(f'{BotDir}tokens/dlSpace.txt'):
             self.client = client
-            self.token = open(f'{BotDir}tokens/topGGToken.txt', 'r').readline()[:-1]
+            self.token = open(f'{BotDir}tokens/dlSpace.txt', 'r').readline()[:-1]
 
-            print('starting topGG job')
+            print('starting DLSpace job')
             self.update_stats.start()
 
         else:
-            print('ignoring TopGG, no Token')
+            print('ignoring DLSpace, no Token')
         
 
     def cog_unload(self):
-        print('stopping topGG job')
+        print('stopping DLSpace job')
         self.update_stats.cancel()
 
 
     async def post_count(self, url, payload):
         if not self.token:
-            print('no topGG Token')
+            print('no DLSpace Token')
             return
 
         url = self.BASE + url
@@ -50,7 +50,7 @@ class TopGG(commands.Cog):
         r = requests.post(url, data=payload, headers=headers)
 
         if r.status_code >= 300:
-            print(f'TopGG Server Count Post failed with {r.status_code}')
+            print(f'DLSpace Server Count Post failed with {r.status_code}')
 
 
     @tasks.loop(minutes=30)
@@ -61,14 +61,10 @@ class TopGG(commands.Cog):
         Analytics.guild_cnt(server_count)
 
         payload = {
-            'server_count': server_count
+            'serverCount': server_count
         }
-        if self.client.shard_count:
-            payload["shard_count"] = self.client.shard_count
-        if self.client.shard_id:
-            payload["shard_id"] = self.client.shard_id
 
-        await self.post_count( f'/bots/{self.client.user.id}/stats', payload=payload)
+        await self.post_count( f'/bots/{self.client.user.id}', payload=payload)
 
 
     @update_stats.before_loop

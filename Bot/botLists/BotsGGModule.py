@@ -20,20 +20,21 @@ class TopGG(commands.Cog):
             self.client = client
             self.token = open(f'{BotDir}tokens/botsGGToken.txt', 'r').readline()[:-1]
 
-            print('Started BotsGG job')
+            print('starting BotsGG job')
             self.update_stats.start()
 
         else:
-            print('Ignoring BotsGG, no Token')
+            print('ignoring BotsGG, no Token')
         
 
     def cog_unload(self):
+        print('stopping BotsGG job')
         self.update_stats.cancel()
 
 
     async def post_count(self, url, payload):
         if not self.token:
-            print('no botsGGToken')
+            print('no botsGG Token')
             return
 
         url = self.BASE + url

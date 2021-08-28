@@ -34,6 +34,37 @@ class AdminModule(commands.Cog):
     # =====================
     # commands functions
     # =====================
+    
+    @cog_ext.cog_slash(name='load', guild_ids=[ADMIN_GUILD], description='Load a newly added Cog',
+                        default_permission=False,
+                        permissions={
+                            ADMIN_GUILD: [
+                                create_permission(
+                                id=140149964020908032,  # owner
+                                id_type=SlashCommandPermissionType.USER,
+                                permission=True
+                                )
+                            ]
+                        },
+                        options=[
+                            create_option(
+                                name='module',
+                                description='name of the module',
+                                required=True,
+                                option_type=SlashCommandOptionType.STRING,
+                            )
+                        ])
+    async def load_module(self, ctx, module):
+        await ctx.defer(hidden=True)  # reload may take a while
+
+        try:
+            self.client.load_extension(module)
+        except commands.ExtensionError as e:
+            await ctx.send(f'{e.__class__.__name__}: {e}', hidden=True)
+        else:
+            await ctx.send('\N{OK HAND SIGN}', hidden=True)
+            print(f'Reloaded Module: {module}')
+
 
     @cog_ext.cog_slash(name='reload', guild_ids=[ADMIN_GUILD], description='Reload an updated added Cog',
                         default_permission=False,
@@ -54,7 +85,7 @@ class AdminModule(commands.Cog):
                                 option_type=SlashCommandOptionType.STRING,
                             )
                         ])
-    async def get_help(self, ctx, module):
+    async def reload_module(self, ctx, module):
         await ctx.defer(hidden=True)  # reload may take a while
 
         try:

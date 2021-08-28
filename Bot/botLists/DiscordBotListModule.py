@@ -18,20 +18,21 @@ class DiscordBotList(commands.Cog):
             self.client = client
             self.token = open(f'{BotDir}tokens/botListToken.txt', 'r').readline()[:-1]
             
-            print('Started DBL job')
+            print('starting DBL job')
             self.update_stats.start()
 
         else:
-            print('Ignoring DBL, no Token')
+            print('ignoring DBL, no Token')
         
 
     def cog_unload(self):
+        print('stopping DBL job')
         self.update_stats.cancel()
 
     
     async def post_count(self, url, payload):
         if not self.token:
-            print('no DBL token')
+            print('no DBL Token')
             return
 
         url = self.BASE + url

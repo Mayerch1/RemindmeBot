@@ -110,7 +110,7 @@ class ReminderModule(commands.Cog):
         self.clean_interval_orphans.start()
 
     def cog_unload(self):
-        print('cancelling reminder event loops')
+        print('stopping reminder event loops')
         self.check_pending_reminders.cancel()
         self.check_pending_intervals.cancel()
         self.check_reminder_cnt.cancel()
