@@ -209,7 +209,7 @@ def _parse_relative(args, utcnow):
 
             else:
                 if arg[1] == 'm':
-                    info = info + f'• Ambiguous reference to minutes/months. Please write out at least `mi` for minutes or `mo` for months\n'
+                    info = info + f'• Ambiguous reference to minutes/months. Please write out `mi` for minutes or `mo` for months\n'
                 else:
                     info = info + f'• Ignoring {arg}, as this is not a known interval\n'
             
@@ -350,7 +350,6 @@ def parse(input, utcnow, timezone='UTC'):
     args = list(map(_split_arg, args))
     args = _join_spaced_args(args)
     
-
     remind_at, info, ex = _parse_absolute(args, utcnow, tz_now)
     early_abort = (ex != None)
 
@@ -359,8 +358,13 @@ def parse(input, utcnow, timezone='UTC'):
         early_abort = (ex != None)
 
     if remind_at == utcnow and not early_abort:
-        remind_at, info, ex = _parse_iso(input, utcnow, display_tz)
+        remind_at, info_iso, ex = _parse_iso(input, utcnow, display_tz)
         early_abort = (ex != None)
+        
+        # iso date will only override info on success
+        # error is not overriding and only shown when no prev. info is avail.
+        if (remind_at != utcnow) or (not info):
+            info = info_iso
         
     # filter out queries which use 1m, as this is required to fail due to ambiguity with minutes/month
     if remind_at == utcnow and not re.match(r'-?\d+\W?m', input) and not early_abort:

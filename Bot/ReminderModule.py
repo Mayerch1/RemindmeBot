@@ -27,51 +27,24 @@ from ReminderListing import ReminderListing
 
 class ReminderModule(commands.Cog):
 
-    REMIND_FORMAT_HELP = '```'\
-                'examples:\n'\
-                '\t/remindme 1y Hello future me\n'\
-                '\t/remindme 2 h drink some water\n'\
-                '\t/remindme 1w 2d hello there\n'\
-                '\t/remindme 2021-09-02T12:25:00+02:00 iso is cool\n'\
+    REMIND_FORMAT_HELP = \
+                'basic example:\n'\
+                '> /remindme `time: 2d` `message: Hello World`\n'\
                 '\n'\
-                '\t/remind @User 1 mon What\'s up\n'\
-                '\t/remind @User 24 dec Merry Christmas\n'\
-                '\t/remind @Role eoy Happy new year\n'\
+                'remind other users and roles\n'\
+                '> /remind `target: @Role` `time: 24 dec`  `message: Merry Christmas`\n'\
                 '\n'\
-                '\t/remindme every friday at 20:15 do stuff\n'\
-                '\t/remind @User every year at 1st july happy birthday\n'\
-                '\n\n'\
-                'allowed absolutes are\n'\
-                '\t• eoy - remind at end of year\n'\
-                '\t• eom - remind at end of month\n'\
-                '\t• eow - remind at end of working week (Friday night)\n'\
-                '\t• eod - remind at end of day\n'\
+                'create repeating reminders\n'\
+                '> /remindme `time: every friday at 20:15` `message: do stuff`\n'\
                 '\n'\
-                'allowed intervals are\n'\
-                '\t• y(ears)\n'\
-                '\t• mo(nths)\n'\
-                '\t• w(eeks)\n'\
-                '\t• d(ays)\n'\
-                '\t• h(ours)\n'\
-                '\t• mi(ns)\n'\
+                'try different formats\n'\
+                '```'\
+                '• 5 jul, 5th july, july 5\n'\
+                '• 23 aug at 3pm, 23 aug at 15\n'\
+                '• every other week\n'\
                 '\n'\
-                'you can combine relative intervals like this\n'\
-                '\t1y 1mo 2 days -5h\n'\
-                '\n'\
-                'iso-timestamps are supported\n'\
-                '\tbe aware that specifying a timezone\n'\
-                '\twill ignore the server timezone\n'\
-                '\n'\
-                'natural dates are supported, you can try different formats\n'\
-                '\t• 5 jul, 5th july, july 5\n'\
-                '\t• 23 sept at 3pm, 23 sept at 15:00\n'\
-                '\t• 2030\n'\
-                '\t• every other week\n'\
-                '\tNote: the parser uses day-first and year-least\n'\
-                '\t      (01/02/03 -> 1st February 2003)\n'\
-                '\n'\
-                'the reminder can occur as much as 1 minute delayed\n'\
-                'repeating reminders can occur as much as 5 minutes delayed```\n'\
+                '```'\
+                'Call `/help page: syntax` for more detailed information'
                 
     HELP_FOOTER = 'If you find a bug in the parser, please reach out to us.\n'\
                   'You can contact us on [Github](https://github.com/Mayerch1/RemindmeBot) or join the support server.'

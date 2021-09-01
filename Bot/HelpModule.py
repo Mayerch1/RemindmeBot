@@ -8,13 +8,59 @@ from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 from lib.Analytics import Analytics
-from ReminderModule import ReminderModule
 
 FEEDBACK_CHANNEL = 872104333007785984
 FEEDBACK_MENTION = 872107119988588566
 
 class HelpModule(commands.Cog):
     
+    SYNTAX_HELP_PAGE = \
+                'basic example:\n'\
+                '> /remindme `time: 2d` `message: Hello World`\n'\
+                '\n'\
+                'remind other users and roles\n'\
+                '> /remind `target: @User` `time: 1 mon`   `message: What\'s up`\n'\
+                '> /remind `target: @Role` `time: 24 dec`  `message: Merry Christmas`\n'\
+                '> /remind `target: @everyone` `time: eoy` `message: Happy new year`\n'\
+                '\n'\
+                'create repeating reminders\n'\
+                '> /remindme `time: every friday at 20:15` `message: do stuff`\n'\
+                '> /remind `target: @User` `time: every year at 2nd july` `message: happy birthday`\n'\
+                '\n'\
+                'combine relative intervals\n'\
+                '```1y 1mo 2 days -5h```'\
+                '\n'\
+                'try different formats\n'\
+                '```'\
+                '• 5 jul, 5th july, july 5\n'\
+                '• 23 aug at 3pm, 23 aug at 15\n'\
+                '• 2030\n'\
+                '• tomorrow at 4pm\n'\
+                '• every other week\n'\
+                '• 2021-09-02T12:25:00+02:00\n'\
+                '\n'\
+                'Note: the parser uses day-first and year-least\n'\
+                '      (01/02/03 -> 1st February 2003)\n'\
+                'Note: specifying a timezone in iso-timestamps (e.g. +0200)\n'\
+                '      will ignore the server timezone,\n'\
+                '```'\
+                '\n'\
+                'use abbreviations for common terms\n'\
+                '```'\
+                '\t• eoy - remind at end of year\n'\
+                '\t• eom - remind at end of month\n'\
+                '\t• eow - remind at end of working week (Friday night)\n'\
+                '\t• eod - remind at end of day\n'\
+                '\t• y(ears)\n'\
+                '\t• mo(nths)\n'\
+                '\t• w(eeks)\n'\
+                '\t• d(ays)\n'\
+                '\t• h(ours)\n'\
+                '\t• mi(ns)\n'\
+                '```'\
+                '\n'\
+                'If you find a bug in the parser, please reach out to us and report it.'
+                
     def __init__(self, client):
         self.client = client
     
@@ -137,14 +183,12 @@ class HelpModule(commands.Cog):
         def get_syntax_eb():
 
             eb = discord.Embed(title='Remindme Syntax Help', 
-                            description='This syntax is used whenever a user invokes `/remindme` or `/remind`\n'\
-                                        f'{ReminderModule.REMIND_FORMAT_HELP}\n'\
-                                        f'{ReminderModule.HELP_FOOTER}')
+                            description=HelpModule.SYNTAX_HELP_PAGE)
             
             return eb
 
         def get_syntax_str():
-            return '**Remindme Help** - parser syntax and example usage' + ReminderModule.REMIND_FORMAT_HELP
+            return '**Remindme Help** - parser syntax and example usage' + HelpModule.SYNTAX_HELP_PAGE
 
 
         def get_help_components(current_page='overview'):
