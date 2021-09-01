@@ -45,11 +45,11 @@ class HelpModule(commands.Cog):
                         'Your feedback will be used to improve the bot')
 
         try:
-            feedback = await self.client.wait_for('message', check=msg_check, timeout=2*60)
+            feedback = await self.client.wait_for('message', check=msg_check, timeout=5*60)
         except asyncio.exceptions.TimeoutError:
             # abort the deletion
             await q.delete()
-            await dm_test.edit(content='*Direct Feedback* (timeout, please invoke again)') if dm_test else None
+            await dm_test.edit(content='*Feedback Timeout*: You didn\'t enter your feedback fast enough.\nRe-invoke the command if you want to try again.') if dm_test else None
             return
 
 

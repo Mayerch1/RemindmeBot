@@ -215,6 +215,35 @@ class Connector:
 
 
     @staticmethod
+    def set_reminder_channel(reminder_id, channel_id: int):
+        """change the channel id of a given reminder
+           method tries to find reminder, if not exists
+           method will assume an interval
+
+        Args:
+            reminder_id (ObjectId): reminder/interval ID
+
+        Returns:
+            bool: True if set was successfull
+        """
+        
+        result = Connector.db.reminders.find_one_and_update({'_id': reminder_id}, 
+                                                            {'$set': {'ch_id': str(channel_id)}}, 
+                                                            new=False, 
+                                                            upsert=False)
+        
+        if not result:
+            result = Connector.db.intervals.find_one_and_update({'_id': reminder_id}, 
+                                                                {'$set': {'ch_id': str(channel_id)}}, 
+                                                                new=False, 
+                                                                upsert=False)
+            
+        return (result is not None)
+        
+        
+
+
+    @staticmethod
     def get_scoped_reminders(scope: Scope, sort_return=True):
         """request all reminders from the db
            which match the required scope

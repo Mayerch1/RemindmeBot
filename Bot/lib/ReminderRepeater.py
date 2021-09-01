@@ -569,17 +569,7 @@ async def _interval_stm(client, dm, reminder, instance_id, tz_str='UTC'):
     stm.reminder = reminder
     stm.timezone = tz_str
     stm.instance_id = instance_id
-
-
-    warn_eb = discord.Embed(title='INFO: Experimental Feature',
-                            color=0xff833b,
-                            description='This is released as a beta feature.')
-    warn_eb.add_field(name='\u200b', value='If you want to give feedback for this feature, contact us '\
-                                     'on the [support server](https://discord.gg/vH5syXfP) '\
-                                      'or on [Github](https://github.com/Mayerch1/RemindmeBot)\n')
-
-    await dm.send(embed=warn_eb)
-                                        
+                 
 
     eb = stm.reminder.get_info_embed()
     await dm.send(content='Reminder under edit', embed=eb)

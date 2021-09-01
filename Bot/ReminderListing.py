@@ -115,8 +115,72 @@ class ReminderListing(commands.Cog):
     # =====================
     # stm core
     # =====================
+    
+    async def _show_ack(self, messageable, title, description, timeout, edit_origin, color, btn_style):
 
-    async def _exit_stm(self, stm):
+        eb = discord.Embed(title=title, description=description, color=color)
+        
+        buttons = [
+            manage_components.create_button(
+                style=btn_style,
+                label='Acknowledge',
+                custom_id='reminder_stm_generic_ack'
+            )
+        ]
+        action_row = manage_components.create_actionrow(*buttons)
+        
+        if edit_origin:
+            await messageable.edit_origin(embed=eb, components=[action_row])
+        else:
+            await messageable.send(embed=eb, components=[action_row])
+    
+        try:
+            ack_ctx = await manage_components.wait_for_component(self.client, components=action_row, timeout=timeout)
+        except asyncio.exceptions.TimeoutError:
+            return None
+
+        await ack_ctx.defer(edit_origin=True)
+        return ack_ctx
+    
+    async def show_success_ack(self, messageable, title, description, timeout=5*60, edit_origin=False):
+        """show an success embed to the user and wait for ack button press
+           if user doesn't react within timeout, None is returned
+
+        Args:
+            messageable (ctx or channel): Target to send the embed to
+            title ([type]): [description]
+            description ([type]): [description]
+            timeout ([type], optional): [description]. Defaults to 5*60.
+            edit_origin (bool): use .edit_origin to send message, throws exception if True and messageable is not a context.
+
+        Returns:
+            ComponentContext: reaction context already in deferred state, None on timeout
+        """
+        color = 0x409fe2
+        btn_style = ButtonStyle.green
+        return await self._show_ack(messageable, title, description, timeout, edit_origin, color, btn_style)
+    
+    
+    async def show_error_ack(self, messageable, title, description, timeout=5*60, edit_origin=False):
+        """show an error embed to the user and wait for ack button press
+           if user doesn't react within timeout, None is returned
+
+        Args:
+            messageable (ctx or channel): Target to send the embed to
+            title ([type]): [description]
+            description ([type]): [description]
+            timeout ([type], optional): [description]. Defaults to 5*60.
+            edit_origin (bool): use .edit_origin to send message, throws exception if True and messageable is not a context.
+
+        Returns:
+            ComponentContext: reaction context already in deferred state, None on timeout
+        """
+        color = 0xff0000
+        btn_style = ButtonStyle.red
+        return await self._show_ack(messageable, title, description, timeout, edit_origin, color, btn_style)
+
+
+    async def _exit_stm(self, stm, ctx=None):
         """exit the stm, disable all components
            and send a goodbye message
 
@@ -124,6 +188,9 @@ class ReminderListing(commands.Cog):
             stm (STM): stm object
         """
         await stm.dm.send('If you wish to edit more reminders, re-invoke the command')
+
+        if ctx:
+            await ctx.defer(edit_origin=True)
         
         for n_row in stm.navigation_rows:
             for c in n_row['components']:
@@ -158,7 +225,7 @@ class ReminderListing(commands.Cog):
             )
         ]
         stm.navigation_rows = [manage_components.create_actionrow(*buttons)]
-
+        
 
         selectables = ReminderListing.get_reminders_on_page(stm.reminders, stm.page)
 
@@ -178,8 +245,16 @@ class ReminderListing(commands.Cog):
                     options=reminder_options
                 )
             )
-
             stm.navigation_rows.append(manage_components.create_actionrow(reminder_selection))
+
+        buttons = [            
+            manage_components.create_button(
+                style=ButtonStyle.secondary,
+                label='Exit',
+                custom_id='reminder_listing_exit'
+            )
+        ]
+        stm.navigation_rows.append(manage_components.create_actionrow(*buttons))
 
         if stm.menu_msg and push_update:
             await stm.question_msg.edit(components=[*stm.navigation_rows])
@@ -224,6 +299,90 @@ class ReminderListing(commands.Cog):
         await ctx.defer(edit_origin=True)
 
 
+    async def process_channel_selector(self, ctx, stm, reminder):
+        
+        guild = self.client.get_guild(reminder.g_id)
+        if not guild:
+            await self.show_error_ack(ctx, 
+                                      'Failed to edit Reminder', 
+                                      'Couldn\'t resolve the server of the selected reminder', 
+                                      edit_origin=True)
+            return
+
+        txt_channels = list(filter(lambda ch: isinstance(ch, discord.TextChannel), guild.channels))
+        txt_channels = txt_channels[0:25]  # discord limitation of selectables
+        
+        if not txt_channels:
+            await self.show_error_ack(ctx, 
+                                      'Failed to edit Reminder', 
+                                      'Couldn\'t find any text channels. This could be caused by missing permissions on the server.', 
+                                      edit_origin=True)
+            return
+
+        channel_options = [manage_components.create_select_option(
+                                    label= unidecode(r.name)[:25] or '*unknown channel*', 
+                                    value= str(r.id))
+                                    for i, r in enumerate(txt_channels)]
+        reminder_selection = (
+            manage_components.create_select(
+                custom_id='reminder_edit_channel_selection',
+                placeholder='Select a new channel',
+                min_values=1,
+                max_values=1,
+                options=channel_options
+            )
+        )
+        action_rows = [manage_components.create_actionrow(reminder_selection)]
+
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.red,
+                label='Cancel',
+                custom_id='reminderlist_edit_cancel'
+            )
+        ]
+        action_rows.append(manage_components.create_actionrow(*buttons))
+        
+        await ctx.edit_origin(components=action_rows)
+        
+        try:
+            edit_ctx = await manage_components.wait_for_component(self.client, components=action_rows, timeout=5*60)
+        except asyncio.exceptions.TimeoutError:
+            # abort channel edit
+            return
+        
+        if edit_ctx.component_id == 'reminderlist_edit_cancel':
+            await edit_ctx.defer(edit_origin=True)
+            return
+
+        # bot could resolve channel before (when offering drop-down)
+        # therefore channel should be available again
+        sel_channel_id = int(edit_ctx.selected_options[0])
+        sel_channel = self.client.get_channel(sel_channel_id)
+        
+        if not sel_channel:
+            await self.show_error_ack(edit_ctx, 
+                                      'Failed to edit Reminder', 
+                                      'Couldn\'t resolve the selected channel. It might have been deleted since the previous message was send.', 
+                                      edit_origin=True)
+            return
+        
+        success = Connector.set_reminder_channel(reminder._id, sel_channel_id)
+        if not success:
+            await self.show_error_ack(edit_ctx, 
+                                      'Failed to edit Reminder', 
+                                      'The database access failed, please contact the developers (`/help`) to report this bug.', 
+                                      edit_origin=True)
+            return
+
+        
+        
+        await self.show_success_ack(edit_ctx,
+                                    'New Notification Channel',
+                                    f'This reminder will now be delivered to `{sel_channel.name}`.\nMake sure this bot has permission to send messages into that channel, otherwise the reminder might not be delivered',
+                                    edit_origin=True)
+
+
     async def process_reminder_edit(self, ctx, stm):
         """called on selection event of component
            shows options (currently only delete)
@@ -243,7 +402,6 @@ class ReminderListing(commands.Cog):
         # in case some of them have elapsed
         
         stm.reminders = Connector.get_scoped_reminders(stm.scope)
-
         reminders = ReminderListing.get_reminders_on_page(stm.reminders, stm.page)
 
         if sel_id >= len(reminders):
@@ -253,15 +411,24 @@ class ReminderListing(commands.Cog):
 
         buttons = [
             manage_components.create_button(
-                style=ButtonStyle.secondary,
-                label='Return ',
-                custom_id='reminderlist_edit_return'
+                style=ButtonStyle.primary,
+                label='Edit Channel',
+                custom_id='reminderlist_edit_channel',
+                disabled=(reminder.ch_id==None)
             ),
             manage_components.create_button(
                 style=ButtonStyle.primary,
                 label='Set Interval',
-                custom_id='reminderlist_edit_interval',
-                emoji='🔁'
+                custom_id='reminderlist_edit_interval'
+            )
+        ]
+        action_rows = [manage_components.create_actionrow(*buttons)]
+
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.secondary,
+                label='Return ',
+                custom_id='reminderlist_edit_return'
             ),
             manage_components.create_button(
                 style=ButtonStyle.danger,
@@ -269,13 +436,11 @@ class ReminderListing(commands.Cog):
                 custom_id='reminderlist_edit_delete'
             )
         ]
-
-        action_row = manage_components.create_actionrow(*buttons)
-        await ctx.edit_origin(embed=reminder.get_info_embed(stm.tz_str), components=[action_row])
-        
+        action_rows.append(manage_components.create_actionrow(*buttons))
+        await ctx.edit_origin(embed=reminder.get_info_embed(stm.tz_str), components=action_rows)
 
         try:
-            delete_ctx = await manage_components.wait_for_component(self.client, components=action_row, timeout=5*60)
+            delete_ctx = await manage_components.wait_for_component(self.client, components=action_rows, timeout=5*60)
         except asyncio.exceptions.TimeoutError:
             # abort the deletion
             return
@@ -291,9 +456,12 @@ class ReminderListing(commands.Cog):
             else:
                 Connector.delete_reminder(reminder._id)
                 Analytics.reminder_deleted(Types.DeleteAction.LISTING)
+            await self.show_success_ack(delete_ctx, 'Reminder was deleted', '', edit_origin=True)
         elif delete_ctx.custom_id == 'reminderlist_edit_interval':
             await lib.ReminderRepeater.transfer_interval_setup(self.client, stm, reminder)
-            resend_menu = True
+            resend_menu = True  # method will produce multiple messages
+        elif delete_ctx.custom_id == 'reminderlist_edit_channel':
+            await self.process_channel_selector(delete_ctx, stm, reminder)
 
         return resend_menu
 
@@ -327,6 +495,9 @@ class ReminderListing(commands.Cog):
                 await self.process_navigation(comp_ctx, stm)
             elif comp_ctx.custom_id == 'reminder_list_reminder_selection':
                 re_send_menu = await self.process_reminder_edit(comp_ctx, stm)
+            elif comp_ctx.custom_id == 'reminder_listing_exit':
+                await self._exit_stm(stm, comp_ctx)
+                return
 
     # =====================
     # intro methods
@@ -379,15 +550,13 @@ class ReminderListing(commands.Cog):
 
 
         intro_eb = discord.Embed(title=f'Private Reminder list', 
-                                description='You requested to see all reminders created by you.\n'\
-                                        'Keep in mind that the following list will only show reminders that are not related to any server.\n'\
-                                        'You need to invoke this command for every server you have setup further reminders.')
+                                description='This list will **only** show reminders that are not related to any server.')
+        intro_eb.set_footer(text='You need to invoke this command for every server you have setup further reminders.')
     
         dm = await self.send_intro_dm(ctx, intro_eb)
 
         if not dm:
             return
-
 
         scope = Connector.Scope(is_private=True, user_id=ctx.author.id)
 
@@ -397,7 +566,6 @@ class ReminderListing(commands.Cog):
         stm.tz_str = Connector.get_timezone(ctx.author.id)
 
         await self.reminder_stm(stm)
-        
 
         print('ending dm session ' + str(session_id))
 
@@ -409,9 +577,8 @@ class ReminderListing(commands.Cog):
         print('starting dm session ' + str(session_id))
         
         intro_eb = discord.Embed(title=f'Reminder list for {ctx.guild.name}', 
-                            description='You requested to see all reminders created by you.\n'\
-                                        'Keep in mind that the following list will only show reminders related to the server `{:s}`.\n'\
-                                        'You need to invoke this command for every server you have setup further reminders.'.format(ctx.guild.name))
+                            description='This list will **only** show reminders related to the server `{:s}`'.format(ctx.guild.name))
+        intro_eb.set_footer(text='You need to invoke this command for every server you have setup further reminders.')
         
         dm = await self.send_intro_dm(ctx, intro_eb)
 
@@ -441,7 +608,6 @@ class ReminderListing(commands.Cog):
             await self.show_reminders_dm(ctx)
         else:
             await self.show_private_reminders(ctx)
-
 
 def setup(client):
     client.add_cog(ReminderListing(client))
