@@ -44,10 +44,11 @@ class ReminderModule(commands.Cog):
                 '• every other week\n'\
                 '\n'\
                 '```'\
-                'Call `/help page: syntax` for more detailed information'
+                '\n'\
+                'Call `/help page: syntax` for more detailed information.\n'
                 
     HELP_FOOTER = 'If you find a bug in the parser, please reach out to us.\n'\
-                  'You can contact us on [Github](https://github.com/Mayerch1/RemindmeBot) or join the support server.'
+                  'You can contact us on Github or join the support server.'
 
 
     @staticmethod
@@ -199,9 +200,9 @@ class ReminderModule(commands.Cog):
                     # only append full help on invalid strings
                     # not on negative intervals
                     out_str += ReminderModule.REMIND_FORMAT_HELP
-                out_str += ReminderModule.HELP_FOOTER
                 
                 embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
+                embed.set_footer(text=ReminderModule.HELP_FOOTER)
                 await ctx.send(embed=embed, hidden=True)
                 
                 if interval == timedelta(hours=0):
@@ -209,17 +210,20 @@ class ReminderModule(commands.Cog):
                 else:
                     Analytics.reminder_creation_failed(Types.CreationFailed.PAST_DATE)
                 return  # error exit
+
         elif remind_at is None:
             if info != '':
                 out_str = f'```Parsing hints:\n{info}```\n'
             else:
                 out_str = ''
             out_str += ReminderModule.REMIND_FORMAT_HELP
-            out_str += ReminderModule.HELP_FOOTER
+
             embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
+            embed.set_footer(text=ReminderModule.HELP_FOOTER)
             await ctx.send(embed=embed, hidden=True)
             Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
             return  
+
         elif isinstance(remind_at, str):
             rrule, info = lib.input_parser.rrule_normalize(remind_at, utcnow, instance_id)
             if not rrule:
@@ -228,10 +232,10 @@ class ReminderModule(commands.Cog):
                 else:
                     # only show general help, if normalizing doesn't give
                     # specific error
-                    out_str += ReminderModule.REMIND_FORMAT_HELP
+                    out_str = ReminderModule.REMIND_FORMAT_HELP
 
-                out_str += ReminderModule.HELP_FOOTER
                 embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
+                embed.set_footer(text=ReminderModule.HELP_FOOTER)
                 await ctx.send(embed=embed, hidden=True)
                 Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
                 return

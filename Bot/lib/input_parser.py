@@ -107,58 +107,6 @@ def _join_spaced_args(args):
         i += 1
 
     return joined_args
-
-
-def _parse_absolute(args, utcnow, now_local):
-    """parse the date to absolute arguments
-       (eoy, eom, ...)
-
-       gives the absolute utc-date when the reminder
-       should be triggered
-
-    Args:
-        args ([]]): list of arguments
-        utcnow (datetime): current utc datetime (not tz-aware)
-        now_local (datetime): local datetime (tz-aware)
-
-    Returns:
-        (datetime, str, exception): non tz-aware date when reminder is trigger (in utc time), =utcnow on error
-                         info string for parsing errors/warnings
-    """
-
-    total_intvl = timedelta(hours=0)
-    error = ''
-    info = ''
-
-    for arg in args:
-        if arg[1] == 'eoy':
-            tmp = now_local.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            eoy = tmp + relativedelta(years=1, days=-1)
-            total_intvl = eoy - now_local
-
-        elif arg[1] == 'eom':
-            tmp = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            eom = tmp + relativedelta(months=1, hours=-12)
-            total_intvl = eom - now_local
-
-        elif arg[1] == 'eow':
-            w_day = now_local.weekday()
-            week_start = now_local - timedelta(days=w_day)
-            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-
-            eow = week_start + relativedelta(days=5, hours=-1)
-            total_intvl = eow - now_local
-
-        elif arg[1] == 'eod':
-            tmp = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
-            eod = tmp + relativedelta(days=1, minutes=-15)
-            total_intvl = eod - now_local
-
-        else:
-            info = info + f'• ignoring {arg}, as absolute and relative intervals cannot be mixed\n'
-
-
-    return (utcnow + total_intvl, info, None)
             
 
 def _parse_relative(args, utcnow):
@@ -273,8 +221,58 @@ def _parse_fuzzy(input, utcnow, display_tz):
     """
 
     info = ''
+    localnow = utcnow.replace(tzinfo=tz.UTC).astimezone(display_tz)
 
-    r = RecurringEvent(now_date=utcnow, preferred_time_range=(0,12), parse_constants=_parse_consts)
+    eod_re = re.compile(r'\b(end of day)|eod\b')
+    eow_re = re.compile(r'\b(end of week)|eow\b')
+    eom_re = re.compile(r'\b(end of month)|eom\b')
+    eoy_re = re.compile(r'\b(end of year)|eoy\b')
+    
+    replace_datetime = None
+    matched_regex = None
+    
+    # remove timezone awareness, on each date w/o converting to utc
+    # parser wil assume local time for natural language
+    if eod_re.match(input):
+        tmp = localnow.replace(hour=0, minute=0, second=0, microsecond=0)
+        replace_datetime = tmp + relativedelta(hours=17)  # could be one-liner, but stay consistent with other cases
+        matched_regex = eod_re
+
+    elif eow_re.match(input):
+        w_day = localnow.weekday()
+        tmp = localnow - timedelta(days=w_day)
+        tmp = tmp.replace(hour=0, minute=0, second=0, microsecond=0)
+        replace_datetime = tmp + relativedelta(days=5, hours=-7)  # 17:00 on last day of week
+
+        matched_regex = eow_re
+
+    elif eom_re.match(input):
+        tmp = localnow.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        replace_datetime = tmp + relativedelta(months=1, hours=-12)  # 12:00 on last day of month
+        matched_regex = eom_re
+
+    elif eoy_re.match(input):
+        tmp = localnow.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        replace_datetime = tmp + relativedelta(years=1, hours=-15)  # 9:00 on last day of year
+        matched_regex = eoy_re
+
+    # without regex match, no replacement can happend (obviously)
+    if replace_datetime is not None and matched_regex is not None:
+        # the absolute date could be called on the last day, but after the default reminding hour
+        # for that case, the reminder is pushed back by 2 hours, or by the last millisecond of the day
+        # whatever is earlier
+        if replace_datetime < localnow:
+            delta_option = (localnow + relativedelta(hours=2)).replace(minute=0, second=0, microsecond=0)
+            fixed_option = replace_datetime.replace(hour=0) + relativedelta(hours=24, microseconds=-1)
+            replace_datetime = min(delta_option, fixed_option)
+        
+        # disregard the timezone
+        replace_datetime = replace_datetime.replace(tzinfo=None)
+        # export microseconds here
+        # although the parser is ignoring them
+        input = matched_regex.sub(replace_datetime.strftime('%d/%m/%Y %H:%M:%S.%f'), input)
+
+    r = RecurringEvent(now_date=localnow, preferred_time_range=(0,12), parse_constants=_parse_consts)
     remind_parse = r.parse(input)
 
     if remind_parse is None:
@@ -292,25 +290,14 @@ def _parse_fuzzy(input, utcnow, display_tz):
         else:
             info = ''
     
-    remind_at = None
     if isinstance(remind_parse, datetime):
         remind_parse = remind_parse.replace(tzinfo=display_tz)
         remind_utc = remind_parse.astimezone(tz.UTC)
         remind_at = remind_utc.replace(tzinfo=None)
     elif isinstance(remind_parse, str):
         remind_at = remind_parse
-    
-    return (remind_at, info, None)
-    
-    
-
-    # convert the given time from timezone to UTC
-    # the resulting remind_at is not timezone aware
-    if remind_parse:
-        remind_utc = remind_parse.astimezone(tz.UTC)
-        remind_at = remind_utc.replace(tzinfo=None)
     else:
-        remind_at = utcnow
+        remind_at = None  # could be hit in case of error in parser
 
     return (remind_at, info, None)
 
@@ -350,12 +337,9 @@ def parse(input, utcnow, timezone='UTC'):
     args = list(map(_split_arg, args))
     args = _join_spaced_args(args)
     
-    remind_at, info, ex = _parse_absolute(args, utcnow, tz_now)
+  
+    remind_at, info, ex = _parse_relative(args, utcnow)
     early_abort = (ex != None)
-
-    if remind_at == utcnow and not early_abort:
-        remind_at, info, ex = _parse_relative(args, utcnow)
-        early_abort = (ex != None)
 
     if remind_at == utcnow and not early_abort:
         remind_at, info_iso, ex = _parse_iso(input, utcnow, display_tz)
@@ -451,6 +435,6 @@ def rrule_normalize(rrule_str, dtstart, instance_id=None):
     if 'minutely' in norm_str:
         return (None, 'Minutely repetitions are not supported by this bot (yet)')
     elif 'secondly' in norm_str:
-        return (None, 'Secondly repetitions are classified as spam by the discord TOS.')
+        return (None, 'Secondly repetitions would be classified as spam by the discord TOS.')
     else:
         return rule, None

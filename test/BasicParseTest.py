@@ -14,7 +14,7 @@ class BasicParseTest(unittest.TestCase):
 
 
     def test_eoy(self):
-        at_cmp = datetime(year=2021, month=12, day=31)
+        at_cmp = datetime(year=2021, month=12, day=31, hour=9)
         at, _ = p.parse('eoy', self.utcnow)
 
         self.assertEqual(at, at_cmp)
@@ -26,13 +26,13 @@ class BasicParseTest(unittest.TestCase):
         self.assertEqual(at, at_cmp)
 
     def test_eow(self):
-        at_cmp = datetime(year=2021, month=1, day=1, hour=23)
+        at_cmp = datetime(year=2021, month=1, day=1, hour=17)
         at, _ = p.parse('eow', self.utcnow)
 
         self.assertEqual(at, at_cmp)
 
     def test_eod(self):
-        at_cmp = datetime(year=2021, month=1, day=1, hour=23, minute=45)
+        at_cmp = datetime(year=2021, month=1, day=1, hour=17)
         at, _ = p.parse('eod', self.utcnow)
 
         self.assertEqual(at, at_cmp)
@@ -225,3 +225,80 @@ class BasicParseTest(unittest.TestCase):
         at, _ = p.parse('00:00 1st jan 5000', self.utcnow)
         self.assertEqual(at, self.utcnow)
 
+
+class BasicPushbackTest(unittest.TestCase):
+    
+    def setUp(self):
+        # this date is eoy, eom AND eow
+        self.default = datetime(year=2021, month=12, day=31, hour=18)
+        self.limit = datetime(year=2021, month=12, day=31, hour=23)
+    
+    def test_eod_2h(self):
+        at_cmp = self.default + timedelta(hours=2)
+        at, _ = p.parse('eod', self.default)
+        self.assertEqual(at, at_cmp)
+    
+    def test_eow_2h(self):
+        at_cmp = self.default + timedelta(hours=2)
+        at, _ = p.parse('eow', self.default)
+        self.assertEqual(at, at_cmp)
+    
+    def test_eom_2h(self):
+        at_cmp = self.default + timedelta(hours=2)
+        at, _ = p.parse('eom', self.default)
+        self.assertEqual(at, at_cmp)
+    
+    def test_eoy_2h(self):
+        at_cmp = self.default + timedelta(hours=2)
+        at, _ = p.parse('eoy', self.default)
+        self.assertEqual(at, at_cmp)
+        
+        
+        
+    def test_eod_limit(self):
+        at_cmp = self.limit.replace(hour=23, minute=59, second=59)
+        at, _ = p.parse('eod', self.limit)
+        self.assertEqual(at, at_cmp)
+    
+    def test_eow_limit(self):
+        at_cmp = self.limit.replace(hour=23, minute=59, second=59)
+        at, _ = p.parse('eow', self.limit)
+        self.assertEqual(at, at_cmp)
+    
+    def test_eom_limit(self):
+        at_cmp = self.limit.replace(hour=23, minute=59, second=59)
+        at, _ = p.parse('eom', self.limit)
+        self.assertEqual(at, at_cmp)
+    
+    def test_eoy_limit(self):
+        at_cmp = self.limit.replace(hour=23, minute=59, second=59)
+        at, _ = p.parse('eoy', self.limit)
+        self.assertEqual(at, at_cmp)
+        
+        
+    
+class AbsolutoOffsetTest(unittest.TestCase):
+    def setUp(self):
+        # this date is eoy, eom AND eow
+        self.utcnow = datetime(year=2021, month=12, day=31, hour=9)
+        
+        
+    def test_eod_offset(self):
+        at_cmp = self.utcnow.replace(hour=20)
+        at, _ = p.parse('eod at 8pm', self.utcnow)
+        self.assertEqual(at, at_cmp)
+        
+    def test_eow_offset(self):
+        at_cmp = self.utcnow.replace(hour=20)
+        at, _ = p.parse('eow at 8pm', self.utcnow)
+        self.assertEqual(at, at_cmp)
+        
+    def test_eom_offset(self):
+        at_cmp = self.utcnow.replace(hour=20)
+        at, _ = p.parse('eom at 8pm', self.utcnow)
+        self.assertEqual(at, at_cmp)
+        
+    def test_eoy_offset(self):
+        at_cmp = self.utcnow.replace(hour=20)
+        at, _ = p.parse('eoy at 8pm', self.utcnow)
+        self.assertEqual(at, at_cmp)

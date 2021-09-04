@@ -17,49 +17,44 @@ class HelpModule(commands.Cog):
     SYNTAX_HELP_PAGE = \
                 'basic example:\n'\
                 '> /remindme `time: 2d` `message: Hello World`\n'\
-                '\n'\
-                'remind other users and roles\n'\
-                '> /remind `target: @User` `time: 1 mon`   `message: What\'s up`\n'\
-                '> /remind `target: @Role` `time: 24 dec`  `message: Merry Christmas`\n'\
-                '> /remind `target: @everyone` `time: eoy` `message: Happy new year`\n'\
+                '> /remind `target: @User` `time: 2d` `message: Hello World`\n'\
+                '> /remind `target: @Role` `time: 2d` `message: Hello World`\n'\
                 '\n'\
                 'create repeating reminders\n'\
-                '> /remindme `time: every friday at 20:15` `message: do stuff`\n'\
-                '> /remind `target: @User` `time: every year at 2nd july` `message: happy birthday`\n'\
+                '> /remindme `time: every friday at 14:15` `message: important appointment`\n'\
+                '> /remindme `time: every other year at 2nd july` `message: interesting`\n'\
                 '\n'\
                 'combine relative intervals\n'\
                 '```1y 1mo 2 days -5h```'\
                 '\n'\
                 'try different formats\n'\
                 '```'\
-                '• 5 jul, 5th july, july 5\n'\
-                '• 23 aug at 3pm, 23 aug at 15\n'\
+                '• 5 jul, 5th july or july 5\n'\
+                '• 3pm or 15\n'\
                 '• 2030\n'\
                 '• tomorrow at 4pm\n'\
-                '• every other week\n'\
+                '• every second monday each other month\n'\
                 '• 2021-09-02T12:25:00+02:00\n'\
                 '\n'\
                 'Note: the parser uses day-first and year-least\n'\
                 '      (01/02/03 -> 1st February 2003)\n'\
                 'Note: specifying a timezone in iso-timestamps (e.g. +0200)\n'\
-                '      will ignore the server timezone,\n'\
+                '      will ignore the server timezone\n'\
                 '```'\
                 '\n'\
                 'use abbreviations for common terms\n'\
                 '```'\
-                '\t• eoy - remind at end of year\n'\
-                '\t• eom - remind at end of month\n'\
-                '\t• eow - remind at end of working week (Friday night)\n'\
-                '\t• eod - remind at end of day\n'\
-                '\t• y(ears)\n'\
-                '\t• mo(nths)\n'\
-                '\t• w(eeks)\n'\
-                '\t• d(ays)\n'\
-                '\t• h(ours)\n'\
-                '\t• mi(ns)\n'\
-                '```'\
+                '• eoy, eom, eow, eod - end of year/month/week/day\n'\
                 '\n'\
-                'If you find a bug in the parser, please reach out to us and report it.'
+                '• y(ears)\n'\
+                '• mo(nths)\n'\
+                '• w(eeks)\n'\
+                '• d(ays)\n'\
+                '• h(ours)\n'\
+                '• mi(ns)\n'\
+                '\n'\
+                'Note: eow is end of the working week (Friday Evening)\n'\
+                '```'
                 
     def __init__(self, client):
         self.client = client
@@ -125,7 +120,7 @@ class HelpModule(commands.Cog):
         
         def get_overview_eb():
 
-            embed = discord.Embed(title='Remindme Help', description='Reminding you whenever you want')
+            embed = discord.Embed(title='Remindme Help', description='\u200b')
 
             embed.add_field(name='/help [page]', value='directly access a specific help page', inline=False)
             embed.add_field(name='/timezone', value='set/get the timezone of this server', inline=False)
@@ -154,18 +149,19 @@ class HelpModule(commands.Cog):
 
         def get_timezone_eb():
 
-            eb = discord.Embed(title='Remindme Timezone Help', description='timezone help')
+            eb = discord.Embed(title='Remindme Timezone Help', description='\u200b')
 
             eb.add_field(name='/timezone get', value='get the current timezone', inline=False)
             eb.add_field(name='/timezone set <string>', value='set a new timezone', inline=False)
+            eb.add_field(name='\u200b', value='> /timezone `mode: set`  `timezone: Europe/Berlin`', inline=False)
 
             eb.add_field(name='\u200B', 
-                        value='• Allowed timezones are any strings [defined by the IANA](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)\n'\
+                        value='• Allowed are all timezones [defined by the IANA](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)\n'\
                             '• Some timezones are marked as \'deprecated\' but can be used with a warning\n'\
                             '• geo-referencing timezones (e.g. `Europe/Berlin`) should be preferred\n'\
                             '  over more general (and deprecated) timezones (e.g. `CET`)', inline=False)
 
-            eb.add_field(name='\u200b', value='If you find a bug or want to give feedback, join the support server.', inline=False)
+            eb.set_footer(text='If you find a bug or want to give feedback, join the support server.')
 
             return eb
 
@@ -184,7 +180,8 @@ class HelpModule(commands.Cog):
 
             eb = discord.Embed(title='Remindme Syntax Help', 
                             description=HelpModule.SYNTAX_HELP_PAGE)
-            
+            eb.set_footer(text='If you find a bug in the parser, please reach out to us and report it.')
+
             return eb
 
         def get_syntax_str():

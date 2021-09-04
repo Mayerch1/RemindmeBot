@@ -31,7 +31,7 @@ class CombineParseTest(unittest.TestCase):
         at_cmp = datetime(year=2021, month=1, day=2, hour=1, minute=1)
         at, info = p.parse('1y1mo1we 1d', self.utcnow)
 
-        # undefined behaviour for resulting timespan
+        # undefined behavior for resulting timespan
         # no-throw is neough to pass this test
         pass
 
@@ -60,8 +60,8 @@ class CombineParseTest(unittest.TestCase):
 
 
     def test_ignore_mixed_input(self):
-        at_cmp = datetime(year=2021, month=1, day=31, hour=12)
+        at_cmp = datetime(year=2022, month=1, day=1, hour=5, minute=5)
         at, info = p.parse('5h 1y eom 5mi', self.utcnow)
         
-        self.assertEqual(at, at_cmp) # all relatives must be ignored
+        self.assertEqual(at, at_cmp) # absolute (eom) must be ignored
         self.assertNotEqual(info, '') # warning must be issued

@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import Bot.lib.input_parser as p
 
 
-
 class TimezoneParseTest(unittest.TestCase):
     # intervals can be ignored, as the solely depend on utc time
     # only testing absolute measures (eoy, eom, ...)
@@ -16,7 +15,7 @@ class TimezoneParseTest(unittest.TestCase):
 
 
     def test_eoy(self):
-        at_cmp = datetime(year=2021, month=12, day=30, hour=23)
+        at_cmp = datetime(year=2021, month=12, day=31, hour=8)  # eoy is 9:00 locale time
         at, _ = p.parse('2 eoy', self.utcnow, 'Europe/Berlin')
 
         self.assertEqual(at, at_cmp)
@@ -39,13 +38,13 @@ class TimezoneParseTest(unittest.TestCase):
 
 
     def test_eow(self):
-        at_cmp = datetime(year=2021, month=1, day=1, hour=22)
+        at_cmp = datetime(year=2021, month=1, day=1, hour=16)  # eow is 17:00 local time
         at, _ = p.parse('eow', self.utcnow, 'Europe/Berlin')
 
         self.assertEqual(at, at_cmp)
 
     def test_eod(self):
-        at_cmp = datetime(year=2021, month=1, day=1, hour=22, minute=45)
+        at_cmp = datetime(year=2021, month=1, day=1, hour=16)  # eod is 17:00 local time
         at, _ = p.parse('eod', self.utcnow, 'Europe/Berlin')
 
         self.assertEqual(at, at_cmp)
@@ -70,13 +69,11 @@ class TimezoneParseTest(unittest.TestCase):
         # timezones towards the west can be stuck in the last year
         # therefore the result of absolute units (eod) might be different than expected
         
-        # chicago is 6h 'in the past', so the eod will be new years eve chicago time
-        # however this date is still in the future for utc
-        # expected date is therefore +5:45h, as the reminder is 15min before midnight
+        # chicago is at 6pm (6h 'in the past', 2020), so the eod will be new years eve 20:00 chicago time
+        # the datetime conversion must convert this date into a future date in 2021 UTC
+        # expected date is therefore +1:00h for utc (18:00->20:00 is 2h, therefore utc result must be 0:00+2:00)
         
-        at_cmp = datetime(year=2021, month=1, day=1, hour=5, minute=45)
+        at_cmp = datetime(year=2021, month=1, day=1, hour=2)
         at, _ = p.parse('eod', self.utcnow, 'America/Chicago')
 
         self.assertEqual(at, at_cmp)
-
-    #TODO: abs date is in daylight switch (non existing)
