@@ -1,0 +1,16 @@
+version: '3.3'
+
+services:
+  mongo-express:
+    image: mongo-express
+    container_name: reminderbot-mongoexpress
+    restart: always
+    ports:
+      - 40001:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASS}
+
+    networks:
+      - remindme-net

@@ -90,21 +90,64 @@ class ReminderModule(commands.Cog):
         self.check_reminder_cnt.cancel()
         self.check_interval_cnt.cancel()
         self.clean_interval_orphans.cancel()
+        
+        
+    async def warn_author_dm(self, rem: Reminder, reason, channel=None, err_msg=None):
+        
+        if rem.author == rem.target:
+            # nothing be done here
+            # dm already failed before
+            Analytics.reminder_not_delivered(rem, reason)
+            return
+        
+        # try to notify the author of the reminder
+        try:
+            author = await self.client.fetch_user(rem.author)
+        except discord.errors.NotFound:
+            print(f'cannot find user {rem.author} for author warning')
+            Analytics.reminder_not_delivered(rem, Types.DeliverFailureReason.AUTHOR_WARN_FAILED)
+            return
+        
+        guild = self.client.get_guild(rem.g_id) if rem.g_id else None
+        dm =  await author.create_dm()
+        eb = rem.get_info_embed()
+        
+        help_text = 'Couldn\'t send the reminder into the requested channel\n\n'\
+                   f'• Make sure I have permission to send messages into the channel `{channel.name}` on `{guild.name}`\n'\
+                    '• or make sure the receiver allows to receive DMs from me\n'\
+                    '• or edit the Reminder to be send into an existing channel'\
+                    if channel and guild else \
+                    'The reminder was created within a thread, or the initial channel is not existing anymore\n\n'\
+                    '• Make sure the receiver allows to receive DMs (if the receiver is a single User)\n'\
+                    '• or edit the Reminder to be send into an existing channel'
+        
+        eb_warn = discord.Embed(title='Failed to deliver Reminder',
+                                description=f'{help_text}',
+                                color=0xff0000)
 
-    async def print_reminder_dm(self, rem: Reminder, err_msg=None):
+        try:
+            await dm.send(embed=eb_warn)
+            await dm.send(embed=eb)
+        except discord.errors.Forbidden:
+            # dm has no embed permissions, embeds must always succeed
+            print(f'failed to send author warning')
+            Analytics.reminder_not_delivered(rem, Types.DeliverFailureReason.AUTHOR_WARN_FAILED)
+            return
+
+
+    async def print_reminder_dm(self, rem: Reminder, channel=None, err_msg=None):
         # fallback to dm
         # target must be resolved, otherwise dm cannot be created
 
         try:
             target = await self.client.fetch_user(rem.target)
         except discord.errors.NotFound:
-            print(f'cannot find user {rem.target} for reminder DM fallback')
-            Analytics.reminder_not_delivered(rem, Types.DeliverFailureReason.USER_FETCH)
+            print(f'cannot find user {rem.target} for reminder DM')
+            await self.warn_author_dm(rem, Types.DeliverFailureReason.USER_FETCH, channel=channel, err_msg=err_msg)
             return
 
         # dm if channel not existing anymor
         dm =  await target.create_dm()
-
         eb = await rem.get_embed(self.client, is_dm=True)
         
         # first fallback is string-only message
@@ -115,12 +158,10 @@ class ReminderModule(commands.Cog):
             if err_msg:
                 await dm.send(f'||{err_msg}||')
         except discord.errors.Forbidden:
-
-            try:
-                await dm.send(rem.get_string())
-            except discord.errors.Forbidden:
-                print(f'failed to send reminder as DM fallback')
-                Analytics.reminder_not_delivered(rem, Types.DeliverFailureReason.DM_SEND)
+            # embeds can't be forbidden in DMs
+            print(f'failed to send reminder as DM')
+            await self.warn_author_dm(rem, Types.DeliverFailureReason.DM_SEND, channel=channel, err_msg=err_msg)
+            return
 
 
     async def print_reminder(self, rem: Reminder):
@@ -136,7 +177,7 @@ class ReminderModule(commands.Cog):
         if not channel:
             guild_name = guild.name if guild else 'Unresolved Guild'
             err = f'`You are receiving this dm, as the reminder was created in a thread or as the channel on \'{guild_name}\' is not existing anymore.`'
-            await self.print_reminder_dm(rem, err)
+            await self.print_reminder_dm(rem, channel=None, err_msg=err)
             return
 
         eb = await rem.get_embed(self.client)
@@ -165,7 +206,7 @@ class ReminderModule(commands.Cog):
                 pass
 
         err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
-        await self.print_reminder_dm(rem, err)
+        await self.print_reminder_dm(rem, channel=channel, err_msg=err)
 
 
     async def process_reminder(self, ctx, author, target, period, message):
