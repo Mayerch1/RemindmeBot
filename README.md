@@ -22,6 +22,21 @@ This bot is inspired by the reddit remindme bot and allows similar usage.
 
 ## Some users cannot use the bot?
 
+
+### Permissions
+Make sure the user has sufficient permission to execute **Application Commands** (`slash-commands` in earlier versions).
+This permission can be used to restrict access to bots, but is usually enabled for @everyone by default
+
+<img src="https://imgur.com/3BGMlVl.png" alt="Create Reminder">
+
+### User Settings
+If the permissions are all set, but certain users are still not able to use slash-commands, the discord application might be setup incorrectly. Tell the affected user(s) to open their `user settings` and navigate to the `Text & images` section.
+
+In the lower part of said settings page, you can find an option to toggle the usage of slash-commands.
+<img src="https://imgur.com/lI5QRoT.png" alt="Create Reminder">
+
+
+
 Make sure the user has the permission to `Use Application commands`.
 This is a recently introduced discord permission, and can control the access to bot commands.
 By default `@everyone` is allowed to use `slash`-commands.
