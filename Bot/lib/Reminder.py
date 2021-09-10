@@ -188,19 +188,21 @@ class Reminder:
             now = datetime.utcnow()
         
         if self.target == self.author:
-            description = 'Reminding you in '
+            description = 'Reminding you '
         else:
             tgt_str = self.target_name or f'<@!{self.target}>'
-            description = f'Reminding {tgt_str} in'
+            description = f'Reminding {tgt_str} '
  
-        description += self.get_interval_string(now)
+        
+        at_utc = self.at.replace(tzinfo=tz.UTC)
+        description += f'<t:{int(at_utc.timestamp())}:R>'
         
         if info:
             description += f'\n```Parsing hints:\n{info}```' 
     
         eb = discord.Embed(title=title, description=description, color=0x409fe2)
-        eb.timestamp = self.at.replace(tzinfo=tz.UTC)
-        
+        eb.timestamp = at_utc
+
         return eb
 
 
@@ -221,13 +223,11 @@ class Reminder:
             eb.add_field(name='Target user/role', value=self.target_name or f'<@!{self.target}>')
 
         if self.at:
-            if tz_str == 'UTC':
-                at_str = self.at.strftime('%Y/%m/%d %H:%M UTC')
-            else:
-                at_str = self.at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)).strftime('%Y/%m/%d %H:%M %Z')
+            at_utc = self.at.replace(tzinfo=tz.UTC)
+            at_ts = int(at_utc.timestamp())
+            at_str = f'<t:{at_ts}> <t:{at_ts}:R>'
         else:
             at_str = '`No future occurrences`'
-
 
         eb.add_field(name='Due date', value=at_str, inline=False)
 
