@@ -131,7 +131,7 @@ class Reminder:
         else:
             return '{:d} minutes'.format(int(mins))
 
-    def get_string(self):
+    def get_string(self, is_dm=False):
         """return string description of this reminder
 
         Args:
@@ -140,15 +140,17 @@ class Reminder:
         Returns:
             [type]: [description]
         """
+        
+        if not is_dm:
+            out_str = self.target_mention or f'<@!{self.target}>'
+        else:
+            out_str = ''
 
         if self.target == self.author:
-            out_str = self.target_mention or f'<@!{self.target}>'
             out_str += f' Reminder: {self.msg}'
         else:
-            out_str = self.target_mention or f'<@!{self.target}>'
             out_str += f' Reminder: {self.msg} (delivered by <@!{self.author}>)'
 
-        out_str += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
         return out_str
 
 
@@ -270,6 +272,23 @@ class Reminder:
 
         return eb
 
+
+    def get_embed_text(self, is_dm=False):
+        """returns a short text intented to be sent in combination 
+           with the get_embed
+           
+           holds a mention for the user/role and the beginning of the reminder message
+        """
+        
+        if not is_dm:
+            tmp = self.target_mention or f'<@{self.target}>'
+        else:
+            tmp = ''
+
+        tmp += ' '
+        tmp += self.msg if len(self.msg) < 100 else f'{self.msg[0:100]} [...]'
+
+        return tmp
 
 class IntervalReminder(Reminder):
     

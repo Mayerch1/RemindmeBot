@@ -137,6 +137,11 @@ class Analytics:
         ['shard', 'country_code', 'timezone', 'deprecated']
     )
     
+    REMINDER_TYPE_PREFERENCE = Counter(
+        'reminder_preference', 'Reminder Preference of a server',
+        ['shard', 'type']
+    )
+    
 
     app = Flask(__name__)
 
@@ -279,3 +284,7 @@ class Analytics:
     def set_timezone(timezone_str: str, country_code: str, deprecated: bool, shard:int = 0):
         Analytics.TIMEZONE_SET.labels(str(shard), country_code, timezone_str, deprecated).inc()
     
+    @staticmethod
+    def set_reminder_type(reminder_type: Enum, shard:int = 0):
+        
+        Analytics.REMINDER_TYPE_PREFERENCE.labels(str(shard), reminder_type.name).inc()

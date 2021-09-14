@@ -65,7 +65,8 @@ The bot supports the full `rfc5545`-spec and allows the combination of up to 25 
 |```remindme <time> <message>```  | reminds you after the given `<time>` period| 
 |```remind <mentionable> <time> <message>``` | reminds another user/role after the given `<time>` period|
 |```reminder_list``` | manage all your reminders for this server (interactive DM) |
-|```timezone [set/get] <string>``` | set the timezone of your server, used for end-of-day calculation, defaults to UTC|
+|```settings timezone [set/get] <string>``` | set the timezone of your server, used for end-of-day calculation, defaults to UTC|
+|```settings menu``` | show some minor application settings, to modify the behavior of the bot|
 
 
 ### Examples

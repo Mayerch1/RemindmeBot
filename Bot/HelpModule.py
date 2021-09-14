@@ -123,10 +123,11 @@ class HelpModule(commands.Cog):
             embed = discord.Embed(title='Remindme Help', description='\u200b')
 
             embed.add_field(name='/help [page]', value='directly access a specific help page', inline=False)
-            embed.add_field(name='/timezone', value='set/get the timezone of this server', inline=False)
             embed.add_field(name='/remindme', value='reminding you after a set time period', inline=False)
             embed.add_field(name='/remind', value='remind another user after a set time period', inline=False)
             embed.add_field(name='/reminder_list', value='manage all reminders of this server', inline=False)
+            embed.add_field(name='/settings timezone', value='set/get the timezone of this server', inline=False)
+            embed.add_field(name='/settings menu', value='show and edit some minor bot settings', inline=False)
 
 
             embed.add_field(name='\u200b', 

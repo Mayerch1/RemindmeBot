@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from enum import Enum
 
 import pymongo
 from pymongo import MongoClient
@@ -16,7 +17,10 @@ class Connector:
             self.is_private = is_private
             self.guild_id = guild_id
             self.user_id = user_id
-
+    class ReminderType(Enum):
+        TEXT_ONLY = 1
+        HYBRID = 2
+        EMBED_ONLY = 3
 
     @staticmethod
     def init():
@@ -60,6 +64,26 @@ class Connector:
         # however guilds aswell as user ids are supported as key
         # for backwards compatibility with the database, the key name wasn't changed to instance_id
         Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {'timezone': timezone_str}}, new=False, upsert=True)
+        
+        
+    @staticmethod
+    def  get_reminder_type(instance_id: int):
+        
+        # keep g_id as key for backwards compatibility
+        
+        rem_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'reminder_type': 1})
+        
+        if not rem_json:
+            return Connector.ReminderType.HYBRID
+        else:
+            return Connector.ReminderType[rem_json.get('reminder_type', Connector.ReminderType.HYBRID.name)]
+    
+        
+    @staticmethod
+    def set_reminder_type(instance_id: int, reminder_type: ReminderType):
+        
+        # keep g_id as key for backwards compatibility
+        Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {'reminder_type': reminder_type.name}}, new=False, upsert=True)
 
 
     @staticmethod

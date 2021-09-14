@@ -220,7 +220,11 @@ class TimezoneModule(commands.Cog):
     # Commands methods
     ##################
 
-    @cog_ext.cog_slash(name='timezone', description='Set the timezone of this server',
+    @cog_ext.cog_slash(name='timezone', description='Discontinued: use /settings timezone') 
+    async def set_timezone_cmd(self, ctx):
+        await ctx.send('This command is discontinued. Please use `/settings timezone` instead', hidden=True)
+    
+    @cog_ext.cog_subcommand(base='settings', name='timezone', description='Set the timezone of this server',
                         options=[
                             create_option(
                                 name='mode',
@@ -245,7 +249,7 @@ class TimezoneModule(commands.Cog):
                                 option_type=SlashCommandOptionType.STRING
                             )
                         ]) 
-    async def set_timezone_cmd(self, ctx, mode, timezone=None):
+    async def set_timezone_sub_cmd(self, ctx, mode, timezone=None):
 
         # if no guild is present
         # assume dm context
