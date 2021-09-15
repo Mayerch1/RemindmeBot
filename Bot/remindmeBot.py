@@ -100,13 +100,8 @@ def main():
     client.load_extension(f'TimezoneModule')
     client.load_extension(f'AdminModule')
     client.load_extension(f'SettingsModule')
-    
-    client.load_extension(f'botLists.TopGGModule')
-    client.load_extension(f'botLists.DiscordBotListModule')
-    client.load_extension(f'botLists.BotsGGModule')
-    client.load_extension(f'botLists.DLSpaceModule')
-    client.load_extension(f'botLists.DisforgeModule')
-    client.load_extension(f'botLists.DiscordsModule')
+
+    client.load_extension(f'botLists.ServerCountPost')    
 
     client.run(token)
 

@@ -147,9 +147,9 @@ class Reminder:
             out_str = ''
 
         if self.target == self.author:
-            out_str += f' Reminder: {self.msg}'
+            out_str += f' {self.msg}'
         else:
-            out_str += f' Reminder: {self.msg} (delivered by <@!{self.author}>)'
+            out_str += f' {self.msg} (delivered by <@!{self.author}>)'
 
         return out_str
 
