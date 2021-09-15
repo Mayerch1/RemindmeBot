@@ -101,7 +101,7 @@ def main():
     client.load_extension(f'AdminModule')
     client.load_extension(f'SettingsModule')
 
-    client.load_extension(f'botLists.ServerCountPost')    
+    client.load_extension(f'ServerCountPost')    
 
     client.run(token)
 
