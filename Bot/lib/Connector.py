@@ -22,6 +22,11 @@ class Connector:
         HYBRID = 2
         EMBED_ONLY = 3
 
+    class AutoDelete(Enum):
+        TIMEOUT = 1
+        NEVER = 2
+        HIDE = 3
+
     @staticmethod
     def init():
         host = os.getenv('MONGO_CONN')
@@ -70,13 +75,30 @@ class Connector:
     def  get_reminder_type(instance_id: int):
         
         # keep g_id as key for backwards compatibility
-        
         rem_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'reminder_type': 1})
         
         if not rem_json:
             return Connector.ReminderType.HYBRID
         else:
             return Connector.ReminderType[rem_json.get('reminder_type', Connector.ReminderType.HYBRID.name)]
+    
+        
+    @staticmethod
+    def set_auto_delete(instance_id: int, delete_type: AutoDelete):
+        
+        # keep g_id as key for backwards compatibility
+        Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {'auto_delete': delete_type.name}}, new=False, upsert=True)
+        
+    @staticmethod
+    def  get_auto_delete(instance_id: int):
+        
+        # keep g_id as key for backwards compatibility
+        rem_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'auto_delete': 1})
+        
+        if not rem_json:
+            return Connector.AutoDelete.TIMEOUT
+        else:
+            return Connector.AutoDelete[rem_json.get('auto_delete', Connector.AutoDelete.TIMEOUT.name)]
     
         
     @staticmethod

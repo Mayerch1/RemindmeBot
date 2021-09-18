@@ -92,11 +92,12 @@ class ReminderCreation(commands.Cog):
             last_msg = None
 
         tz_str = Connector.get_timezone(instance_id)
-        
+        auto_del_action = Connector.get_auto_delete(instance_id)
+
         utcnow = datetime.utcnow()
         remind_at, info = lib.input_parser.parse(period, utcnow, tz_str)
         rrule = None
-        
+
         if isinstance(remind_at, datetime):
             interval = (remind_at - utcnow)
             if remind_at is None or interval <= timedelta(hours=0):
@@ -111,11 +112,11 @@ class ReminderCreation(commands.Cog):
                     out_str += ReminderCreation.REMIND_FORMAT_HELP
                 elif interval < timedelta(hours=0):
                     out_str += 'Make sure your server is using the correct timezone `/settings timezone`'
-                
+
                 embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
                 embed.set_footer(text=ReminderCreation.HELP_FOOTER)
                 await ctx.send(embed=embed, hidden=True)
-                
+
                 if interval == timedelta(hours=0):
                     Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)
                 else:
@@ -151,7 +152,11 @@ class ReminderCreation(commands.Cog):
                 Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
                 return
 
-        await ctx.defer() # allow more headroom for response latency, before command fails
+        if auto_del_action == Connector.AutoDelete.HIDE:
+            defer_hidden=True
+        else:
+            defer_hidden=False
+        await ctx.defer(hidden=defer_hidden) # allow more headroom for response latency, before command fails
         rem = Reminder()
 
         if ctx.guild:
@@ -165,7 +170,7 @@ class ReminderCreation(commands.Cog):
         rem.msg = message
         rem.at = remind_at
         rem.author = author.id
-        
+
         rem.created_at = utcnow
         rem.last_msg_id = last_msg.id if last_msg else None
 
@@ -197,7 +202,7 @@ class ReminderCreation(commands.Cog):
             rem = IntervalReminder(old_rem._to_json())
             rem.first_at = old_rem.at
             rem.rrules.append(str(rrule))
-            
+
             rem.at = rem.next_trigger(utcnow)
 
             rem_id = Connector.add_interval(rem)
@@ -224,13 +229,23 @@ class ReminderCreation(commands.Cog):
             )
         ]
         action_row = manage_components.create_actionrow(*buttons)
-        
+
         if not ctx.channel:
             info = 'If this command was invoked in a thread, you will receive the reminder as a DM. Make sure you can receive DMs from me.'
             
+        if auto_del_action == Connector.AutoDelete.TIMEOUT:
+            delete_after = 300
+            hidden=False
+        elif auto_del_action == Connector.AutoDelete.NEVER:
+            delete_after = None
+            hidden=False
+        else:
+            delete_after = None
+            hidden=True
+
         tiny_embed = rem.get_tiny_embed(info=info, rrule_override=rrule)
-        msg = await ctx.send(embed=tiny_embed, delete_after=300, components=[action_row], 
-                            allowed_mentions=discord.AllowedMentions.none())
+        msg = await ctx.send(embed=tiny_embed, delete_after=delete_after, components=[action_row], 
+                            allowed_mentions=discord.AllowedMentions.none(), hidden=hidden)
 
 
     # =====================
@@ -258,7 +273,7 @@ class ReminderCreation(commands.Cog):
         elif author_id != ctx.author.id:
             await ctx.send('You\'re not the author of this reminder', hidden=True)
             return
-        
+
         # either edit the interval, or delete the reminder
         if command == 'direct-delete':
             if Connector.delete_reminder(rem_id):
@@ -307,10 +322,10 @@ class ReminderCreation(commands.Cog):
     async def add_remind_user(self, ctx, target, time, message):
 
         target_resolve = ctx.guild.get_member(int(target)) or ctx.guild.get_role(int(target))
-        
+
         if not target_resolve:
             target_resolve = await ctx.guild.fetch_member(int(target))
-            
+
         # if resolve failed, use plain id
         target_resolve = target_resolve or int(target) 
 

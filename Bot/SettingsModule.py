@@ -73,6 +73,7 @@ class SettingsModule(commands.Cog):
         
         tz = Connector.get_timezone(instance_id)
         rem_type = Connector.get_reminder_type(instance_id)
+        auto_delete = Connector.get_auto_delete(instance_id)
         
         action_rows = []
         
@@ -114,6 +115,33 @@ class SettingsModule(commands.Cog):
                 label=f'Text-Only Reminders',
                 disabled=(rem_type==Connector.ReminderType.TEXT_ONLY),
                 custom_id=f'settings_type_text_{instance_id}'
+            )
+        ]
+        action_rows.append(manage_components.create_actionrow(*buttons))
+        
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.blurple,
+                label=f'Delete Creation Dialog',
+                custom_id='settings_autodel_nop'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (auto_delete==Connector.AutoDelete.TIMEOUT) else ButtonStyle.gray,
+                label=f'Delete after Timeout',
+                disabled=(auto_delete==Connector.AutoDelete.TIMEOUT),
+                custom_id=f'settings_autodel_timeout_{instance_id}'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (auto_delete==Connector.AutoDelete.NEVER) else ButtonStyle.gray,
+                label=f'Never Delete',
+                disabled=(auto_delete==Connector.AutoDelete.NEVER),
+                custom_id=f'settings_autodel_never_{instance_id}'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (auto_delete==Connector.AutoDelete.HIDE) else ButtonStyle.gray,
+                label=f'Only Show to author',
+                disabled=(auto_delete==Connector.AutoDelete.HIDE),
+                custom_id=f'settings_autodel_hide_{instance_id}'
             )
         ]
         action_rows.append(manage_components.create_actionrow(*buttons))
@@ -176,6 +204,41 @@ class SettingsModule(commands.Cog):
         await ctx.edit_origin(components=a_rows)
     
     
+    async def set_autodel(self, ctx, args):
+        
+        if not args or args[0] == 'nop':
+            await ctx.defer(edit_origin=True)
+            return
+        
+        # perform permission checks for modifying settings
+        # if author is User means that the command was invoked in DMs
+        # there's no need for permission in DMs
+        if isinstance(ctx.author, discord.Member):
+            perms =  ctx.author.guild_permissions
+            
+            if not perms.administrator and not perms.manage_guild:
+                await ctx.send('You need to have the `manage_server` permission to modify these settings', hidden=True)
+                return
+        
+        new_type = args[0]
+        instance_id = int(args[1])
+
+        if new_type == 'timeout':
+            new_enum = Connector.AutoDelete.TIMEOUT
+        elif new_type == 'never':
+            new_enum = Connector.AutoDelete.NEVER
+        elif new_type == 'hide':
+            new_enum = Connector.AutoDelete.HIDE
+        else:
+            return
+        
+        Connector.set_auto_delete(instance_id, new_enum)
+        Analytics.set_auto_delete(new_enum)
+        
+        a_rows = self.get_action_rows(instance_id=instance_id)
+        await ctx.edit_origin(components=a_rows)
+    
+    
     async def show_timezone_hint(self, ctx, args):
         
         if not args or args[0] == 'nop':
@@ -212,6 +275,8 @@ class SettingsModule(commands.Cog):
             await self.set_reminder_type(ctx, args[2:])
         elif args[1] == 'timezone':
             await self.show_timezone_hint(ctx, args[2:])
+        elif args[1] == 'autodel':
+            await self.set_autodel(ctx, args[2:])
 
     ##################
     # Commands methods

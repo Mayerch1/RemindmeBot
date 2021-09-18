@@ -142,6 +142,11 @@ class Analytics:
         ['shard', 'type']
     )
     
+    AUTO_DELETE_PREFERENCE = Counter(
+        'autodel_preference', 'Delete action on reminder creation messages',
+        ['shard', 'type']
+    )
+    
 
     app = Flask(__name__)
 
@@ -288,3 +293,8 @@ class Analytics:
     def set_reminder_type(reminder_type: Enum, shard:int = 0):
         
         Analytics.REMINDER_TYPE_PREFERENCE.labels(str(shard), reminder_type.name).inc()
+        
+    @staticmethod
+    def set_auto_delete(auto_delete: Enum, shard:int = 0):
+        
+        Analytics.AUTO_DELETE_PREFERENCE.labels(str(shard), auto_delete.name).inc()
