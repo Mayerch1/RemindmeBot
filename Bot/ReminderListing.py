@@ -134,17 +134,30 @@ class ReminderListing(commands.Cog):
         else:
             await messageable.send(embed=eb, components=[action_row])
     
-        try:
-            ack_ctx = await manage_components.wait_for_component(self.client, components=action_row, timeout=timeout)
-        except asyncio.exceptions.TimeoutError:
-            return None
+    
+        success_ack = False
+    
+        while not success_ack:
+            try:
+                ack_ctx = await manage_components.wait_for_component(self.client, components=action_row, timeout=timeout)
+            except asyncio.exceptions.TimeoutError:
+                return None
 
-        await ack_ctx.defer(edit_origin=True)
+            try:
+                await ack_ctx.defer(edit_origin=True)
+            except discord.NotFound:
+                success_ack = False
+            else:
+                success_ack = True
+            
+            
         return ack_ctx
     
     async def show_success_ack(self, messageable, title, description, timeout=5*60, edit_origin=False):
         """show an success embed to the user and wait for ack button press
            if user doesn't react within timeout, None is returned
+           
+           tries again, if interaction times out
 
         Args:
             messageable (ctx or channel): Target to send the embed to
@@ -164,6 +177,8 @@ class ReminderListing(commands.Cog):
     async def show_error_ack(self, messageable, title, description, timeout=5*60, edit_origin=False):
         """show an error embed to the user and wait for ack button press
            if user doesn't react within timeout, None is returned
+           
+           tries again, if interaction times out
 
         Args:
             messageable (ctx or channel): Target to send the embed to
@@ -190,7 +205,11 @@ class ReminderListing(commands.Cog):
         await stm.dm.send('If you wish to edit more reminders, re-invoke the command')
 
         if ctx:
-            await ctx.defer(edit_origin=True)
+            try:
+                await ctx.defer(edit_origin=True)
+            except discord.NotFound:
+                # at this point, there's not much to be done on error
+                pass
         
         for n_row in stm.navigation_rows:
             for c in n_row['components']:
@@ -284,6 +303,12 @@ class ReminderListing(commands.Cog):
            page limits, handles wrap-around
         """
 
+        try:
+            await ctx.defer(edit_origin=True)
+        except discord.NotFound:
+            # fail, but keep the stm alive
+            return
+
         if ctx.custom_id == 'reminder_list_navigation_prev':
             stm.page -= 1
         elif ctx.custom_id == 'reminder_list_navigation_next':
@@ -295,8 +320,6 @@ class ReminderListing(commands.Cog):
             stm.page = page_cnt - 1
         elif stm.page >= page_cnt:
             stm.page = 0
-
-        await ctx.defer(edit_origin=True)
 
 
     async def process_channel_selector(self, ctx, stm, reminder):
@@ -343,17 +366,29 @@ class ReminderListing(commands.Cog):
         ]
         action_rows.append(manage_components.create_actionrow(*buttons))
         
+        # already deferred
         await ctx.edit_origin(components=action_rows)
         
-        try:
-            edit_ctx = await manage_components.wait_for_component(self.client, components=action_rows, timeout=5*60)
-        except asyncio.exceptions.TimeoutError:
-            # abort channel edit
-            return
         
-        if edit_ctx.component_id == 'reminderlist_edit_cancel':
-            await edit_ctx.defer(edit_origin=True)
-            return
+        accepted_ack = False
+        while not accepted_ack:
+            try:
+                edit_ctx = await manage_components.wait_for_component(self.client, components=action_rows, timeout=5*60)
+            except asyncio.exceptions.TimeoutError:
+                # abort channel edit
+                return
+            
+            if edit_ctx.component_id == 'reminderlist_edit_cancel':
+                try:
+                    await edit_ctx.defer(edit_origin=True)
+                except discord.NotFound:
+                    accepted_ack = False
+                else:
+                    return
+            else:
+                # following flow will handle 
+                # NotFound errors
+                accepted_ack = True
 
         # bot could resolve channel before (when offering drop-down)
         # therefore channel should be available again
@@ -437,15 +472,28 @@ class ReminderListing(commands.Cog):
             )
         ]
         action_rows.append(manage_components.create_actionrow(*buttons))
-        await ctx.edit_origin(embed=reminder.get_info_embed(stm.tz_str), components=action_rows)
-
-        try:
-            delete_ctx = await manage_components.wait_for_component(self.client, components=action_rows, timeout=5*60)
-        except asyncio.exceptions.TimeoutError:
-            # abort the deletion
-            return
         
-        await delete_ctx.defer(edit_origin=True)
+        try:
+            await ctx.edit_origin(embed=reminder.get_info_embed(stm.tz_str), components=action_rows)
+        except discord.NotFound:
+            # keep the stm alive on failure, but sure must re-select his choice
+            return
+
+        success_ack =False
+        while not success_ack:
+            try:
+                delete_ctx = await manage_components.wait_for_component(self.client, components=action_rows, timeout=5*60)
+            except asyncio.exceptions.TimeoutError:
+                # abort the deletion
+                return
+            
+            try:    
+                await delete_ctx.defer(edit_origin=True)
+            except discord.NotFound:
+                # loop until timeout or successfull defer
+                success_ack = False
+            else:
+                success_ack = True
 
         # delete the reminder
         # return to main menu in any case
@@ -477,7 +525,14 @@ class ReminderListing(commands.Cog):
             # always update here, as a reminder could've been elapsed since last iteration
             stm.reminders = Connector.get_scoped_reminders(stm.scope)
             if not stm.reminders:
-                await stm.dm.send('```No further reminders for this instance```')
+                
+                eb = discord.Embed(title='No further reminders for this instance',
+                                   description='Did you expect to see a reminder here?\n\n'\
+                                               'Perhaps you didn\'t call this command in the correct server.\n'\
+                                               'Reminders are seperated between servers, so you need to call this command in a channel on the desired server',
+                                   color=0xaa3333)
+                
+                await stm.dm.send(embed=eb)
                 await self._exit_stm(stm)
                 return
 

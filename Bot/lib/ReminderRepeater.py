@@ -503,7 +503,12 @@ async def _show_rule_deletion(stm):
             # abort the deletion
             await _exit_stm(stm)
             return False
-        await intvl_ctx.defer(edit_origin=True)
+        
+        try:
+            await intvl_ctx.defer(edit_origin=True)
+        except discord.NotFound:
+            # just try again
+            continue
         
 
         if intvl_ctx.custom_id == 'repeater_del_selected':
@@ -623,14 +628,23 @@ async def _interval_stm(client, dm, reminder, instance_id, tz_str='UTC'):
         stm.navigation_rows.extend([manage_components.create_actionrow(*buttons)])
         await stm.q_msg.edit(content='', embed=eb, components=[*stm.navigation_rows])
 
-        try:
-            action_ctx = await manage_components.wait_for_component(stm.client, components=[*stm.navigation_rows], timeout=10*60)
-        except asyncio.exceptions.TimeoutError:
-            # abort the deletion
-            await _exit_stm(stm)
-            return
+        success_ack = False
+        while not success_ack:
+            try:
+                action_ctx = await manage_components.wait_for_component(stm.client, components=[*stm.navigation_rows], timeout=10*60)
+            except asyncio.exceptions.TimeoutError:
+                # abort the deletion
+                await _exit_stm(stm)
+                return
 
-        await action_ctx.defer(edit_origin=True)
+            try:
+                await action_ctx.defer(edit_origin=True)
+            except discord.NotFound:
+                success_ack = False
+            else:
+                success_ack = True
+
+
         await _disable_components(stm)
 
         if action_ctx.custom_id == 'repeater_add_rrule':

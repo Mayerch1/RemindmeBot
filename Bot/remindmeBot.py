@@ -32,6 +32,9 @@ async def on_slash_command_error(ctx, error):
         await ctx.send('You do not have permission to execute this command')
     elif isinstance(error, discord.ext.commands.errors.NoPrivateMessage):
         await ctx.send('This command is only to be used on servers')
+    elif isinstance(error, discord.NotFound):
+        print(''.join(error.args))
+        Analytics.register_exception(error)
     else:
         print(error)
         Analytics.register_exception(error)

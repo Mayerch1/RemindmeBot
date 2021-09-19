@@ -49,14 +49,21 @@ async def wait_confirm_deny(client, message: discord.Message, timeout, author):
     navigation_row = manage_components.create_actionrow(*buttons)
     await message.edit(components=[navigation_row])
 
-    try:
-        r_ctx = await manage_components.wait_for_component(client, components=[navigation_row], timeout=timeout, check=check)
-    except asyncio.exceptions.TimeoutError:
-        _disable_components(navigation_row)
-        await message.edit(components=[navigation_row])
-        return None
+    success_ack = False
+    while not success_ack:
+        try:
+            r_ctx = await manage_components.wait_for_component(client, components=[navigation_row], timeout=timeout, check=check)
+        except asyncio.exceptions.TimeoutError:
+            _disable_components(navigation_row)
+            await message.edit(components=[navigation_row])
+            return None
 
-    await r_ctx.defer(edit_origin=True)
+        try:
+            await r_ctx.defer(edit_origin=True)
+        except discord.NotFound:
+            success_ack = False
+        else:
+            success_ack = True
 
     if r_ctx.custom_id == 'interaction_condeny_accept':
         result = True
