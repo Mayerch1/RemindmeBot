@@ -84,11 +84,17 @@ async def on_guild_join(guild):
     if not guild.system_channel:
         return
 
-    eb = discord.Embed(title=f'You\'re the {guild_cnt}th server I\'ve been added to', 
-                       description='Here\'s a cool gif, just for you')
-    eb.set_image(url='https://media.giphy.com/media/kyLYXonQYYfwYDIeZl/giphy.gif')
-
-    if guild_cnt == 500 or (guild_cnt%1000) == 0:
+    def is_round_number(x):
+        while x%10 == 0 and x>0:
+            x /= 10
+        if x < 10:
+            return True
+        return False
+    
+    if is_round_number(guild_cnt):
+        eb = discord.Embed(title=f'You\'re the {guild_cnt}th server I\'ve been added to', 
+                        description='Here\'s a cool gif, just for you')
+        eb.set_image(url='https://media.giphy.com/media/kyLYXonQYYfwYDIeZl/giphy.gif')
         await guild.system_channel.send(embed=eb)
 
 
