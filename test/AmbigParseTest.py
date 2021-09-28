@@ -13,8 +13,11 @@ class AmbigParseTest(unittest.TestCase):
         self.utcnow = datetime(year=2021, month=1, day=1)
 
 
-    def test_week_month(self):
+    def test_m_minute(self):
+        """ keyword m must be interpreted as minutes
+            however, a warning must be shown to the user
+        """
         at, error = p.parse('1m', self.utcnow)
 
-        self.assertEqual(at, self.utcnow)
+        self.assertEqual(at, self.utcnow+timedelta(minutes=1))
         self.assertNotEqual(error, '')

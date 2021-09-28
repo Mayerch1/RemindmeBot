@@ -147,6 +147,16 @@ class Analytics:
         ['shard', 'type']
     )
     
+    COMMUNITY_MODE = Counter(
+        'community_mode', 'Community mode of a server',
+        ['shard', 'type']
+    )
+    
+    COMMAND_DENIED = Counter(
+        'command_denied', 'Command execution was denied due to missing permissions',
+        ['shard']
+    )
+    
 
     app = Flask(__name__)
 
@@ -159,6 +169,7 @@ class Analytics:
     def init():
         host = '0.0.0.0'
         port = 9091
+        port = 50000
 
         _thread.start_new_thread(Analytics._waitress_thread, ('flask server', Analytics.app, host, port))
         print(f'Analytics Webserver started on {host}:{port}')
@@ -291,10 +302,18 @@ class Analytics:
     
     @staticmethod
     def set_reminder_type(reminder_type: Enum, shard:int = 0):
-        
         Analytics.REMINDER_TYPE_PREFERENCE.labels(str(shard), reminder_type.name).inc()
         
     @staticmethod
     def set_auto_delete(auto_delete: Enum, shard:int = 0):
-        
         Analytics.AUTO_DELETE_PREFERENCE.labels(str(shard), auto_delete.name).inc()
+
+        
+    @staticmethod
+    def set_community_mode(community_mode: Enum, shard:int = 0):
+        Analytics.COMMUNITY_MODE.labels(str(shard), community_mode.name).inc()
+        
+    @staticmethod
+    def command_denied(shard:int = 0):
+        Analytics.COMMAND_DENIED.labels(str(shard)).inc()
+        

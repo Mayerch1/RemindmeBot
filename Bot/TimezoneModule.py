@@ -20,6 +20,8 @@ from discord_slash.utils.manage_commands import create_option, create_choice
 from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
+import util.interaction
+from lib.CommunitySettings import CommunitySettings, CommunityAction
 from lib.Connector import Connector
 from lib.Analytics import Analytics, Types
 
@@ -219,10 +221,6 @@ class TimezoneModule(commands.Cog):
     ##################
     # Commands methods
     ##################
-
-    @cog_ext.cog_slash(name='timezone', description='Discontinued: use /settings timezone') 
-    async def set_timezone_cmd(self, ctx):
-        await ctx.send('This command is discontinued. Please use `/settings timezone` instead', hidden=True)
     
     @cog_ext.cog_subcommand(base='settings', name='timezone', description='Set the timezone of this server',
                         options=[
@@ -262,9 +260,10 @@ class TimezoneModule(commands.Cog):
                 await ctx.send('You need to specify the `timezone` parameter for this `mode`\n'\
                                'You can use discords auto-completion by hitting `tab` twice', hidden=True)
                 return
+            elif not await util.interaction.check_user_permission(ctx, required_perms=CommunityAction(settings=True)):
+                return
 
             await self.set_timezone(ctx, instance_id, timezone)
-
 
 
 def setup(client):

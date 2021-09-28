@@ -5,7 +5,8 @@ from enum import Enum
 import pymongo
 from pymongo import MongoClient
 
-from lib import Reminder
+from lib import Reminder, CommunitySettings
+
 
 
 class Connector:
@@ -26,6 +27,12 @@ class Connector:
         TIMEOUT = 1
         NEVER = 2
         HIDE = 3
+        
+    class CommunityMode(Enum):
+        DISABLED = 1
+        ENABLED = 2
+        
+    
 
     @staticmethod
     def init():
@@ -99,7 +106,115 @@ class Connector:
             return Connector.AutoDelete.TIMEOUT
         else:
             return Connector.AutoDelete[rem_json.get('auto_delete', Connector.AutoDelete.TIMEOUT.name)]
+        
+    @staticmethod
+    def set_community_mode(instance_id: int, comm_type: CommunityMode):
+        
+        # keep g_id as key for backwards compatibility
+        Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {'community': comm_type.name}}, new=False, upsert=True)
+        
+    @staticmethod
+    def get_community_mode(instance_id: int):
+        
+        # keep g_id as key for backwards compatibility
+        rem_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'community': 1})
+        
+        if not rem_json:
+            return Connector.CommunityMode.DISABLED
+        else:
+            return Connector.CommunityMode[rem_json.get('community', Connector.CommunityMode.DISABLED.name)]
+
+
+    @staticmethod
+    def set_community_settings(instance_id: int, settings: CommunitySettings):
+        
+        settings_json = settings._to_json()
+        Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {'community_settings': settings_json}}, new=False, upsert=True)
     
+    
+    @staticmethod
+    def set_community_setting(instance_id: int, setting_name: str, value: bool):
+        
+        dummy_settings = CommunitySettings.CommunitySettings()
+        if not hasattr(dummy_settings, setting_name):
+            raise ValueError(f'{setting_name} is not an attribute of CommunitySettings')
+        
+        Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {f'community_settings.{setting_name}': value}}, new=False, upsert=True)
+    
+    @staticmethod
+    def get_community_settings(instance_id: int):
+        
+        # keep g_id as key for backwards compatibility
+        comm_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'community_settings': 1})
+        
+        if not comm_json:
+            return CommunitySettings.CommunitySettings()
+        else:
+            return CommunitySettings.CommunitySettings(comm_json.get('community_settings', {}))
+
+
+    @staticmethod
+    def set_moderators(guild_id: int, moderators: list):
+        """set a list as new moderators, this list overwrites all existing mods
+
+        Args:
+            guild_id (int): guild id, DMs are not supported
+            moderators (list): list of moderators (can be ints or strings)
+        """
+        
+        # keep g_id as key for backwards compatibility
+        Connector.db.settings.find_one_and_update({'g_id': str(guild_id)}, {'$set': {'moderators': list(map(str, moderators))}}, new=False, upsert=True)
+
+
+    @staticmethod
+    def get_moderators(instance_id: int):
+        
+        # keep g_id as key for backwards compatibility
+        mod_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'moderators': 1})
+        
+        if not mod_json:
+            return []
+        else:
+            return list(map(int, mod_json.get('moderators', [])))
+    
+    @staticmethod
+    def is_moderator(user_roles: []):
+        """check if any of the user roles are within the noted moderator lists
+           query is implicitely protected from cross-guild access
+
+        Args:
+            user_roles (list): list of role ids
+            guild_id (int): id of the guild, DMs not supported (will always return False)
+            
+        Return:
+            bool: True if any of the user roles is a moderator role
+        """
+        
+        # this query is not secured by a guild_id filter
+        # this will not cause any issues, as role_ids are guaranteed to be unique
+        #
+        # as the roles are already filtered by guild, 
+        # this will only generate hits for this specific guild
+        
+        if not user_roles:
+            return False
+        
+        if not isinstance(user_roles, list):
+            raise TypeError('user_roles must be of type list')
+        
+        if isinstance(user_roles[0], str):
+            user_roles = user_roles
+        elif isinstance(user_roles[0], int):
+            user_roles = list(map(str, user_roles))
+        elif hasattr(user_roles[0], 'id'):
+            # convert to id
+            user_roles = list(map(lambda r: str(r.id), user_roles))
+        else:
+            raise TypeError('user_roles must hold entities of type str, int or entities must have .id attribute')
+        
+        result = Connector.db.settings.find_one({'moderators': {'$in': user_roles}})
+        return result != None
+
         
     @staticmethod
     def set_reminder_type(instance_id: int, reminder_type: ReminderType):

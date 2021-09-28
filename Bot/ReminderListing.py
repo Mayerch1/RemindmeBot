@@ -14,6 +14,7 @@ from discord_slash.model import SlashCommandOptionType, ButtonStyle
 from lib.Connector import Connector
 from lib.Reminder import Reminder, IntervalReminder
 import lib.input_parser
+import util.interaction
 import lib.ReminderRepeater
 
 from lib.Analytics import Analytics, Types
@@ -28,6 +29,7 @@ class ReminderListing(commands.Cog):
             self.tz_str = None
             self.navigation_rows = []
             self.reminders = []
+            self.roles = []
 
 
     def __init__(self, client):
@@ -116,83 +118,7 @@ class ReminderListing(commands.Cog):
     # stm core
     # =====================
     
-    async def _show_ack(self, messageable, title, description, timeout, edit_origin, color, btn_style):
-
-        eb = discord.Embed(title=title, description=description, color=color)
-        
-        buttons = [
-            manage_components.create_button(
-                style=btn_style,
-                label='Acknowledge',
-                custom_id='reminder_stm_generic_ack'
-            )
-        ]
-        action_row = manage_components.create_actionrow(*buttons)
-        
-        if edit_origin:
-            await messageable.edit_origin(embed=eb, components=[action_row])
-        else:
-            await messageable.send(embed=eb, components=[action_row])
     
-    
-        success_ack = False
-    
-        while not success_ack:
-            try:
-                ack_ctx = await manage_components.wait_for_component(self.client, components=action_row, timeout=timeout)
-            except asyncio.exceptions.TimeoutError:
-                return None
-
-            try:
-                await ack_ctx.defer(edit_origin=True)
-            except discord.NotFound:
-                success_ack = False
-            else:
-                success_ack = True
-            
-            
-        return ack_ctx
-    
-    async def show_success_ack(self, messageable, title, description, timeout=5*60, edit_origin=False):
-        """show an success embed to the user and wait for ack button press
-           if user doesn't react within timeout, None is returned
-           
-           tries again, if interaction times out
-
-        Args:
-            messageable (ctx or channel): Target to send the embed to
-            title ([type]): [description]
-            description ([type]): [description]
-            timeout ([type], optional): [description]. Defaults to 5*60.
-            edit_origin (bool): use .edit_origin to send message, throws exception if True and messageable is not a context.
-
-        Returns:
-            ComponentContext: reaction context already in deferred state, None on timeout
-        """
-        color = 0x409fe2
-        btn_style = ButtonStyle.green
-        return await self._show_ack(messageable, title, description, timeout, edit_origin, color, btn_style)
-    
-    
-    async def show_error_ack(self, messageable, title, description, timeout=5*60, edit_origin=False):
-        """show an error embed to the user and wait for ack button press
-           if user doesn't react within timeout, None is returned
-           
-           tries again, if interaction times out
-
-        Args:
-            messageable (ctx or channel): Target to send the embed to
-            title ([type]): [description]
-            description ([type]): [description]
-            timeout ([type], optional): [description]. Defaults to 5*60.
-            edit_origin (bool): use .edit_origin to send message, throws exception if True and messageable is not a context.
-
-        Returns:
-            ComponentContext: reaction context already in deferred state, None on timeout
-        """
-        color = 0xff0000
-        btn_style = ButtonStyle.red
-        return await self._show_ack(messageable, title, description, timeout, edit_origin, color, btn_style)
 
 
     async def _exit_stm(self, stm, ctx=None):
@@ -326,7 +252,7 @@ class ReminderListing(commands.Cog):
         
         guild = self.client.get_guild(reminder.g_id)
         if not guild:
-            await self.show_error_ack(ctx, 
+            await util.interaction.show_error_ack(self.client, ctx, 
                                       'Failed to edit Reminder', 
                                       'Couldn\'t resolve the server of the selected reminder', 
                                       edit_origin=True)
@@ -336,7 +262,7 @@ class ReminderListing(commands.Cog):
         txt_channels = txt_channels[0:25]  # discord limitation of selectables
         
         if not txt_channels:
-            await self.show_error_ack(ctx, 
+            await util.interaction.show_error_ack(self.client, ctx, 
                                       'Failed to edit Reminder', 
                                       'Couldn\'t find any text channels. This could be caused by missing permissions on the server.', 
                                       edit_origin=True)
@@ -396,7 +322,7 @@ class ReminderListing(commands.Cog):
         sel_channel = self.client.get_channel(sel_channel_id)
         
         if not sel_channel:
-            await self.show_error_ack(edit_ctx, 
+            await util.interaction.show_error_ack(self.client, edit_ctx, 
                                       'Failed to edit Reminder', 
                                       'Couldn\'t resolve the selected channel. It might have been deleted since the previous message was send.', 
                                       edit_origin=True)
@@ -404,7 +330,7 @@ class ReminderListing(commands.Cog):
         
         success = Connector.set_reminder_channel(reminder._id, sel_channel_id)
         if not success:
-            await self.show_error_ack(edit_ctx, 
+            await util.interaction.show_error_ack(self.client, edit_ctx, 
                                       'Failed to edit Reminder', 
                                       'The database access failed, please contact the developers (`/help`) to report this bug.', 
                                       edit_origin=True)
@@ -412,7 +338,7 @@ class ReminderListing(commands.Cog):
 
         
         
-        await self.show_success_ack(edit_ctx,
+        await util.interaction.show_success_ack(self.client, edit_ctx,
                                     'New Notification Channel',
                                     f'This reminder will now be delivered to `{sel_channel.name}`.\nMake sure this bot has permission to send messages into that channel, otherwise the reminder might not be delivered',
                                     edit_origin=True)
@@ -504,7 +430,7 @@ class ReminderListing(commands.Cog):
             else:
                 Connector.delete_reminder(reminder._id)
                 Analytics.reminder_deleted(Types.DeleteAction.LISTING)
-            await self.show_success_ack(delete_ctx, 'Reminder was deleted', '', edit_origin=True)
+            await util.interaction.show_success_ack(self.client, delete_ctx, 'Reminder was deleted', '', edit_origin=True)
         elif delete_ctx.custom_id == 'reminderlist_edit_interval':
             await lib.ReminderRepeater.transfer_interval_setup(self.client, stm, reminder)
             resend_menu = True  # method will produce multiple messages
@@ -646,6 +572,7 @@ class ReminderListing(commands.Cog):
         stm.scope = scope
         stm.dm = dm
         stm.tz_str = Connector.get_timezone(ctx.guild.id)
+        stm.roles = ctx.author.roles
 
         await self.reminder_stm(stm)
 

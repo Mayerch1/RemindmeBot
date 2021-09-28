@@ -154,12 +154,12 @@ def _parse_relative(args, utcnow):
 
             elif arg[1].startswith('mi'):
                 intvl = timedelta(minutes=arg[0])
-
+            
+            elif arg[1] == 'm':
+                intvl = timedelta(minutes=arg[0])
+                info = info + f'• Ambiguous reference, \'m\' was interpreted as minutes.\n  Type \'mo\' for months.\n'
             else:
-                if arg[1] == 'm':
-                    info = info + f'• Ambiguous reference to minutes/months. Please write out `mi` for minutes or `mo` for months\n'
-                else:
-                    info = info + f'• Ignoring {arg}, as this is not a known interval\n'
+                info = info + f'• Ignoring {arg}, as this is not a known interval\n'
             
         total_intvl += intvl
 
@@ -349,9 +349,8 @@ def parse(input, utcnow, timezone='UTC'):
         # error is not overriding and only shown when no prev. info is avail.
         if (remind_at != utcnow) or (not info):
             info = info_iso
-        
-    # filter out queries which use 1m, as this is required to fail due to ambiguity with minutes/month
-    if remind_at == utcnow and not re.match(r'-?\d+\W?m', input) and not early_abort:
+
+    if remind_at == utcnow and not early_abort:
         remind_at, info, ex = _parse_fuzzy(input, utcnow, display_tz)
         early_abort = (ex != None)
 

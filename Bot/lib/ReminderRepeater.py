@@ -18,6 +18,8 @@ from lib.Reminder import Reminder, IntervalReminder
 import lib.input_parser
 import util.interaction
 
+from lib.CommunitySettings import CommunitySettings, CommunityAction
+
 
 class _STM():
     def __init__(self):
@@ -704,10 +706,13 @@ async def transfer_interval_setup(client, dm_stm, reminder):
     else:
         tz_instance = dm_stm.scope.guild_id
     
-    tz_str = Connector.get_timezone(tz_instance)
+    user_roles = dm_stm.roles    
+    action = CommunityAction(repeating=True)    
 
+    if await util.interaction.check_user_permission_raw(client, dm, tz_instance, user_roles, required_perms=action, wait_ack=True, hidden=False):
 
-    await _interval_stm(client, dm, reminder, tz_str=tz_str, instance_id=tz_instance)
+        tz_str = Connector.get_timezone(tz_instance)
+        await _interval_stm(client, dm, reminder, tz_str=tz_str, instance_id=tz_instance)
 
     
 async def spawn_interval_setup(client, ctx: ComponentContext, reminder_id: ObjectId):
@@ -726,6 +731,11 @@ async def spawn_interval_setup(client, ctx: ComponentContext, reminder_id: Objec
     """
     
     instance_id = ctx.guild.id if ctx.guild else ctx.author.id
+    
+    action = CommunityAction(repeating=True)    
+    if not await util.interaction.check_user_permission(ctx, required_perms=action):
+        return
+    
     dm = await ctx.author.create_dm()
     
     reminder = Connector.get_reminder_by_id(reminder_id)

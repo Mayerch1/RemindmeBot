@@ -76,7 +76,7 @@ The bot supports the full `rfc5545`-spec and allows the combination of up to 25 
 /remindme 2years This is a long time
 /remindme 2 h drink some water
 /remindme eow Buy groceries
-/remindme 5 mi Whatever
+/remindme 5 m Whatever
 /remindme 2 aug 3pm Is it hot outside?
 /remindme 2021-09-02T12:25:00+02:00 iso is cool
 
@@ -107,7 +107,7 @@ At the moment, different parameters cannot be combined.
 		• w(eeks)
 		• d(ays)
 		• h(ours)
-		• mi(ns)
+		• m(ins)
 	
 	you can combine relative intervals like this
 		1y 1mo 2 days -5h

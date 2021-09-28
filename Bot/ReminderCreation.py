@@ -18,8 +18,10 @@ from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 from lib.Connector import Connector
 from lib.Reminder import Reminder, IntervalReminder
+from lib.CommunitySettings import CommunitySettings, CommunityAction
 import lib.input_parser
 import lib.ReminderRepeater
+import util.interaction
 
 from lib.Analytics import Analytics, Types
 from ReminderListing import ReminderListing
@@ -150,6 +152,10 @@ class ReminderCreation(commands.Cog):
                 embed.set_footer(text=ReminderCreation.HELP_FOOTER)
                 await ctx.send(embed=embed, hidden=True)
                 Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
+                return
+            
+            elif not await util.interaction.check_user_permission(ctx, required_perms=CommunityAction(repeating=True)):
+                # make sure the user is allowed to create repeating reminders
                 return
 
         if auto_del_action == Connector.AutoDelete.HIDE:
@@ -320,16 +326,29 @@ class ReminderCreation(commands.Cog):
                         ])
     @commands.guild_only()
     async def add_remind_user(self, ctx, target, time, message):
-
+        
         target_resolve = ctx.guild.get_member(int(target)) or ctx.guild.get_role(int(target))
-
+        
         if not target_resolve:
+            # delays execution significantly, only if not already cached
             target_resolve = await ctx.guild.fetch_member(int(target))
 
         # if resolve failed, use plain id
         target_resolve = target_resolve or int(target) 
 
-        await self.process_reminder(ctx, ctx.author, target_resolve, time, message)
+        # determining if the mention is @everyone depends
+        # on how the role was resolved (and if it even is a role)
+        if not ctx.guild:
+            is_everyone = False
+        elif isinstance(target_resolve, int):
+            is_everyone = (ctx.guild.id == target_resolve)
+        else:
+            is_everyone = (ctx.guild.default_role == target_resolve)
+
+        # only allow execution if all permissions are present        
+        action = CommunityAction(foreign=True, everyone=is_everyone)
+        if await util.interaction.check_user_permission(ctx, required_perms=action):
+            await self.process_reminder(ctx, ctx.author, target_resolve, time, message)
     
    
     @cog_ext.cog_slash(name='remindme', description='set a reminder after a certain time period',
@@ -348,7 +367,9 @@ class ReminderCreation(commands.Cog):
                             )
                         ])
     async def remindme(self, ctx, time, message):
-        await self.process_reminder(ctx, ctx.author, ctx.author, time, message)
+
+        if await util.interaction.check_user_permission(ctx):
+            await self.process_reminder(ctx, ctx.author, ctx.author, time, message)
 
 
 def setup(client):

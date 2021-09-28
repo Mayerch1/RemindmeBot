@@ -19,6 +19,7 @@ from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 from lib.Connector import Connector
+from lib.CommunitySettings import CommunitySettings
 from lib.Analytics import Analytics, Types
 
 
@@ -69,11 +70,14 @@ class SettingsModule(commands.Cog):
         return eb
     
     
-    def get_action_rows(self, instance_id):
+    def get_action_rows(self, instance_id, guild=None):
         
         tz = Connector.get_timezone(instance_id)
         rem_type = Connector.get_reminder_type(instance_id)
         auto_delete = Connector.get_auto_delete(instance_id)
+        comm_mode = Connector.get_community_mode(instance_id)
+        moderators = Connector.get_moderators(instance_id)
+        
         
         action_rows = []
         
@@ -146,8 +150,165 @@ class SettingsModule(commands.Cog):
         ]
         action_rows.append(manage_components.create_actionrow(*buttons))
         
+        
+        if guild:
+            # do not even show these to a DM session
+            buttons = [
+                manage_components.create_button(
+                    style=ButtonStyle.blurple,
+                    label=f'Community Mode',
+                    custom_id='settings_community_nop'
+                ),
+                manage_components.create_button(
+                    style=ButtonStyle.green if (comm_mode==Connector.CommunityMode.DISABLED) else ButtonStyle.gray,
+                    label=f'Disabled',
+                    disabled=(comm_mode==Connector.CommunityMode.DISABLED),
+                    custom_id=f'settings_community_disabled_{instance_id}'
+                ),
+                manage_components.create_button(
+                    style=ButtonStyle.green if (comm_mode==Connector.CommunityMode.ENABLED) else ButtonStyle.gray,
+                    label=f'Enabled',
+                    disabled=(comm_mode==Connector.CommunityMode.ENABLED),
+                    custom_id=f'settings_community_enabled_{instance_id}'
+                ),
+                manage_components.create_button(
+                    style=ButtonStyle.gray,
+                    label=f'Configure ...',
+                    disabled=(comm_mode==Connector.CommunityMode.DISABLED),
+                    custom_id=f'settings_community_config_{instance_id}'
+                )
+            ]
+            action_rows.append(manage_components.create_actionrow(*buttons))
+            
+    
+            options = [
+                manage_components.create_select_option(
+                    label=role.name,
+                    value=f'{role.id}',
+                    default=(role.id in moderators)
+                ) for role in guild.roles[:-25:-1]
+            ]
+            buttons = [
+                manage_components.create_select(
+                        custom_id=f'settings_moderator_{instance_id}',
+                        placeholder='Select the Moderator Role(s)',
+                        min_values=0,
+                        max_values=len(options),
+                        options=options
+                )
+            ]
+            action_rows.append(manage_components.create_actionrow(*buttons))
+        
+            
+            
+        
         return action_rows
 
+    
+    def get_action_rows_community(self, instance_id, guild=None):
+        
+        settings = Connector.get_community_settings(instance_id)
+   
+        action_rows = []
+        
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.blurple,
+                label=f'Mods Only Mode',
+                custom_id='settings_commset_modonly_nop'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (settings.mods_only==False) else ButtonStyle.gray,
+                label=f'Disabled',
+                disabled=(settings.mods_only==False),
+                custom_id=f'settings_commset_modonly_disabled_{instance_id}'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (settings.mods_only==True) else ButtonStyle.gray,
+                label=f'Enabled',
+                disabled=(settings.mods_only==True),
+                custom_id=f'settings_commset_modonly_enabled_{instance_id}'
+            )
+        ]
+        action_rows.append(manage_components.create_actionrow(*buttons))
+        
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.blurple,
+                label=f'Repeating Reminders',
+                custom_id='settings_commset_restrictrepeating_nop'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (settings.restrict_repeating==False) else ButtonStyle.gray,
+                label=f'Everyone',
+                disabled=(settings.restrict_repeating==False or settings.mods_only),
+                custom_id=f'settings_commset_restrictrepeating_disabled_{instance_id}'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (settings.restrict_repeating==True) else ButtonStyle.gray,
+                label=f'Mods Only',
+                disabled=(settings.restrict_repeating==True or settings.mods_only),
+                custom_id=f'settings_commset_restrictrepeating_enabled_{instance_id}'
+            )
+        ]
+        action_rows.append(manage_components.create_actionrow(*buttons))
+        
+        
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.blurple,
+                label=f'Mention @everyone',
+                custom_id='settings_commset_everyone_nop'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (settings.restrict_everyone==False) else ButtonStyle.gray,
+                label=f'Everyone',
+                disabled=(settings.restrict_everyone==False or settings.mods_only),
+                custom_id=f'settings_commset_everyone_disabled_{instance_id}'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (settings.restrict_everyone==True) else ButtonStyle.gray,
+                label=f'Mods Only',
+                disabled=(settings.restrict_everyone==True or settings.mods_only),
+                custom_id=f'settings_commset_everyone_enabled_{instance_id}'
+            )
+        ]
+        action_rows.append(manage_components.create_actionrow(*buttons))
+        
+        
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.blurple,
+                label=f'Remind other users',
+                custom_id='settings_commset_foreign_nop'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (settings.restrict_foreign==False) else ButtonStyle.gray,
+                label=f'Everyone',
+                disabled=(settings.restrict_foreign==False or settings.mods_only),
+                custom_id=f'settings_commset_foreign_disabled_{instance_id}'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (settings.restrict_foreign==True) else ButtonStyle.gray,
+                label=f'Mods Only',
+                disabled=(settings.restrict_foreign==True or settings.mods_only),
+                custom_id=f'settings_commset_foreign_enabled_{instance_id}'
+            )
+        ]
+        action_rows.append(manage_components.create_actionrow(*buttons))
+        
+        
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.gray,
+                label=f'Return',
+                custom_id=f'settings_commset_return_{instance_id}'
+            ),
+        ]
+        action_rows.append(manage_components.create_actionrow(*buttons))
+            
+        return action_rows
+    
     
     ################
     # idk whats that
@@ -164,7 +325,7 @@ class SettingsModule(commands.Cog):
                                         'corresponding buttons below.\n'\
                                         'The grayed-out buttons are the current selected options.')
         
-        a_rows = self.get_action_rows(instance_id)
+        a_rows = self.get_action_rows(instance_id, guild=ctx.guild)
         await ctx.send(embed=eb, components=a_rows, hidden=True)
 
 
@@ -174,15 +335,16 @@ class SettingsModule(commands.Cog):
             await ctx.defer(edit_origin=True)
             return
         
-        
         # perform permission checks for modifying settings
         # if author is User means that the command was invoked in DMs
         # there's no need for permission in DMs
         if isinstance(ctx.author, discord.Member):
             perms =  ctx.author.guild_permissions
             
-            if not perms.administrator and not perms.manage_guild:
-                await ctx.send('You need to have the `manage_server` permission to modify these settings', hidden=True)
+            if not perms.administrator and \
+                not perms.manage_guild and \
+                not Connector.is_moderator(ctx.author.roles):
+                await ctx.send('You need to have the `manage_server` or moderator permission to modify these settings', hidden=True)
                 return
         
         new_type = args[0]
@@ -200,12 +362,52 @@ class SettingsModule(commands.Cog):
         Connector.set_reminder_type(instance_id, new_enum)
         Analytics.set_reminder_type(new_enum)
         
-        a_rows = self.get_action_rows(instance_id=instance_id)
+        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
     
     
     async def set_autodel(self, ctx, args):
         
+        if not args or args[0] == 'nop':
+            await ctx.defer(edit_origin=True)
+            return
+        
+        new_type = args[0]
+        instance_id = int(args[1])
+        
+        # perform permission checks for modifying settings
+        # if author is User means that the command was invoked in DMs
+        # there's no need for permission in DMs
+        if isinstance(ctx.author, discord.Member):
+            perms =  ctx.author.guild_permissions
+            
+            if not perms.administrator and \
+                not perms.manage_guild and \
+                not Connector.is_moderator(ctx.author.roles):
+
+                await ctx.send('You need to have the `manage_server` or moderator permissions to modify these settings', hidden=True)
+                return
+
+
+        if new_type == 'timeout':
+            new_enum = Connector.AutoDelete.TIMEOUT
+        elif new_type == 'never':
+            new_enum = Connector.AutoDelete.NEVER
+        elif new_type == 'hide':
+            new_enum = Connector.AutoDelete.HIDE
+        else:
+            return
+        
+        Connector.set_auto_delete(instance_id, new_enum)
+        Analytics.set_auto_delete(new_enum)
+        
+        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
+        await ctx.edit_origin(components=a_rows)
+        
+        
+    async def set_community_mode(self, ctx, args):
+                
+
         if not args or args[0] == 'nop':
             await ctx.defer(edit_origin=True)
             return
@@ -223,19 +425,49 @@ class SettingsModule(commands.Cog):
         new_type = args[0]
         instance_id = int(args[1])
 
-        if new_type == 'timeout':
-            new_enum = Connector.AutoDelete.TIMEOUT
-        elif new_type == 'never':
-            new_enum = Connector.AutoDelete.NEVER
-        elif new_type == 'hide':
-            new_enum = Connector.AutoDelete.HIDE
+        if new_type == 'disabled':
+            new_enum = Connector.CommunityMode.DISABLED
+        elif new_type == 'enabled':
+            new_enum = Connector.CommunityMode.ENABLED
+        elif new_type == 'config':
+            # show the config file for the community mode instead
+            #new_enum = Connector.CommunityMode.MODS_ONLY
+            a_rows = self.get_action_rows_community(instance_id=instance_id, guild=ctx.guild)
+            await ctx.edit_origin(components=a_rows)
+            return
         else:
             return
         
-        Connector.set_auto_delete(instance_id, new_enum)
-        Analytics.set_auto_delete(new_enum)
+        Connector.set_community_mode(instance_id, new_enum)
+        Analytics.set_community_mode(new_enum)
         
-        a_rows = self.get_action_rows(instance_id=instance_id)
+        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
+        await ctx.edit_origin(components=a_rows)
+    
+
+    async def set_moderators(self, ctx, args):
+        
+        if not args or args[0] == 'nop':
+            await ctx.defer(edit_origin=True)
+            return
+        
+        # perform permission checks for modifying settings
+        # if author is User means that the command was invoked in DMs
+        # there's no need for permission in DMs
+        if isinstance(ctx.author, discord.Member):
+            perms =  ctx.author.guild_permissions
+            
+            if not perms.administrator and not perms.manage_guild:
+                await ctx.send('You need to have the `manage_server` permission to modify these settings', hidden=True)
+                return
+            
+            
+        new_mods = ctx.selected_options
+        instance_id = int(args[0])
+        
+        Connector.set_moderators(instance_id, new_mods)        
+        
+        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
     
     
@@ -252,6 +484,91 @@ class SettingsModule(commands.Cog):
             eb = self._get_tz_info_eb(tz)
             await ctx.send(embed=eb, hidden=True)
 
+    async def set_modonly(self, ctx, args):
+        
+        if not args or args[0] == 'nop':
+            await ctx.defer(edit_origin=True)
+            return
+        
+        # perform permission checks for modifying settings
+        # if author is User means that the command was invoked in DMs
+        # there's no need for permission in DMs
+        if isinstance(ctx.author, discord.Member):
+            perms =  ctx.author.guild_permissions
+            
+            if not perms.administrator and \
+                not perms.manage_guild and \
+                not Connector.is_moderator(ctx.author.roles):
+
+                await ctx.send('You need to have the `manage_server` or moderator permission to modify these settings', hidden=True)
+                return
+        
+        new_type = args[0]
+        instance_id = int(args[1])
+
+        
+        new_settings = CommunitySettings.full_restricted()
+        new_settings.mods_only = (new_type == 'enabled')
+        
+        Connector.set_community_settings(instance_id, new_settings)
+        #Analytics.set_community_mode(new_enum)
+        
+        a_rows = self.get_action_rows_community(instance_id=instance_id, guild=ctx.guild)
+        await ctx.edit_origin(components=a_rows)
+
+
+    async def restrict_settings(self, ctx, args):
+        
+        if len(args) < 3 or args[0] == 'nop':
+            await ctx.defer(edit_origin=True)
+            return
+        
+        # perform permission checks for modifying settings
+        # if author is User means that the command was invoked in DMs
+        # there's no need for permission in DMs
+        if isinstance(ctx.author, discord.Member):
+            perms =  ctx.author.guild_permissions
+            
+            if not perms.administrator and \
+                not perms.manage_guild and \
+                not Connector.is_moderator(ctx.author.roles):
+
+                await ctx.send('You need to have the `manage_server` or moderator permission to modify these settings', hidden=True)
+                return
+        
+        option = args[0]
+        new_value = (args[1] == 'enabled')
+        instance_id = int(args[2])
+
+        # translate options into attribute name
+        #
+        # this is required, as _ is used as token for context id
+        # but aswell as name for class attributes
+
+        if option == 'restrictrepeating':
+            attr_name = 'restrict_repeating'
+        elif option == 'everyone':
+            attr_name = 'restrict_everyone'
+        elif option == 'foreign':
+            attr_name = 'restrict_foreign'
+        else:
+            return
+        
+        Connector.set_community_setting(instance_id, attr_name, new_value)
+        
+        a_rows = self.get_action_rows_community(instance_id=instance_id, guild=ctx.guild)
+        await ctx.edit_origin(components=a_rows)
+
+    async def return_mainpage(self, ctx, args):
+        
+        if not args or args[0] == 'nop':
+            await ctx.defer(edit_origin=True)
+            return
+        
+        instance_id = args[0]
+        
+        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
+        await ctx.edit_origin(components=a_rows)
 
     ################
     # Event methods
@@ -277,6 +594,22 @@ class SettingsModule(commands.Cog):
             await self.show_timezone_hint(ctx, args[2:])
         elif args[1] == 'autodel':
             await self.set_autodel(ctx, args[2:])
+        elif args[1] == 'community':
+            await self.set_community_mode(ctx, args[2:])
+        elif args[1] == 'moderator':
+            await self.set_moderators(ctx, args[2:])
+        elif args[1] == 'commset':
+            await self.switch_community_settings(ctx, args[2:])
+            
+    async def switch_community_settings(self, ctx: ComponentContext, args):
+
+        if args[0] == 'return':
+            await self.return_mainpage(ctx, args[1:])
+        elif args[0] == 'modonly':
+            await self.set_modonly(ctx, args[1:])
+        else:
+            await self.restrict_settings(ctx, args)
+
 
     ##################
     # Commands methods
