@@ -3,7 +3,7 @@ import re
 import discord
 import asyncio
 
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord_slash import SlashContext, SlashCommand, ComponentContext
 from discord_slash.utils.manage_commands import create_option, create_choice
 from discord_slash.utils import manage_components
@@ -62,6 +62,8 @@ async def on_ready():
     print(client.user.id)
     print('-----------')
     await client.change_presence(activity=discord.Game(name='/remindme'))
+    
+    update_community_count.start()
 
 
 @client.event
@@ -96,6 +98,19 @@ async def on_guild_join(guild):
                         description='Here\'s a cool gif, just for you')
         eb.set_image(url='https://media.giphy.com/media/kyLYXonQYYfwYDIeZl/giphy.gif')
         await guild.system_channel.send(embed=eb)
+
+
+@tasks.loop(hours=6)
+async def update_community_count():
+    
+    comm_cnt = Connector.get_community_count()
+    Analytics.community_count(comm_cnt)
+
+
+@update_community_count.before_loop
+async def update_community_count_before():
+    await client.wait_until_ready()
+
 
 
 def main():

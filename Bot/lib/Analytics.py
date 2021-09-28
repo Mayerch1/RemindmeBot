@@ -147,9 +147,8 @@ class Analytics:
         ['shard', 'type']
     )
     
-    COMMUNITY_MODE = Counter(
-        'community_mode', 'Community mode of a server',
-        ['shard', 'type']
+    COMMUNITY_CNT = Gauge(
+        'community_cnt', 'Number of servers set to community mode'
     )
     
     COMMAND_DENIED = Counter(
@@ -310,9 +309,10 @@ class Analytics:
 
         
     @staticmethod
-    def set_community_mode(community_mode: Enum, shard:int = 0):
-        Analytics.COMMUNITY_MODE.labels(str(shard), community_mode.name).inc()
-        
+    def community_count(community_cnt: int):
+        Analytics.COMMUNITY_CNT.set(community_cnt)
+
+
     @staticmethod
     def command_denied(shard:int = 0):
         Analytics.COMMAND_DENIED.labels(str(shard)).inc()

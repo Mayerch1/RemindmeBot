@@ -126,6 +126,12 @@ class Connector:
 
 
     @staticmethod
+    def get_community_count():
+        result = Connector.db.settings.find({'community': 'ENABLED'})
+        return result.count()
+
+
+    @staticmethod
     def set_community_settings(instance_id: int, settings: CommunitySettings):
         
         settings_json = settings._to_json()

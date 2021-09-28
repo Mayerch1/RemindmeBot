@@ -439,7 +439,7 @@ class SettingsModule(commands.Cog):
             return
         
         Connector.set_community_mode(instance_id, new_enum)
-        Analytics.set_community_mode(new_enum)
+        # Analytics.set_community_mode(new_enum)
         
         a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
@@ -511,7 +511,6 @@ class SettingsModule(commands.Cog):
         new_settings.mods_only = (new_type == 'enabled')
         
         Connector.set_community_settings(instance_id, new_settings)
-        #Analytics.set_community_mode(new_enum)
         
         a_rows = self.get_action_rows_community(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
