@@ -256,7 +256,7 @@ async def check_user_permission_raw(client, messeagable, guild_id: int, user_rol
     def get_error_embed(required_perms, settings):
         
         if (settings.mods_only):
-            missing_perms = 'The bot is set to moderator-only mode'
+            missing_perms = 'The bot is set to moderator-only mode\n'
         else:
             missing_perms = 'You do not have permissions to\n'
             if (required_perms.repeating and settings.restrict_repeating):
