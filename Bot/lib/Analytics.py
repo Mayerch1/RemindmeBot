@@ -168,7 +168,6 @@ class Analytics:
     def init():
         host = '0.0.0.0'
         port = 9091
-        port = 50000
 
         _thread.start_new_thread(Analytics._waitress_thread, ('flask server', Analytics.app, host, port))
         print(f'Analytics Webserver started on {host}:{port}')
