@@ -220,8 +220,9 @@ class ReminderModule(commands.Cog):
     @tasks.loop(minutes=2)
     async def check_pending_intervals(self):
         now = datetime.utcnow()
+        now_utc = now.replace(tzinfo=tz.UTC)
 
-        pending_intvls = Connector.get_pending_intervals(now.timestamp())
+        pending_intvls = Connector.get_pending_intervals(now_utc.timestamp())
 
         for interval in pending_intvls:
             interval.at = interval.next_trigger(now)
@@ -234,8 +235,9 @@ class ReminderModule(commands.Cog):
     @tasks.loop(minutes=1)
     async def check_pending_reminders(self):
         now = datetime.utcnow()
+        now_utc = now.replace(tzinfo=tz.UTC)
 
-        pending_rems = Connector.pop_elapsed_reminders(now.timestamp())
+        pending_rems = Connector.pop_elapsed_reminders(now_utc.timestamp())
         
         for reminder in pending_rems:
             await self.print_reminder(reminder)

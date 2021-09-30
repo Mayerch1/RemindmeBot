@@ -363,7 +363,7 @@ def parse(input, utcnow, timezone='UTC'):
     elif isinstance(remind_at, datetime):
         # protect against out of epoch dates
         try:
-            datetime.timestamp(remind_at)
+            datetime.timestamp(remind_at)  # correct timezones don't matter here
         except OSError:
             info =  '• the given date is exceeding the linux epoch\n'
             info += '  please choose an earlier date'

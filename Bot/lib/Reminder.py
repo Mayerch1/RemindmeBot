@@ -35,11 +35,11 @@ class Reminder:
 
         self.at = json.get('at', None)
         if self.at:
-            self.at = datetime.fromtimestamp(self.at)
+            self.at = datetime.utcfromtimestamp(self.at)
 
         self.created_at = json.get('created_at', None)
         if self.created_at:
-            self.created_at = datetime.fromtimestamp(self.created_at)
+            self.created_at = datetime.utcfromtimestamp(self.created_at)
 
 
     def __eq__(self, other):
@@ -77,10 +77,10 @@ class Reminder:
         d['last_msg_id'] = str(self.last_msg_id) if self.last_msg_id else None
         
         if self.created_at:
-            d['created_at'] = datetime.timestamp(self.created_at)
+            d['created_at'] = self.created_at.replace(tzinfo=tz.UTC).timestamp()
 
         if self.at:
-            d['at'] = datetime.timestamp(self.at)
+            d['at'] = self.at.replace(tzinfo=tz.UTC).timestamp()
         else:
             d['at'] = None
 
@@ -88,48 +88,53 @@ class Reminder:
 
 
     
-    def get_interval_string(self, now=None):
+    def get_interval_string(self, now=None, use_timestamp=False):
         """get a string describing the interval until reminder is triggered
            if self.at is None, returns verbose string showing no future occurrence
 
         Returns:
             [str]: [description]
         """
-
         if not self.at:
             return 'No future occurrence'
-        
+
         if not now:
             now = datetime.utcnow()  
-          
-        delta = self.at - now
-        total_secs = int(max(0, delta.total_seconds()))
+    
+        if use_timestamp:
+            at_timestamp = self.at.replace(tzinfo=tz.UTC).timestamp()
+            return f'<t:{int(at_timestamp)}:R>'
 
-        hours, rem = divmod(total_secs, 3600)
-        mins, secs = divmod(rem, 60)
-        
-        days, rem = divmod(total_secs, 3600*24)
-        hour_days = int(rem/3600)
-        
-        weeks, rem = divmod(total_secs, 3600*24*7)
-        days_weeks = int(rem/(3600*24))
-        
-        years, rem = divmod(total_secs, 3600*24*365)
-        weeks_years = int(rem/(3600*24*7))
-
-
-        if weeks > 104:
-            return '{:d} years and {:d} weeks'.format(years, weeks_years)
-        elif weeks > 10:
-            return '{:d} weeks and {:d} days'.format(weeks, days_weeks)
-        elif days > 14:
-            return '{:d} days and {:d} hours'.format(days, hour_days)
-        elif hours > 48:
-            return '{:d} days ({:02d} hours)'.format(int(hours/24), int(hours))
-        elif hours > 0:
-            return '{:02d} h {:02d} m'.format(int(hours), int(mins))
         else:
-            return '{:d} minutes'.format(int(mins))
+            delta = self.at - now
+            total_secs = int(max(0, delta.total_seconds()))
+
+            hours, rem = divmod(total_secs, 3600)
+            mins, secs = divmod(rem, 60)
+            
+            days, rem = divmod(total_secs, 3600*24)
+            hour_days = int(rem/3600)
+            
+            weeks, rem = divmod(total_secs, 3600*24*7)
+            days_weeks = int(rem/(3600*24))
+            
+            years, rem = divmod(total_secs, 3600*24*365)
+            weeks_years = int(rem/(3600*24*7))
+
+
+            if weeks > 104:
+                return 'in {:d} years and {:d} weeks'.format(years, weeks_years)
+            elif weeks > 10:
+                return 'in {:d} weeks and {:d} days'.format(weeks, days_weeks)
+            elif days > 14:
+                return 'in {:d} days and {:d} hours'.format(days, hour_days)
+            elif hours > 48:
+                return 'in {:d} days ({:02d} hours)'.format(int(hours/24), int(hours))
+            elif hours > 0:
+                return 'in {:02d} h {:02d} m'.format(int(hours), int(mins))
+            else:
+                return 'in {:d} minutes'.format(int(mins))
+
 
     def get_string(self, is_dm=False):
         """return string description of this reminder
@@ -301,7 +306,7 @@ class IntervalReminder(Reminder):
 
         self.first_at = json.get('first_at', None)
         if self.first_at:
-            self.first_at = datetime.fromtimestamp(self.first_at)
+            self.first_at = datetime.utcfromtimestamp(self.first_at)
 
         self.exdates = json.get('exdates', [])
         self.exrules = json.get('exrules', [])
@@ -318,7 +323,7 @@ class IntervalReminder(Reminder):
         d['rrules'] = self.rrules
 
         if self.first_at:
-            d['first_at'] = datetime.timestamp(self.first_at)
+            d['first_at'] = self.first_at.replace(tzinfo=tz.UTC).timestamp()
 
         return d
 
@@ -341,7 +346,7 @@ class IntervalReminder(Reminder):
             tgt_str = self.target_name or f'<@!{self.target}>'
             description = f'Reminding {tgt_str} '
 
-        description += f'the first time in {self.get_interval_string(now)}'
+        description += f'the first time {self.get_interval_string(now, use_timestamp=True)}'
         description += '\n\nCall `/reminder_list` to edit all pending reminders'
         
         if info:
@@ -380,8 +385,8 @@ class IntervalReminder(Reminder):
         eb = super().get_info_embed(tz_str=tz_str, title=title)
         eb.timestamp = discord.Embed.Empty
         
-        in_str = self.get_interval_string()
-        prefix = 'Next in ' if self.at else ''
+        in_str = self.get_interval_string(use_timestamp=False)
+        prefix = 'Next ' if self.at else ''
         
         eb.set_footer(text=f'{prefix}{in_str}', icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
 
@@ -404,8 +409,8 @@ class IntervalReminder(Reminder):
         eb = await super().get_embed(client, is_dm, tz_str)
         
         
-        in_str = self.get_interval_string()
-        prefix = 'Next in ' if self.at else ''
+        in_str = self.get_interval_string(use_timestamp=False)
+        prefix = 'Next ' if self.at else ''
         
         eb.set_footer(text=f'{prefix}{in_str}', icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
         
@@ -482,7 +487,6 @@ class IntervalReminder(Reminder):
 
 
     def next_trigger(self, utcnow):
-
         ruleset = rr.rruleset()
 
         # the date of the initial remindme
@@ -500,7 +504,6 @@ class IntervalReminder(Reminder):
 
         for date in self.exdates:
             ruleset.exdate(date)
-
 
         next_trigger = ruleset.after(utcnow)
         return next_trigger
