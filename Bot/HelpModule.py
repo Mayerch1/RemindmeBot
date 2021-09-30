@@ -1,4 +1,6 @@
 import asyncio
+from datetime import datetime
+from dateutil import tz
 
 import discord
 from discord.ext import commands, tasks
@@ -8,6 +10,7 @@ from discord_slash.utils import manage_components
 from discord_slash.model import SlashCommandOptionType, ButtonStyle
 
 from lib.Analytics import Analytics
+from lib.Connector import Connector
 
 FEEDBACK_CHANNEL = 872104333007785984
 FEEDBACK_MENTION = 872107119988588566
@@ -210,6 +213,14 @@ class HelpModule(commands.Cog):
             ]
             row_1 = manage_components.create_actionrow(*buttons)
             
+            buttons =[
+             manage_components.create_button(
+                    style=ButtonStyle.gray,
+                    label='Test Setup',
+                    custom_id='help_test_function'
+                )
+            ]
+            row_2 = manage_components.create_actionrow(*buttons)
             
             options = [
                 manage_components.create_select_option(
@@ -243,8 +254,8 @@ class HelpModule(commands.Cog):
                     options=options
                 )
             )
-            row_2 = manage_components.create_actionrow(help_selection)
-            return [row_1, row_2]
+            row_3 = manage_components.create_actionrow(help_selection)
+            return [row_1, row_2, row_3]
 
 
         if page == 'overview':
@@ -271,6 +282,99 @@ class HelpModule(commands.Cog):
 
         Analytics.help_page_called(page)
     
+    
+    async def send_test_messages(self, ctx):
+        
+        instance_id = ctx.guild.id if ctx.guild else ctx.author.id
+        
+        # create a report of the setup
+        can_embed = False
+        can_text = False
+        can_dm = False
+        ping = int(self.client.latency*1000)
+        
+        response_time = (datetime.utcnow()-ctx.origin_message.created_at)
+        response_ms = int(response_time.microseconds/1000)
+        
+        # try-catch is the easiest approach for this problem
+        # instead of checking all permission overwrites
+        eb = discord.Embed(title='Test Message', 
+                           description='Please ignore this message')
+        try:
+            await ctx.channel.send(embed=eb)
+        except discord.Forbidden:
+            # failure might still grant text_permission
+            text = 'Test Message, *please ignore this*'
+            try:
+                await ctx.channel.send(text)
+            except discord.Forbidden:
+                pass  # failure grants no permission
+            else:
+                can_text = True
+        else:
+            can_embed = can_text = True
+            
+            
+        # other critical parameters are the correct timezone
+        # aswell as the ability to DM the user
+        tz_str = Connector.get_timezone(instance_id)
+        local_time = datetime.now(tz.gettz(tz_str)).strftime('%H:%M')
+        
+        dm = await ctx.author.create_dm()
+        try:
+            await dm.send('Self-testing... *please ignore this.*')
+        except discord.Forbidden:
+            pass  # no permission on failure
+        else:
+            can_dm = True
+        
+        
+        # create the text snippets used to inform
+        # the user
+        color=0x96eb67
+        
+        if can_embed:
+            delivery_result = 'OK'
+            delivery_hint = ''
+        elif can_text:
+            delivery_result = '*Text Only*'
+            delivery_hint = '• Enable `Embed Links` permissions, to allow for a better reminder display\n'
+            color = 0xcceb67
+        else:
+            delivery_result = '**Failed**'
+            delivery_hint = '• Enable `Send Message` permissions for this text channel\n'
+            color = 0xde4b55  # red-ish
+
+        if can_dm:
+            dm_result = 'OK'
+            dm_hint = ''
+        else:
+            dm_result = '**Failed**'
+            dm_hint = '• Allow me to send you DMs to configure reminders and to receive error information, '\
+                        '[change your preferences]({:s}) and test again.'.format(r'https://support.discord.com/hc/en-us/articles/217916488-Blocking-Privacy-Settings-')
+            if can_embed:
+                # do not overwrite the color of more severe errors
+                color = 0xcceb67
+        
+        
+        eb = discord.Embed(title='Self-Test',
+                           description=delivery_hint + '\n' + dm_hint)
+        eb.color = color
+        
+        eb.add_field(name='Reminder delivery', value=delivery_result)
+        eb.add_field(name='DM permissions', value=dm_result)
+        
+        eb.add_field(name='Local Time', value=f'{local_time} (based on timezone settings)', inline=False)
+        
+        eb.add_field(name='Discord API Latency', value=f'{ping} ms')
+        eb.add_field(name='Library Latency', value=f'{response_ms} ms')
+        
+        
+        test_time = (datetime.utcnow()-ctx.origin_message.created_at)
+        test_ms = int(test_time.microseconds/1000)
+        eb.add_field(name='Self-Test Duration', value=f'{test_ms} ms', inline=False)
+        
+        await ctx.send(embed=eb, hidden=True)
     # =====================
     # events functions
     # =====================
@@ -291,6 +395,9 @@ class HelpModule(commands.Cog):
         elif ctx.custom_id == 'help_navigation':
             sel_id = ctx.selected_options[0]
             await self.send_help_page(ctx, sel_id)
+            
+        elif ctx.custom_id == 'help_test_function':
+            await self.send_test_messages(ctx)
         
         
         
