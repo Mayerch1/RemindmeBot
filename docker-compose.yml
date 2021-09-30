@@ -29,6 +29,7 @@ services:
       - MONGO_ROOT_PASS
       - BOT_ROOT_PREFIX
       - ADMIN_GUILD
+      - PROMETHEUS_PORT
 
     restart: always
     networks:
