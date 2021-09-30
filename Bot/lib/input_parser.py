@@ -430,10 +430,25 @@ def rrule_normalize(rrule_str, dtstart, instance_id=None):
 
 
     norm_str = str(rule).lower()
+    
 
     if 'minutely' in norm_str:
         return (None, 'Minutely repetitions are not supported by this bot (yet)')
     elif 'secondly' in norm_str:
         return (None, 'Secondly repetitions would be classified as spam by the discord TOS.')
-    else:
-        return rule, None
+    
+    
+    # make sure, that the rule is a valid rule
+    # sometimes logical errors (like asking for hour 40) can slip through the parser
+    # they don't immediately violate the rfc, but are logically not possible to achieve
+    
+    ruleset = rr.rruleset()
+    ruleset.rdate(dtstart)
+    ruleset.rrule(rr.rrulestr(norm_str))
+    
+    try:
+        ruleset.after(dtstart)
+    except TypeError:
+        return (None, f'The rulestring {norm_str} cannot be satisfied')
+    
+    return rule, None

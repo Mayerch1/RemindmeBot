@@ -293,8 +293,8 @@ class HelpModule(commands.Cog):
         can_dm = False
         ping = int(self.client.latency*1000)
         
-        response_time = (datetime.utcnow()-ctx.origin_message.created_at)
-        response_ms = int(response_time.microseconds/1000)
+        response_time = (datetime.utcnow()-ctx.created_at)
+        response_ms = int(response_time.total_seconds()*1000)
         
         # try-catch is the easiest approach for this problem
         # instead of checking all permission overwrites
@@ -370,8 +370,8 @@ class HelpModule(commands.Cog):
         eb.add_field(name='Library Latency', value=f'{response_ms} ms')
         
         
-        test_time = (datetime.utcnow()-ctx.origin_message.created_at)
-        test_ms = int(test_time.microseconds/1000)
+        test_time = (datetime.utcnow()-ctx.created_at)
+        test_ms = int(test_time.total_seconds()*1000)
         eb.add_field(name='Self-Test Duration', value=f'{test_ms} ms', inline=False)
         
         await ctx.send(embed=eb, hidden=True)
