@@ -68,15 +68,46 @@ class SettingsModule(commands.Cog):
                                     f'Use `/settings timezone` to edit this value')
 
         return eb
+
+
+    def get_navigation_menu(self, instance_id, page=1):
+        
+        options = [
+            manage_components.create_select_option(
+                label='Basic Page',
+                description='Holds most important settings',
+                value='1',
+                emoji='🌐',
+                default=(page==1)
+            ),
+            manage_components.create_select_option(
+                label='Community Page',
+                description='Show community related settings',
+                value='2',
+                emoji='👪',
+                default=(page==2)
+            )
+        ]
+        help_selection = (
+            manage_components.create_select(
+                custom_id=f'settings_navigation_{instance_id}',
+                placeholder='Please select a page',
+                min_values=1,
+                max_values=1,
+                options=options
+            )
+        )
+
+        row = manage_components.create_actionrow(help_selection)
+        return row
     
     
-    def get_action_rows(self, instance_id, guild=None):
+    def get_action_rows_page1(self, instance_id, guild=None):
         
         tz = Connector.get_timezone(instance_id)
         rem_type = Connector.get_reminder_type(instance_id)
         auto_delete = Connector.get_auto_delete(instance_id)
-        comm_mode = Connector.get_community_mode(instance_id)
-        moderators = Connector.get_moderators(instance_id)
+        experimental = Connector.is_experimental(instance_id)
         
         
         action_rows = []
@@ -151,6 +182,37 @@ class SettingsModule(commands.Cog):
         action_rows.append(manage_components.create_actionrow(*buttons))
         
         
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.blurple,
+                label='Experimental Features',
+                custom_id='settings_experimental_nop'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (experimental==False) else ButtonStyle.gray,
+                label=f'Disabled',
+                disabled=(experimental==False),
+                custom_id=f'settings_experimental_disabled_{instance_id}'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (experimental==True) else ButtonStyle.gray,
+                label=f'Enabled',
+                disabled=(experimental==True),
+                custom_id=f'settings_experimental_enabled_{instance_id}'
+            )
+        ]
+        action_rows.append(manage_components.create_actionrow(*buttons))
+        
+        action_rows.append(self.get_navigation_menu(instance_id, page=1))
+        return action_rows
+    
+    def get_action_rows_page2(self, instance_id, guild=None):
+        
+        comm_mode = Connector.get_community_mode(instance_id)
+        moderators = Connector.get_moderators(instance_id)
+
+        action_rows = []
+        
         if guild:
             # do not even show these to a DM session
             buttons = [
@@ -179,8 +241,7 @@ class SettingsModule(commands.Cog):
                 )
             ]
             action_rows.append(manage_components.create_actionrow(*buttons))
-            
-    
+        
             options = [
                 manage_components.create_select_option(
                     label=role.name,
@@ -199,9 +260,7 @@ class SettingsModule(commands.Cog):
             ]
             action_rows.append(manage_components.create_actionrow(*buttons))
         
-            
-            
-        
+        action_rows.append(self.get_navigation_menu(instance_id, page=2))
         return action_rows
 
     
@@ -302,7 +361,7 @@ class SettingsModule(commands.Cog):
             manage_components.create_button(
                 style=ButtonStyle.gray,
                 label=f'Return',
-                custom_id=f'settings_commset_return_{instance_id}'
+                custom_id=f'settings_commset_return_{instance_id}_2'
             ),
         ]
         action_rows.append(manage_components.create_actionrow(*buttons))
@@ -325,7 +384,7 @@ class SettingsModule(commands.Cog):
                                         'corresponding buttons below.\n'\
                                         'The grayed-out buttons are the current selected options.')
         
-        a_rows = self.get_action_rows(instance_id, guild=ctx.guild)
+        a_rows = self.get_action_rows_page1(instance_id, guild=ctx.guild)
         await ctx.send(embed=eb, components=a_rows, hidden=True)
 
 
@@ -362,7 +421,7 @@ class SettingsModule(commands.Cog):
         Connector.set_reminder_type(instance_id, new_enum)
         Analytics.set_reminder_type(new_enum)
         
-        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
+        a_rows = self.get_action_rows_page1(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
     
     
@@ -401,12 +460,11 @@ class SettingsModule(commands.Cog):
         Connector.set_auto_delete(instance_id, new_enum)
         Analytics.set_auto_delete(new_enum)
         
-        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
+        a_rows = self.get_action_rows_page1(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
         
         
     async def set_community_mode(self, ctx, args):
-                
 
         if not args or args[0] == 'nop':
             await ctx.defer(edit_origin=True)
@@ -439,10 +497,42 @@ class SettingsModule(commands.Cog):
             return
         
         Connector.set_community_mode(instance_id, new_enum)
-        # Analytics.set_community_mode(new_enum)
         
-        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
+        a_rows = self.get_action_rows_page2(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
+    
+    
+    async def set_experimental(self, ctx, args):
+
+        if not args or args[0] == 'nop':
+            await ctx.defer(edit_origin=True)
+            return
+        
+        # perform permission checks for modifying settings
+        # if author is User means that the command was invoked in DMs
+        # there's no need for permission in DMs
+        if isinstance(ctx.author, discord.Member):
+            perms =  ctx.author.guild_permissions
+            
+            if not perms.administrator and not perms.manage_guild:
+                await ctx.send('You need to have the `manage_server` permission to modify these settings', hidden=True)
+                return
+        
+        new_type = args[0]
+        instance_id = int(args[1])
+
+        if new_type == 'disabled':
+            new_mode = False
+        elif new_type == 'enabled':
+            new_mode = True
+        else:
+            return
+        
+        Connector.set_experimental(instance_id, new_mode)
+        
+        a_rows = self.get_action_rows_page1(instance_id=instance_id, guild=ctx.guild)
+        await ctx.edit_origin(components=a_rows)
+        
     
 
     async def set_moderators(self, ctx, args):
@@ -467,7 +557,7 @@ class SettingsModule(commands.Cog):
         
         Connector.set_moderators(instance_id, new_mods)        
         
-        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
+        a_rows = self.get_action_rows_page2(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
     
     
@@ -558,16 +648,34 @@ class SettingsModule(commands.Cog):
         a_rows = self.get_action_rows_community(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
 
-    async def return_mainpage(self, ctx, args):
-        
-        if not args or args[0] == 'nop':
+
+    async def return_to_page(self, ctx, args):        
+        if len(args) < 2 or args[0] == 'nop':
             await ctx.defer(edit_origin=True)
             return
         
         instance_id = args[0]
+        page = int(args[1])
         
-        a_rows = self.get_action_rows(instance_id=instance_id, guild=ctx.guild)
+        if page==1:
+            a_rows = self.get_action_rows_page1(instance_id=instance_id, guild=ctx.guild)
+        elif page==2:
+            a_rows = self.get_action_rows_page2(instance_id=instance_id, guild=ctx.guild)
+
         await ctx.edit_origin(components=a_rows)
+        
+    async def navigate(self, ctx, args):
+        
+        if len(args) < 1 or args[0] == 'nop':
+            await ctx.defer(edit_origin=True)
+            return
+
+        instance_id = args[0]
+        page = ctx.selected_options[0]
+        
+        await self.return_to_page(ctx, [instance_id, page])
+
+        
 
     ################
     # Event methods
@@ -599,11 +707,16 @@ class SettingsModule(commands.Cog):
             await self.set_moderators(ctx, args[2:])
         elif args[1] == 'commset':
             await self.switch_community_settings(ctx, args[2:])
-            
+        elif args[1] == 'experimental':
+            await self.set_experimental(ctx, args[2:])
+        elif args[1] == 'navigation':
+            await self.navigate(ctx, args[2:])
+
+   
     async def switch_community_settings(self, ctx: ComponentContext, args):
 
         if args[0] == 'return':
-            await self.return_mainpage(ctx, args[1:])
+            await self.return_to_page(ctx, args[1:])
         elif args[0] == 'modonly':
             await self.set_modonly(ctx, args[1:])
         else:

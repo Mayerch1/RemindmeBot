@@ -4,6 +4,7 @@ from dateutil import tz
 import dateutil.rrule as rr
 
 import lib.input_parser
+import lib.Connector  # KEEP this syntax, circular import
 
 class Reminder:
 
@@ -88,7 +89,7 @@ class Reminder:
 
 
     
-    def get_interval_string(self, now=None):
+    def get_interval_string(self, now=None, use_timestamp=False):
         """get a string describing the interval until reminder is triggered
            if self.at is None, returns verbose string showing no future occurrence
 
@@ -101,6 +102,11 @@ class Reminder:
         
         if not now:
             now = datetime.utcnow()  
+            
+            
+        if use_timestamp:
+            at = self.at.replace(tzinfo=tz.UTC)
+            return f'<t:{int(at.timestamp())}:R>'
           
         delta = self.at - now
         total_secs = int(max(0, delta.total_seconds()))
@@ -130,6 +136,7 @@ class Reminder:
             return '{:02d} h {:02d} m'.format(int(hours), int(mins))
         else:
             return '{:d} minutes'.format(int(mins))
+
 
     def get_string(self, is_dm=False):
         """return string description of this reminder
@@ -341,7 +348,7 @@ class IntervalReminder(Reminder):
             tgt_str = self.target_name or f'<@!{self.target}>'
             description = f'Reminding {tgt_str} '
 
-        description += f'the first time in {self.get_interval_string(now)}'
+        description += f'the first time {self.get_interval_string(now, use_timestamp=True)}'
         description += '\n\nCall `/reminder_list` to edit all pending reminders'
         
         if info:
@@ -406,6 +413,7 @@ class IntervalReminder(Reminder):
         
         in_str = self.get_interval_string()
         prefix = 'Next in ' if self.at else ''
+        prefix = ', created:'
         
         eb.set_footer(text=f'{prefix}{in_str}', icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
         
@@ -435,10 +443,10 @@ class IntervalReminder(Reminder):
         ret = []
 
         for rule in self.rrules:
-            ret.append({'label': 'Reoccurrence Rule', 'descr': rule[-50:], 'default': False})
+            ret.append({'label': 'Reoccurrence Rule', 'descr': lib.input_parser.rrule_to_english(rule)[0:50], 'default': False})
 
         for rule in self.exrules:
-            ret.append({'label': 'Exclusion Rule', 'descr': rule[-50:], 'default': False})
+            ret.append({'label': 'Exclusion Rule', 'descr': lib.input_parser.rrule_to_english(rule)[0:50], 'default': False})
 
         for date in self.rdates:
             ret.append({'label': 'Single Occurrence', 'descr': date.strftime('%Y-%m-%d %H:%M'), 'default': False})
@@ -481,7 +489,7 @@ class IntervalReminder(Reminder):
         return
 
 
-    def next_trigger(self, utcnow):
+    def next_trigger(self, utcnow, tz_str=None, experimental=False):
 
         ruleset = rr.rruleset()
 
@@ -501,6 +509,17 @@ class IntervalReminder(Reminder):
         for date in self.exdates:
             ruleset.exdate(date)
 
-
         next_trigger = ruleset.after(utcnow)
+
+        instance_id = self.g_id if self.g_id else self.author
+        experimental = lib.Connector.Connector.is_experimental(instance_id)
+        
+        if experimental:
+            if not tz_str:
+                tz_str = lib.Connector.Connector.get_timezone(instance_id)
+
+            next_trigger = next_trigger.replace(tzinfo=tz.gettz(tz_str))
+            next_trigger = next_trigger.astimezone(tz.UTC)
+            next_trigger = next_trigger.replace(tzinfo=None)
+            
         return next_trigger

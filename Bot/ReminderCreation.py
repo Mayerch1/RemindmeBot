@@ -209,8 +209,7 @@ class ReminderCreation(commands.Cog):
             rem.first_at = old_rem.at
             rem.rrules.append(str(rrule))
 
-            rem.at = rem.next_trigger(utcnow)
-
+            rem.at = rem.next_trigger(utcnow, tz_str=tz_str)
             rem_id = Connector.add_interval(rem)
             Analytics.reminder_created(rem, country_code=self.timezone_country.get(tz_str, 'UNK'), direct_interval=True)
         else:

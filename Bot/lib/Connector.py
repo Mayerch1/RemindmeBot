@@ -124,6 +124,20 @@ class Connector:
         else:
             return Connector.CommunityMode[rem_json.get('community', Connector.CommunityMode.DISABLED.name)]
 
+    @staticmethod
+    def set_experimental(instance_id: int, mode: bool):
+        Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {'experimental': mode}}, new=False, upsert=True)
+    
+    @staticmethod
+    def is_experimental(instance_id: int):
+        
+        exp_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'experimental': 1})
+        
+        if not exp_json:
+            return False
+        else:
+            return exp_json.get('experimental', False)
+
 
     @staticmethod
     def get_community_count():
