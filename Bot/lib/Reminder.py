@@ -491,6 +491,9 @@ class IntervalReminder(Reminder):
 
     def next_trigger(self, utcnow, tz_str=None, experimental=False):
 
+        instance_id = self.g_id if self.g_id else self.author
+        experimental = lib.Connector.Connector.is_experimental(instance_id)
+
         ruleset = rr.rruleset()
 
         # the date of the initial remindme
@@ -509,17 +512,27 @@ class IntervalReminder(Reminder):
         for date in self.exdates:
             ruleset.exdate(date)
 
-        next_trigger = ruleset.after(utcnow)
 
-        instance_id = self.g_id if self.g_id else self.author
-        experimental = lib.Connector.Connector.is_experimental(instance_id)
-        
+
         if experimental:
+            # the local time must be used
+            # to determin the next event
             if not tz_str:
                 tz_str = lib.Connector.Connector.get_timezone(instance_id)
 
+            local_now = utcnow.replace(tzinfo=tz.UTC)
+            local_now = local_now.astimezone(tz.gettz(tz_str))
+            local_now = local_now.replace(tzinfo=None)
+            
+            next_trigger = ruleset.after(local_now)
+            
             next_trigger = next_trigger.replace(tzinfo=tz.gettz(tz_str))
             next_trigger = next_trigger.astimezone(tz.UTC)
             next_trigger = next_trigger.replace(tzinfo=None)
+            
+        else:
+            next_trigger = ruleset.after(utcnow)
+
+    
             
         return next_trigger
