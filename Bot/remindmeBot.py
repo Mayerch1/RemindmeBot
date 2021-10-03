@@ -22,7 +22,7 @@ BotDir = os.getenv('BOT_ROOT_PREFIX')
 
 token = open(f'{BotDir}tokens/token.txt', 'r').read()
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
-slash = SlashCommand(client, sync_commands=True)
+slash = SlashCommand(client, sync_commands=False)
 
 
 @client.event
@@ -64,6 +64,7 @@ async def on_ready():
     await client.change_presence(activity=discord.Game(name='/remindme'))
     
     update_community_count.start()
+    update_experimental_count.start()
 
 
 @client.event
@@ -100,6 +101,15 @@ async def on_guild_join(guild):
         await guild.system_channel.send(embed=eb)
 
 
+
+
+@tasks.loop(hours=6)
+async def update_experimental_count():
+    
+    comm_cnt = Connector.get_experimental_count()
+    Analytics.experimental_count(comm_cnt)
+
+
 @tasks.loop(hours=6)
 async def update_community_count():
     
@@ -109,6 +119,11 @@ async def update_community_count():
 
 @update_community_count.before_loop
 async def update_community_count_before():
+    await client.wait_until_ready()
+
+
+@update_experimental_count.before_loop
+async def update_experimental_count_before():
     await client.wait_until_ready()
 
 

@@ -413,9 +413,9 @@ class IntervalReminder(Reminder):
         
         in_str = self.get_interval_string()
         prefix = 'Next in ' if self.at else ''
-        prefix = ', created:'
+        postfix = ', created'
         
-        eb.set_footer(text=f'{prefix}{in_str}', icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
+        eb.set_footer(text=f'{prefix}{in_str}{postfix}', icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
         
         return eb
 

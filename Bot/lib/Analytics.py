@@ -152,6 +152,10 @@ class Analytics:
         'community_cnt', 'Number of servers set to community mode'
     )
     
+    EXPERIMENTAL_CNT = Gauge(
+        'experimental_cnt', 'Number of servers set to experimental mode'
+    )
+    
     COMMAND_DENIED = Counter(
         'command_denied', 'Command execution was denied due to missing permissions',
         ['shard']
@@ -311,6 +315,11 @@ class Analytics:
     @staticmethod
     def community_count(community_cnt: int):
         Analytics.COMMUNITY_CNT.set(community_cnt)
+
+
+    @staticmethod
+    def experimental_count(experimental_cnt: int):
+        Analytics.EXPERIMENTAL_CNT.set(experimental_cnt)
 
 
     @staticmethod
