@@ -220,8 +220,13 @@ class ReminderModule(commands.Cog):
     @tasks.loop(minutes=2)
     async def check_pending_intervals(self):
         now = datetime.utcnow()
+        now_str = now.strftime('%Y/%m/%d %H:%M')
 
         pending_intvls = Connector.get_pending_intervals(now.timestamp())
+        
+        for interval in pending_intvls:
+            delta = (now-interval.at).total_seconds()/60
+            print(f'{now_str}: intvl is {delta} minutes late')
 
         for interval in pending_intvls:
             interval.at = interval.next_trigger(now)
