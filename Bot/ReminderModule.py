@@ -228,7 +228,10 @@ class ReminderModule(commands.Cog):
             Connector.update_interval_at(interval)
             
         for interval in pending_intvls:
-            await self.print_reminder(interval)
+            try:
+                await self.print_reminder(interval)
+            except:
+                pass
     
 
     @tasks.loop(minutes=1)
