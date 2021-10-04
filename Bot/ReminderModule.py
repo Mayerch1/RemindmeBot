@@ -35,13 +35,15 @@ class ReminderModule(commands.Cog):
 
     def __init__(self, client):
         self.client = client
-        
+
         print('starting reminder event loops')
         self.check_pending_reminders.start()
         self.check_pending_intervals.start()
         self.check_reminder_cnt.start()
         self.check_interval_cnt.start()
         self.clean_interval_orphans.start()
+
+        self.last_loop = datetime.utcnow()
 
     def cog_unload(self):
         print('stopping reminder event loops')
@@ -221,12 +223,16 @@ class ReminderModule(commands.Cog):
     async def check_pending_intervals(self):
         now = datetime.utcnow()
         now_str = now.strftime('%Y/%m/%d %H:%M')
+        
+        if now-self.last_loop > timedelta(minutes=3):
+            print(f'{now_str}: WARN - missed interval loop, delta was {(now-self.last_loop).total_seconds()/60} minutes')
 
         pending_intvls = Connector.get_pending_intervals(now.timestamp())
         
         for interval in pending_intvls:
             delta = (now-interval.at).total_seconds()/60
-            print(f'{now_str}: intvl is {delta} minutes late')
+            if delta > 2:
+                print(f'{now_str}: INFO - intvl is {delta} minutes late')
 
         for interval in pending_intvls:
             interval.at = interval.next_trigger(now)
@@ -236,7 +242,11 @@ class ReminderModule(commands.Cog):
             try:
                 await self.print_reminder(interval)
             except:
+                print(f'{now_str}: ERR - interval not delivered, skipping')
                 pass
+            
+            
+        self.last_loop = datetime.utcnow()
     
 
     @tasks.loop(minutes=1)

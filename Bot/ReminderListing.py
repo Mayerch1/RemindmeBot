@@ -130,7 +130,7 @@ class ReminderListing(commands.Cog):
         """
         await stm.dm.send('If you wish to edit more reminders, re-invoke the command')
 
-        if ctx:
+        if ctx and not ctx.deferred:
             try:
                 await ctx.defer(edit_origin=True)
             except discord.NotFound:
