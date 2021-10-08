@@ -513,7 +513,6 @@ class IntervalReminder(Reminder):
             ruleset.exdate(date)
 
 
-
         if experimental:
             # the local time must be used
             # to determin the next event

@@ -80,6 +80,28 @@ class Analytics:
             float('inf')
         )
     )
+    
+    REMINDER_DELAY = Histogram(
+        'reminder_delay', 'Show by how many seconds a reminder was delayed',
+        buckets=(
+            2*60,
+            5*60,
+            10*60,
+            15*60,
+            30*60,
+            45*60,
+            60*60,
+            12*(60*60),
+            24*(60*60),
+            7*(24*60*60),
+            float('inf')
+        )
+    )
+
+    REMINDER_TRIGGERED_CNT = Counter(
+        'reminder_triggered_cnt', 'Triggered Reminders',
+        ['shard', 'type']
+    )
 
     REMINDER_DELETED_CNT = Counter(
         'reminder_deleted_cnt', 'Deleted Reminders Count',
@@ -298,6 +320,25 @@ class Analytics:
             r_scope = Types.ReminderScope.PRIVATE
 
         Analytics.UNDELIVERED_REMINDER.labels(str(shard), r_type.name, r_scope.name, r_tgt.name, reason.name).inc()
+        
+    @staticmethod
+    def reminder_delay(reminder, now=None, shard:int=0, allowed_delay=0):
+
+        if not now:
+            now = datetime.utcnow()
+
+        interval = (now-reminder.at).total_seconds()
+
+        if interval > allowed_delay:
+            Analytics.REMINDER_DELAY.observe(interval)
+
+
+        if isinstance(reminder, IntervalReminder):
+            t = Types.ReminderType.ONE_SHOT
+        else:
+            t = Types.ReminderType.REPEATING
+        Analytics.REMINDER_TRIGGERED_CNT.labels(str(shard), t.name).inc()
+        
         
     @staticmethod
     def set_timezone(timezone_str: str, country_code: str, deprecated: bool, shard:int = 0):

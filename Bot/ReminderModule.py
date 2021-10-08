@@ -43,8 +43,6 @@ class ReminderModule(commands.Cog):
         self.check_interval_cnt.start()
         self.clean_interval_orphans.start()
 
-        self.last_loop = datetime.utcnow()
-
     def cog_unload(self):
         print('stopping reminder event loops')
         self.check_pending_reminders.cancel()
@@ -222,30 +220,24 @@ class ReminderModule(commands.Cog):
     @tasks.loop(minutes=2)
     async def check_pending_intervals(self):
         now = datetime.utcnow()
-        now_str = now.strftime('%Y/%m/%d %H:%M')
         
-        if now-self.last_loop > timedelta(minutes=3):
-            print(f'{now_str}: WARN - missed interval loop, delta was {(now-self.last_loop).total_seconds()/60} minutes')
-
         pending_intvls = Connector.get_pending_intervals(now.timestamp())
-        
-        for interval in pending_intvls:
-            delta = (now-interval.at).total_seconds()/60
-            if delta > 2:
-                print(f'{now_str}: INFO - intvl is {delta} minutes late')
 
         for interval in pending_intvls:
+            # must be evaluated before new at is assigned
+            Analytics.reminder_delay(interval, now=now, allowed_delay=2*60)
+            
             interval.at = interval.next_trigger(now)
             Connector.update_interval_at(interval)
             
         for interval in pending_intvls:
             try:
                 await self.print_reminder(interval)
-            except:
-                print(f'{now_str}: ERR - interval not delivered, skipping')
+            except Exception as e:
+                print(f'ERR - interval not delivered, skipping')
+                print(e)
                 pass
-            
-            
+
         self.last_loop = datetime.utcnow()
     
 
@@ -257,6 +249,7 @@ class ReminderModule(commands.Cog):
         
         for reminder in pending_rems:
             await self.print_reminder(reminder)
+            Analytics.reminder_delay(reminder, now=now, allowed_delay=1*60)
     
    
     @tasks.loop(minutes=15)
