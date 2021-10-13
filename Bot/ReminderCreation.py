@@ -235,9 +235,6 @@ class ReminderCreation(commands.Cog):
         ]
         action_row = manage_components.create_actionrow(*buttons)
 
-        if not ctx.channel:
-            info = 'If this command was invoked in a thread, you will receive the reminder as a DM. Make sure you can receive DMs from me.'
-            
         if auto_del_action == Connector.AutoDelete.TIMEOUT:
             delete_after = 300
             hidden=False

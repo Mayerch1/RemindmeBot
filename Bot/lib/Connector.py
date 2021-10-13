@@ -126,6 +126,30 @@ class Connector:
 
 
     @staticmethod
+    def get_legacy_interval_count():
+        result = Connector.db.settings.find({'legacy_interval': True})
+        return result.count()
+
+
+    @staticmethod
+    def set_legacy_interval(instance_id: int, mode: bool):
+        Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {'legacy_interval': mode}}, new=False, upsert=True)
+
+
+    @staticmethod
+    def is_legacy_interval(instance_id: int):
+        """check if the instance uses legacy intervals
+           if no entry exists, legacy is assumed for backwards compatibility
+        """
+        exp_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'legacy_interval': 1})
+        
+        if not exp_json:
+            return True
+        else:
+            return exp_json.get('legacy_interval', True)
+
+
+    @staticmethod
     def get_experimental_count():
         result = Connector.db.settings.find({'experimental': True})
         return result.count()

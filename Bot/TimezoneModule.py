@@ -63,7 +63,7 @@ class TimezoneModule(commands.Cog):
             col = 0x69eb67
         else:
             # some non-critical warnings will show slightly yellow embed
-            col = 0xcceb67
+            col = 0xcceb67  # light yellow
 
         # put new timezone into embed title
         # but make sure the title is not exceeding 256 chars
@@ -111,7 +111,7 @@ class TimezoneModule(commands.Cog):
         select_str = '' if no_list else 'or select one from the list below'
 
         eb = discord.Embed(title='Invalid Timezone configuration',
-                        color=0xde4b55,
+                        color=0xde4b55,  # red-ish
                         description=f'The timezone `{zone}` is not valid\n'\
                                     f'Please re-invoke the command with a valid timezone '\
                                     f'{select_str}\n\n'\

@@ -24,6 +24,8 @@ import lib.ReminderRepeater
 from lib.Analytics import Analytics, Types
 from ReminderListing import ReminderListing
 
+import net.threads as Thread
+
 
 class ReminderModule(commands.Cog):
 
@@ -141,6 +143,30 @@ class ReminderModule(commands.Cog):
 
 
     async def print_reminder(self, rem: Reminder):
+
+        async def send_message(guild, channel, text, embed):
+            perms = channel.permissions_for(guild.me)
+            if perms.send_messages and perms.embed_links:
+                try:
+                    await channel.send(text, embed=embed, 
+                                    allowed_mentions=discord.AllowedMentions.all())
+                    return True
+                except discord.errors.Forbidden:
+                    pass
+
+            elif perms.send_messages:
+                try:
+                    # get the reminder string
+                    # ignoring the user preferences
+                    fallback = rem.get_string()
+                    fallback += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
+                    await channel.send(fallback)
+                    return True
+                except discord.errors.Forbidden:
+                    pass
+            
+            return False
+
         # reminder is a DM reminder
         if not rem.g_id:
             await self.print_reminder_dm(rem)
@@ -148,11 +174,12 @@ class ReminderModule(commands.Cog):
 
         guild = self.client.get_guild(rem.g_id)
         channel = guild.get_channel(rem.ch_id) if guild else None
+        is_thread = Thread.exists(rem.ch_id) if guild else False
 
         # no need to resolve author, target is sufficient
-        if not channel:
+        if not channel and not is_thread:
             guild_name = guild.name if guild else 'Unresolved Guild'
-            err = f'`You are receiving this dm, as the reminder was created in a thread or as the channel on \'{guild_name}\' is not existing anymore.`'
+            err = f'`You are receiving this dm, as the desired channel on \'{guild_name}\' is not existing anymore.`'
             await self.print_reminder_dm(rem, channel=None, err_msg=err)
             return
 
@@ -171,30 +198,24 @@ class ReminderModule(commands.Cog):
             eb = await rem.get_embed(self.client)
             text = rem.get_embed_text()
 
-        perms = channel.permissions_for(guild.me)
-        if perms.send_messages and perms.embed_links:
-            try:
-                # embed does not hold user mention
-                await channel.send(text, embed=eb, 
-                                   allowed_mentions=discord.AllowedMentions.all())
-                return
-            except discord.errors.Forbidden:
-                pass
 
-        if perms.send_messages:
-            try:
-                # get the reminder string
-                # ignoring the user preferences
-                fallback = rem.get_string()
-                fallback += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
-                await channel.send(fallback)
-                return
-            except discord.errors.Forbidden:
-                pass
+        if channel:
+            success = send_message(guild, channel, text, eb)
+            err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
+        elif is_thread:
+            dearchived = Thread.dearchive(rem.ch_id)
+            if dearchived:
+                success = Thread.send(rem.ch_id, text, eb.to_dict())
+                err = f'`You are receiving this dm, as I do not have permission to send messages into the thread on \'{guild.name}\'.`'
+            else:
+                success = False
+                err = f'You are receiving this dm, as I couldn\'t de-archive the thread this reminder was scheduled for.'
+        else:
+            # no else case logically possible
+            err = 'An unknown error prevented the reminder from being send into the apropriate channel'
 
-
-        err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
-        await self.print_reminder_dm(rem, channel=channel, err_msg=err)
+        if not success:
+            await self.print_reminder_dm(rem, channel=channel, err_msg=err)
 
     # =====================
     # events functions
@@ -211,9 +232,7 @@ class ReminderModule(commands.Cog):
     async def clean_interval_orphans(self):
         cnt = Connector.delete_orphaned_intervals()
 
-        for _ in range(cnt):
-            Analytics.reminder_deleted(Types.DeleteAction.ORPHAN)
-
+        Analytics.reminder_deleted(Types.DeleteAction.ORPHAN, count=cnt)
         print(f'deleted {cnt} orphaned interval(s)')
 
 
@@ -248,7 +267,11 @@ class ReminderModule(commands.Cog):
         pending_rems = Connector.pop_elapsed_reminders(now.timestamp())
         
         for reminder in pending_rems:
-            await self.print_reminder(reminder)
+            try:
+                await self.print_reminder(reminder)
+            except Exception as e:
+                print(f'ERR - reminder not delivered, skipping')
+                print(e)
             Analytics.reminder_delay(reminder, now=now, allowed_delay=1*60)
     
    

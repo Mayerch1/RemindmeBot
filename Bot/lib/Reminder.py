@@ -489,10 +489,10 @@ class IntervalReminder(Reminder):
         return
 
 
-    def next_trigger(self, utcnow, tz_str=None, experimental=False):
+    def next_trigger(self, utcnow, tz_str=None):
 
         instance_id = self.g_id if self.g_id else self.author
-        experimental = lib.Connector.Connector.is_experimental(instance_id)
+        legacy_mode = lib.Connector.Connector.is_legacy_interval(instance_id)
 
         ruleset = rr.rruleset()
 
@@ -513,7 +513,7 @@ class IntervalReminder(Reminder):
             ruleset.exdate(date)
 
 
-        if experimental:
+        if not legacy_mode:
             # the local time must be used
             # to determin the next event
             if not tz_str:

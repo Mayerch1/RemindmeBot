@@ -17,7 +17,7 @@ This bot is inspired by the reddit remindme bot and allows similar usage.
 
 ---
 
-[Invite the Bot](https://discord.com/api/oauth2/authorize?client_id=831142367397412874&permissions=68608&scope=bot%20applications.commands) or view it's profile on [top.gg](https://top.gg/bot/831142367397412874)
+[Invite the Bot](https://discord.com/api/oauth2/authorize?client_id=831142367397412874&permissions=274877991936&scope=bot%20applications.commands) or view it's profile on [top.gg](https://top.gg/bot/831142367397412874)
 
 
 ## Some users cannot use the bot?

@@ -80,6 +80,10 @@ async def on_guild_remove(guild):
 
 @client.event
 async def on_guild_join(guild):
+
+    # new guilds do not use the legacy mode
+    Connector.set_legacy_interval(guild.id, False)
+
     Analytics.guild_added()
     guild_cnt = len(client.guilds)
     print(f'added to guild (total count: {guild_cnt})')

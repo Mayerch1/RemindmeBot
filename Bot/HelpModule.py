@@ -198,7 +198,7 @@ class HelpModule(commands.Cog):
                 manage_components.create_button(
                     style=ButtonStyle.URL,
                     label='Invite Me',
-                    url='https://discord.com/oauth2/authorize?client_id=831142367397412874&permissions=84992&scope=bot%20applications.commands'
+                    url='https://discord.com/api/oauth2/authorize?client_id=831142367397412874&permissions=274877991936&scope=bot%20applications.commands'
                 ),
                 manage_components.create_button(
                     style=ButtonStyle.URL,
@@ -216,7 +216,7 @@ class HelpModule(commands.Cog):
             buttons =[
              manage_components.create_button(
                     style=ButtonStyle.gray,
-                    label='Test Setup',
+                    label='Self-Test',
                     custom_id='help_test_function'
                 )
             ]
@@ -286,20 +286,22 @@ class HelpModule(commands.Cog):
     async def send_test_messages(self, ctx):
         
         instance_id = ctx.guild.id if ctx.guild else ctx.author.id
+        experimental = Connector.is_experimental(instance_id)
+        legacy = Connector.is_legacy_interval(instance_id)
         
         # create a report of the setup
         can_embed = False
         can_text = False
         can_dm = False
         ping = int(self.client.latency*1000)
-        
+
         response_time = (datetime.utcnow()-ctx.created_at)
         response_ms = int(response_time.total_seconds()*1000)
         
         # try-catch is the easiest approach for this problem
         # instead of checking all permission overwrites
         eb = discord.Embed(title='Test Message', 
-                           description='Please ignore this message')
+                           description='You can safely delete this message')
         try:
             await ctx.channel.send(embed=eb)
         except discord.Forbidden:
@@ -365,14 +367,23 @@ class HelpModule(commands.Cog):
         eb.add_field(name='DM permissions', value=dm_result)
         
         eb.add_field(name='Local Time', value=f'{local_time} (based on timezone settings)', inline=False)
-        
-        eb.add_field(name='Discord API Latency', value=f'{ping} ms')
-        eb.add_field(name='Library Latency', value=f'{response_ms} ms')
-        
-        
+
+
+        eb.add_field(name='Legacy mode', value=legacy, inline=True)
+        eb.add_field(name='Experimental mode', value=experimental, inline=True)    
+        eb.add_field(name='\u200b', value='\u200b', inline=True)
+
+
+        eb.add_field(name='Discord API Latency', value=f'{ping} ms', inline=True)
+        eb.add_field(name='Library Latency*', value=f'{response_ms} ms', inline=True)
+
+
         test_time = (datetime.utcnow()-ctx.created_at)
         test_ms = int(test_time.total_seconds()*1000)
         eb.add_field(name='Self-Test Duration', value=f'{test_ms} ms', inline=False)
+
+        eb.set_footer(text='*this includes the server time difference between discord an the bot server')
+        
         
         await ctx.send(embed=eb, hidden=True)
     # =====================

@@ -86,6 +86,13 @@ class SettingsModule(commands.Cog):
                 value='2',
                 emoji='👪',
                 default=(page==2)
+            ),
+            manage_components.create_select_option(
+                label='Experimental Page',
+                description='Show new/test settings',
+                value='3',
+                emoji='🥼',
+                default=(page==3)
             )
         ]
         help_selection = (
@@ -107,7 +114,7 @@ class SettingsModule(commands.Cog):
         tz = Connector.get_timezone(instance_id)
         rem_type = Connector.get_reminder_type(instance_id)
         auto_delete = Connector.get_auto_delete(instance_id)
-        experimental = Connector.is_experimental(instance_id)
+        legacy = Connector.is_legacy_interval(instance_id)
         
         
         action_rows = []
@@ -185,20 +192,20 @@ class SettingsModule(commands.Cog):
         buttons = [
             manage_components.create_button(
                 style=ButtonStyle.blurple,
-                label='Experimental Features',
-                custom_id='settings_experimental_nop'
+                label='Interval Parsing',
+                custom_id='settings_legacy_nop'
             ),
             manage_components.create_button(
-                style=ButtonStyle.green if (experimental==False) else ButtonStyle.gray,
-                label=f'Disabled',
-                disabled=(experimental==False),
-                custom_id=f'settings_experimental_disabled_{instance_id}'
+                style=ButtonStyle.green if (legacy==False) else ButtonStyle.gray,
+                label=f'Follow Timezone',
+                disabled=(legacy==False),
+                custom_id=f'settings_legacy_disabled_{instance_id}'
             ),
             manage_components.create_button(
-                style=ButtonStyle.green if (experimental==True) else ButtonStyle.gray,
-                label=f'Enabled',
-                disabled=(experimental==True),
-                custom_id=f'settings_experimental_enabled_{instance_id}'
+                style=ButtonStyle.green if (legacy==True) else ButtonStyle.gray,
+                label=f'Legacy (always UTC)',
+                disabled=(legacy==True),
+                custom_id=f'settings_legacy_enabled_{instance_id}'
             )
         ]
         action_rows.append(manage_components.create_actionrow(*buttons))
@@ -261,6 +268,36 @@ class SettingsModule(commands.Cog):
             action_rows.append(manage_components.create_actionrow(*buttons))
         
         action_rows.append(self.get_navigation_menu(instance_id, page=2))
+        return action_rows
+
+
+    def get_action_rows_page3(self, instance_id, guild=None):
+
+        experimental = Connector.is_experimental(instance_id)
+
+        action_rows = []
+        buttons = [
+            manage_components.create_button(
+                style=ButtonStyle.blurple,
+                label='Experimental Features',
+                custom_id='settings_experimental_nop'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (experimental==False) else ButtonStyle.gray,
+                label=f'Disabled',
+                disabled=(experimental==False),
+                custom_id=f'settings_experimental_disabled_{instance_id}'
+            ),
+            manage_components.create_button(
+                style=ButtonStyle.green if (experimental==True) else ButtonStyle.gray,
+                label=f'Enabled',
+                disabled=(experimental==True),
+                custom_id=f'settings_experimental_enabled_{instance_id}'
+            )
+        ]
+        action_rows.append(manage_components.create_actionrow(*buttons))
+        
+        action_rows.append(self.get_navigation_menu(instance_id, page=3))
         return action_rows
 
     
@@ -369,6 +406,9 @@ class SettingsModule(commands.Cog):
         return action_rows
     
     
+    
+    
+
     ################
     # idk whats that
     ################
@@ -533,7 +573,51 @@ class SettingsModule(commands.Cog):
         a_rows = self.get_action_rows_page1(instance_id=instance_id, guild=ctx.guild)
         await ctx.edit_origin(components=a_rows)
         
-    
+    async def set_legacy_intervals(self, ctx, args):
+
+        if not args or args[0] == 'nop':
+            await ctx.defer(edit_origin=True)
+            return
+        
+        # perform permission checks for modifying settings
+        # if author is User means that the command was invoked in DMs
+        # there's no need for permission in DMs
+        if isinstance(ctx.author, discord.Member):
+            perms =  ctx.author.guild_permissions
+            
+            if not perms.administrator and not perms.manage_guild:
+                await ctx.send('You need to have the `manage_server` permission to modify these settings', hidden=True)
+                return
+
+        new_type = args[0]
+        instance_id = int(args[1])
+
+        if new_type == 'enabled':
+            new_mode = True
+            eb = discord.Embed(title='Legacy Interval Parsing Mode', 
+                        description='All future **and existing** intervals are interpreted as in *UTC*, independent of the server time')
+            eb.color = 0xcceb67  # light yellow
+        elif new_type == 'disabled':
+            new_mode = False
+            eb = discord.Embed(title='New Interval Parsing Mode', 
+                        description='All future **and existing** intervals are now interpreted in your local timezone')
+            eb.color = 0x69eb67  # light green
+        else:
+            # timeout the interaction
+            return
+
+
+        
+        try:
+            await ctx.channel.send(embed=eb)
+        except:
+            # just don't inform the user on failure
+            # do nothing in DMs or threads
+            pass
+
+        Connector.set_legacy_interval(instance_id, new_mode)
+        a_rows = self.get_action_rows_page1(instance_id=instance_id, guild=ctx.guild)
+        await ctx.edit_origin(components=a_rows)
 
     async def set_moderators(self, ctx, args):
         
@@ -661,6 +745,8 @@ class SettingsModule(commands.Cog):
             a_rows = self.get_action_rows_page1(instance_id=instance_id, guild=ctx.guild)
         elif page==2:
             a_rows = self.get_action_rows_page2(instance_id=instance_id, guild=ctx.guild)
+        elif page==3:
+            a_rows = self.get_action_rows_page3(instance_id=instance_id, guild=ctx.guild)
 
         await ctx.edit_origin(components=a_rows)
         
@@ -709,6 +795,8 @@ class SettingsModule(commands.Cog):
             await self.switch_community_settings(ctx, args[2:])
         elif args[1] == 'experimental':
             await self.set_experimental(ctx, args[2:])
+        elif args[1] == 'legacy':
+            await self.set_legacy_intervals(ctx, args[2:])
         elif args[1] == 'navigation':
             await self.navigate(ctx, args[2:])
 
