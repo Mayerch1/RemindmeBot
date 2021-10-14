@@ -27,6 +27,7 @@ services:
       - MONGO_PORT
       - MONGO_ROOT_USER
       - MONGO_ROOT_PASS
+      - BOT_TOKEN
       - BOT_ROOT_PREFIX
       - ADMIN_GUILD
       - PROMETHEUS_PORT

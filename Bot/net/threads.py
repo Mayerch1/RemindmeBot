@@ -5,11 +5,8 @@
 import os
 import requests
 
-BotDir = os.getenv('BOT_ROOT_PREFIX')
-token = open(f'{BotDir}tokens/token.txt', 'r').read()
 
-if token.endswith('\n'):
-    token = token[:-1]
+token = os.getenv('BOT_TOKEN')
 
 
 base_url = 'https://discord.com/api/v9'

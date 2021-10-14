@@ -18,9 +18,7 @@ intents.reactions = True
 intents.messages = True
 intents.guilds = True
 
-BotDir = os.getenv('BOT_ROOT_PREFIX')
-
-token = open(f'{BotDir}tokens/token.txt', 'r').read()
+token = os.getenv('BOT_TOKEN')
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
 slash = SlashCommand(client, sync_commands=False)
 

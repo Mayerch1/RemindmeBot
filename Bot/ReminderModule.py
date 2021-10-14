@@ -200,7 +200,7 @@ class ReminderModule(commands.Cog):
 
 
         if channel:
-            success = send_message(guild, channel, text, eb)
+            success = await send_message(guild, channel, text, eb)
             err = f'`You are receiving this dm, as I do not have permission to send messages into the channel \'{channel.name}\' on \'{guild.name}\'.`'
         elif is_thread:
             dearchived = Thread.dearchive(rem.ch_id)
