@@ -26,6 +26,8 @@ import util.interaction
 from lib.Analytics import Analytics, Types
 from ReminderListing import ReminderListing
 
+import net.threads as Thread
+
 
 class ReminderCreation(commands.Cog):
 
@@ -172,6 +174,9 @@ class ReminderCreation(commands.Cog):
             # command was called in DM
             rem.g_id = None
             rem.ch_id = None
+
+        if ctx.guild and (not ctx.channel) and (not Thread.exists(ctx.channel_id)):
+            info += '\n• I don\'t have access to this thread. Make sure to adjust my permissions'
 
         rem.msg = message
         rem.at = remind_at
