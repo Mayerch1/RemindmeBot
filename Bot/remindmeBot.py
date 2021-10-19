@@ -20,7 +20,7 @@ intents.guilds = True
 
 token = os.getenv('BOT_TOKEN')
 client = commands.Bot(command_prefix='/', description='Reminding you whenever you want', help_command=None, intents=intents)
-slash = SlashCommand(client, sync_commands=False)
+slash = SlashCommand(client, sync_commands=True)
 
 
 @client.event

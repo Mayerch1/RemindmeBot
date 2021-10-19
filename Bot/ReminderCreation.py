@@ -65,6 +65,9 @@ class ReminderCreation(commands.Cog):
         finally:
             return conv_int
 
+        
+    class UnsupportedChannelType(Exception):
+        pass
 
     # =====================
     # internal functions
@@ -81,7 +84,49 @@ class ReminderCreation(commands.Cog):
                 self.timezone_country[timezone] = countrycode
 
 
-    async def process_reminder(self, ctx, author, target, period, message):
+    def sanitize_channel(self, ctx, channel):
+        """chooses the correct channel to deliver the reminder
+           
+           will raise on unsupported types
+           will select command channel if channel is not given
+
+        Args:
+            ctx ([type]): [description]
+            channel (discord.TextChannel): target channel, None for command channel/thread
+
+        Raises:
+            ReminderCreation.UnsupportedChannelType: on unsupported channel type, like VoiceChannel
+
+        Returns:
+            discord.TextChannel or int: selected channel, channel_id for threads, None for DM sessions
+        """
+
+        if channel and isinstance(channel, discord.TextChannel):
+            return channel
+        elif channel:
+            raise ReminderCreation.UnsupportedChannelType(f'Only channels of type `Text` or `Thread` are supported')
+
+        # handle an implicitly called channel type
+        if ctx.guild and ctx.channel:
+            # respond to channel of call
+            return ctx.channel
+        elif ctx.guild:
+            return ctx.channel_id
+        else:
+            # this is a dm session
+            return None
+ 
+
+    async def process_reminder(self, ctx, author, target, period, message, channel):
+
+        # parse the channel
+        try:
+            channel = self.sanitize_channel(ctx, channel)
+        except ReminderCreation.UnsupportedChannelType as e:
+            eb = discord.Embed(title='Unsupported Channel-Type', description=str(e))
+            eb.color = 0xff0000
+            await ctx.send(embed=eb)
+            return
 
         if ctx.guild:
             instance_id = author.guild.id
@@ -167,16 +212,24 @@ class ReminderCreation(commands.Cog):
         await ctx.defer(hidden=defer_hidden) # allow more headroom for response latency, before command fails
         rem = Reminder()
 
-        if ctx.guild:
-            rem.g_id = ctx.guild.id
-            rem.ch_id = ctx.channel_id
-        else:
+
+        if channel is None:
             # command was called in DM
             rem.g_id = None
             rem.ch_id = None
+        elif isinstance(channel, int):
+            # likely a thread, or unresolved channel
+            rem.g_id = ctx.guild.id
+            rem.ch_id = channel
 
-        if ctx.guild and (not ctx.channel) and (not Thread.exists(ctx.channel_id)):
-            info += '\n• I don\'t have access to this thread. Make sure to adjust my permissions'
+            if not Thread.exists(channel):
+                info += '\n• I might not have access to this thread/channel. Make sure to adjust my permissions'
+        else:
+            # normal text channel
+            rem.g_id = ctx.guild.id
+            rem.ch_id = channel.id
+            info += f'\n• This reminder will be delivered to `{channel.name}`.\nMake sure this bot has permission to send messages into that channel'
+
 
         rem.msg = message
         rem.at = remind_at
@@ -323,10 +376,16 @@ class ReminderCreation(commands.Cog):
                                 description='the bot will remind you with this message',
                                 required=True,
                                 option_type=SlashCommandOptionType.STRING
+                            ),
+                            create_option(
+                                name='channel',
+                                description='A channel other than the current one',
+                                required=False,
+                                option_type=SlashCommandOptionType.CHANNEL
                             )
                         ])
     @commands.guild_only()
-    async def add_remind_user(self, ctx, target, time, message):
+    async def add_remind_user(self, ctx, target, time, message, channel=None):
         
         target_resolve = ctx.guild.get_member(int(target)) or ctx.guild.get_role(int(target))
         
@@ -349,7 +408,7 @@ class ReminderCreation(commands.Cog):
         # only allow execution if all permissions are present        
         action = CommunityAction(foreign=True, everyone=is_everyone)
         if await util.interaction.check_user_permission(ctx, required_perms=action):
-            await self.process_reminder(ctx, ctx.author, target_resolve, time, message)
+            await self.process_reminder(ctx, ctx.author, target_resolve, time, message, channel=channel)
     
    
     @cog_ext.cog_slash(name='remindme', description='set a reminder after a certain time period',
@@ -365,12 +424,18 @@ class ReminderCreation(commands.Cog):
                                 description='the bot will remind you with this message',
                                 required=True,
                                 option_type=SlashCommandOptionType.STRING
+                            ),
+                            create_option(
+                                name='channel',
+                                description='A channel other than the current one',
+                                required=False,
+                                option_type=SlashCommandOptionType.CHANNEL
                             )
                         ])
-    async def remindme(self, ctx, time, message):
+    async def remindme(self, ctx, time, message, channel=None):
 
         if await util.interaction.check_user_permission(ctx):
-            await self.process_reminder(ctx, ctx.author, ctx.author, time, message)
+            await self.process_reminder(ctx, ctx.author, ctx.author, time, message, channel=channel)
 
 
 def setup(client):

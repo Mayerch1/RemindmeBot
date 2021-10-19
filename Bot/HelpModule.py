@@ -33,28 +33,20 @@ class HelpModule(commands.Cog):
                 'try different formats\n'\
                 '```'\
                 '• 5 jul, 5th july or july 5\n'\
-                '• 3pm or 15\n'\
-                '• 2030\n'\
-                '• tomorrow at 4pm\n'\
+                '• 3pm or 15:00\n'\
                 '• every second monday each other month\n'\
                 '• 2021-09-02T12:25:00+02:00\n'\
                 '\n'\
                 'Note: the parser uses day-first and year-least\n'\
                 '      (01/02/03 -> 1st February 2003)\n'\
-                'Note: specifying a timezone in iso-timestamps (e.g. +0200)\n'\
-                '      will ignore the server timezone\n'\
                 '```'\
                 '\n'\
                 'use abbreviations for common terms\n'\
                 '```'\
                 '• eoy, eom, eow, eod - end of year/month/week/day\n'\
                 '\n'\
-                '• y(ears)\n'\
-                '• mo(nths)\n'\
-                '• w(eeks)\n'\
-                '• d(ays)\n'\
-                '• h(ours)\n'\
-                '• mi(ns)\n'\
+                '• y(ears), mo(nths), w(eeks)\n'\
+                '• d(ays), h(ours), m(ins)\n'\
                 '\n'\
                 'Note: eow is end of the working week (Friday Evening)\n'\
                 '```'
@@ -96,8 +88,10 @@ class HelpModule(commands.Cog):
             await dm_test.edit(content='*Feedback Timeout*: You didn\'t enter your feedback fast enough.\nRe-invoke the command if you want to try again.') if dm_test else None
             return
 
-
-        feedback_ch = self.client.get_channel(FEEDBACK_CHANNEL)
+        try:
+            feedback_ch = self.client.get_channel(FEEDBACK_CHANNEL) or await self.client.fetch_channel(FEEDBACK_CHANNEL)
+        except discord.Forbidden:
+            feedback_ch = None
 
         if feedback_ch:
             feedback_str = f'<@&{FEEDBACK_MENTION}> New Feedback:\n'
@@ -125,12 +119,11 @@ class HelpModule(commands.Cog):
 
             embed = discord.Embed(title='Remindme Help', description='\u200b')
 
-            embed.add_field(name='/help [page]', value='directly access a specific help page', inline=False)
             embed.add_field(name='/remindme', value='reminding you after a set time period', inline=False)
             embed.add_field(name='/remind', value='remind another user after a set time period', inline=False)
             embed.add_field(name='/reminder_list', value='manage all reminders of this server', inline=False)
-            embed.add_field(name='/settings timezone', value='set/get the timezone of this server', inline=False)
-            embed.add_field(name='/settings menu', value='show and edit some minor bot settings', inline=False)
+            embed.add_field(name='/settings menu', value='show and edit some bot settings', inline=False)
+            embed.add_field(name='/settings timezone', value='set the timezone of this server', inline=False)
 
 
             embed.add_field(name='\u200b', 
@@ -144,20 +137,20 @@ class HelpModule(commands.Cog):
             return '**Remindme Help**\n'\
                     '```Reminding you whenever you want\n'\
                     '\n'\
-                    'help          Shows this message\n'\
-                    'timezone      set/get the timezone of this server\n'\
-                    'remindme      reminding you after a set time period\n'\
-                    'remind        remind another user after a set time period\n'\
-                    'reminder_list manage all your reminders for this server\n\n'\
+                    'settings menu      show the config menu\n'\
+                    'settings timezone  set/get the timezone of this server\n'\
+                    'remindme           reminding you after a set time period\n'\
+                    'remind             remind another user after a set time period\n'\
+                    'reminder_list      manage all your reminders for this server\n\n'\
                     'please assign \'Embed Links\' permissions for better formatting```'
 
         def get_timezone_eb():
 
             eb = discord.Embed(title='Remindme Timezone Help', description='\u200b')
 
-            eb.add_field(name='/timezone get', value='get the current timezone', inline=False)
-            eb.add_field(name='/timezone set <string>', value='set a new timezone', inline=False)
-            eb.add_field(name='\u200b', value='> /timezone `mode: set`  `timezone: Europe/Berlin`', inline=False)
+            eb.add_field(name='/settings menu', value='you can view (but not edit) the timezone in the menu', inline=False)
+            eb.add_field(name='/settings timezone <string>', value='set a new timezone', inline=False)
+            eb.add_field(name='\u200b', value='> /settings timezone `new_timezone: Europe/Berlin`', inline=False)
 
             eb.add_field(name='\u200B', 
                         value='• Allowed are all timezones [defined by the IANA](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)\n'\
@@ -172,8 +165,8 @@ class HelpModule(commands.Cog):
         def get_timezone_str():
             return '**Remindme Help** - timezones\n'\
                 '```'\
-                '/timezone get     get the current timezone\n'\
-                '/timezone set     set a new timezone\n\n'\
+                '/settings menu     view the timezone setting\n'\
+                '/settings timezone set a new timezone\n\n'\
                 '• Allowed timezones are any strings defined by the IANA\n'\
                 '• Some timezones are marked as \'deprecated\' but can be used with a warning\n'\
                 '• geo-referencing timezones (Europe/Berlin) should be preferred\n'\

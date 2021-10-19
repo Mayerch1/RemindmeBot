@@ -225,45 +225,22 @@ class TimezoneModule(commands.Cog):
     @cog_ext.cog_subcommand(base='settings', name='timezone', description='Set the timezone of this server',
                         options=[
                             create_option(
-                                name='mode',
-                                description='choose if you get or set the timezone',
-                                required=True,
-                                option_type=SlashCommandOptionType.STRING,
-                                choices=[
-                                    create_choice(
-                                        name='get',
-                                        value='get'
-                                    ),
-                                    create_choice(
-                                        name='set',
-                                        value='set'
-                                    )
-                                ]
-                            ),
-                            create_option(
-                                name='timezone',
+                                name='new_timezone',
                                 description='timezone name, when setting a new timezone',
-                                required=False,
+                                required=True,
                                 option_type=SlashCommandOptionType.STRING
                             )
                         ]) 
-    async def set_timezone_sub_cmd(self, ctx, mode, timezone=None):
+    async def set_timezone_sub_cmd(self, ctx, new_timezone):
 
         # if no guild is present
         # assume dm context
         instance_id = ctx.guild.id if ctx.guild else ctx.author.id
 
-        if mode == 'get':
-            await self.get_timezone(ctx, instance_id)
-        else:
-            if not timezone:
-                await ctx.send('You need to specify the `timezone` parameter for this `mode`\n'\
-                               'You can use discords auto-completion by hitting `tab` twice', hidden=True)
-                return
-            elif not await util.interaction.check_user_permission(ctx, required_perms=CommunityAction(settings=True)):
-                return
+        if not await util.interaction.check_user_permission(ctx, required_perms=CommunityAction(settings=True)):
+            return
 
-            await self.set_timezone(ctx, instance_id, timezone)
+        await self.set_timezone(ctx, instance_id, new_timezone)
 
 
 def setup(client):

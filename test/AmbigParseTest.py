@@ -15,9 +15,9 @@ class AmbigParseTest(unittest.TestCase):
 
     def test_m_minute(self):
         """ keyword m must be interpreted as minutes
-            however, a warning must be shown to the user
+            a warning is not shown
         """
         at, error = p.parse('1m', self.utcnow)
 
         self.assertEqual(at, self.utcnow+timedelta(minutes=1))
-        self.assertNotEqual(error, '')
+        self.assertEqual(error, '')  # m does not trigger warning anymore

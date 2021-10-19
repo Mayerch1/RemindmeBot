@@ -157,7 +157,6 @@ def _parse_relative(args, utcnow):
             
             elif arg[1] == 'm':
                 intvl = timedelta(minutes=arg[0])
-                info = info + f'• Ambiguous reference, \'m\' was interpreted as minutes.\n  Type \'mo\' for months.\n'
             else:
                 info = info + f'• Ignoring {arg}, as this is not a known interval\n'
             

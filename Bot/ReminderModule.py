@@ -119,7 +119,7 @@ class ReminderModule(commands.Cog):
             # text is identical to missing permission fallback
             # but the spoiler asking for more permissions is missing
             eb = None
-            text = rem.get_string(is_dm=True)
+            text = await rem.get_string(client=self.client, is_dm=True)
         elif rem_type == Connector.ReminderType.EMBED_ONLY:
             eb = await rem.get_embed(self.client, is_dm=True)
             text = ''
@@ -158,7 +158,7 @@ class ReminderModule(commands.Cog):
                 try:
                     # get the reminder string
                     # ignoring the user preferences
-                    fallback = rem.get_string()
+                    fallback = await rem.get_string(client=self.client)
                     fallback += '\n||This reminder can be more beautiful with `Embed Links` permissions||'
                     await channel.send(fallback)
                     return True
@@ -190,7 +190,7 @@ class ReminderModule(commands.Cog):
             # text is identical to missing permission fallback
             # but the spoiler asking for more permissions is missing
             eb = None
-            text = rem.get_string()
+            text = await rem.get_string(client=self.client)
         elif rem_type == Connector.ReminderType.EMBED_ONLY:
             eb = await rem.get_embed(self.client)
             text = rem.target_mention or f'<@{rem.target}>'

@@ -138,7 +138,7 @@ class Reminder:
             return '{:d} minutes'.format(int(mins))
 
 
-    def get_string(self, is_dm=False):
+    async def get_string(self, client=None, is_dm=False):
         """return string description of this reminder
 
         Args:
@@ -147,7 +147,16 @@ class Reminder:
         Returns:
             [type]: [description]
         """
-        
+
+        # only get the author object
+        # if the author is actually required
+        author = None
+        if self.author != self.target:
+            try:
+                author = await client.fetch_user(self.author)
+            except discord.errors.NotFound:
+                pass
+
         if not is_dm:
             out_str = self.target_mention or f'<@!{self.target}>'
         else:
@@ -155,8 +164,10 @@ class Reminder:
 
         if self.target == self.author:
             out_str += f' {self.msg}'
+        elif author:
+            out_str += f' {self.msg} (by {author.display_name})'
         else:
-            out_str += f' {self.msg} (delivered by <@!{self.author}>)'
+            out_str += f' {self.msg} (by <@!{self.author}>)'
 
         return out_str
 
@@ -177,7 +188,7 @@ class Reminder:
             eb.set_author(name=author.display_name, icon_url=author.avatar_url)
         elif self.target != self.author:
             # fallback if author couldn't be determined
-            eb.add_field(name='delivered by', value=f'<@!{self.author}>', inline=False)
+            eb.add_field(name='by', value=f'<@!{self.author}>', inline=False)
 
         return eb
     
