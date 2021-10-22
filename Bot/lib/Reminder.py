@@ -530,12 +530,13 @@ class IntervalReminder(Reminder):
             if not tz_str:
                 tz_str = lib.Connector.Connector.get_timezone(instance_id)
 
-            local_now = utcnow.replace(tzinfo=tz.UTC)
-            local_now = local_now.astimezone(tz.gettz(tz_str))
-            local_now = local_now.replace(tzinfo=None)
+            #local_now = utcnow.replace(tzinfo=tz.UTC)
+            #local_now = local_now.astimezone(tz.gettz(tz_str))
+            #local_now = local_now.replace(tzinfo=None)
             
-            next_trigger = ruleset.after(local_now)
+            next_trigger = ruleset.after(utcnow)
             
+            # back to UTC, for DB queries
             next_trigger = next_trigger.replace(tzinfo=tz.gettz(tz_str))
             next_trigger = next_trigger.astimezone(tz.UTC)
             next_trigger = next_trigger.replace(tzinfo=None)

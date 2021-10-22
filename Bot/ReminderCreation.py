@@ -140,8 +140,11 @@ class ReminderCreation(commands.Cog):
             instance_id = author.id
             last_msg = None
 
+        
+
         tz_str = Connector.get_timezone(instance_id)
         auto_del_action = Connector.get_auto_delete(instance_id)
+        is_legacy = Connector.is_legacy_interval(instance_id)
 
         utcnow = datetime.utcnow()
         remind_at, info = lib.input_parser.parse(period, utcnow, tz_str)
@@ -186,7 +189,13 @@ class ReminderCreation(commands.Cog):
             return  
 
         elif isinstance(remind_at, str):
-            rrule, info = lib.input_parser.rrule_normalize(remind_at, utcnow, instance_id)
+
+            if is_legacy:
+                dtstart = utcnow
+            else:
+                dtstart = utcnow.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)).replace(tzinfo=None)
+
+            rrule, info = lib.input_parser.rrule_normalize(remind_at, dtstart=dtstart, instance_id=instance_id)
             if not rrule:
                 if info != '':
                     out_str = f'```Parsing hints:\n{info}```\n'
@@ -213,6 +222,7 @@ class ReminderCreation(commands.Cog):
         rem = Reminder()
 
 
+        info = ''
         if channel is None:
             # command was called in DM
             rem.g_id = None
@@ -228,7 +238,9 @@ class ReminderCreation(commands.Cog):
             # normal text channel
             rem.g_id = ctx.guild.id
             rem.ch_id = channel.id
-            info += f'\n• This reminder will be delivered to `{channel.name}`.\nMake sure this bot has permission to send messages into that channel'
+
+            if rem.ch_id != ctx.channel_id:
+                info += f'\n• This reminder will be delivered to `{channel.name}`.\nMake sure this bot has permission to send messages into that channel'
 
 
         rem.msg = message
@@ -262,7 +274,7 @@ class ReminderCreation(commands.Cog):
 
         if rrule:
             old_rem = rem
-            old_rem.at = utcnow
+            old_rem.at = dtstart
             rem = IntervalReminder(old_rem._to_json())
             rem.first_at = old_rem.at
             rem.rrules.append(str(rrule))

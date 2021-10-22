@@ -400,14 +400,15 @@ def rrule_normalize(rrule_str, dtstart, instance_id=None):
 
     Args:
         rule_str ([type]): [description]
-        dtstart ([type]): [description]
+        dtstart ([type]): start date of repeat, should be local date for non-legacy
+                                                and UTC for legacy
 
     Returns:
         (rule, str): normalized rule (to utc) None on failure, error string
     """
 
     try:
-        rule = rr.rrulestr(rrule_str)
+        rule = rr.rrulestr(rrule_str, dtstart=dtstart)
     except Exception as e:
         return None, str(e)
 
