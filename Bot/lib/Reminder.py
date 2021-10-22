@@ -27,6 +27,7 @@ class Reminder:
 
         self.target_mention = json.get('target_mention', None)
         self.target_name = json.get('target_name', None)
+        self.ch_name = json.get('ch_name', None)
 
         author = json.get('author', None)
         self.author = int(author) if author else None
@@ -74,6 +75,7 @@ class Reminder:
         d['target'] = str(self.target) if self.target else None
         d['target_mention'] = self.target_mention
         d['target_name'] = self.target_name
+        d['ch_name'] = self.ch_name
         d['author'] = str(self.author) if self.author else None
         d['last_msg_id'] = str(self.last_msg_id) if self.last_msg_id else None
         

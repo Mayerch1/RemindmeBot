@@ -36,6 +36,28 @@ def exists(thread_id):
     return thread_type in [10, 11, 12]  # news thread (10) and private threads (12) not tested
 
 
+def name(thread_id):
+    """get the name of a thread
+       returns None if thread is not accessible
+
+       calling method on channel_id will result on channel name returned
+
+    Args:
+        thread_id (int): id of thread
+    
+    Returns:
+        str: name of the thread
+    """
+
+    ret = requests.get(f'{base_url}/channels/{thread_id}', headers=headers)
+
+    if ret.status_code != 200:
+        return None
+
+    content = ret.json()
+    return content.get('name', None)
+
+
 def dearchive(thread_id):
     """try to dearchive a thread
        if the thread is not archived, returns true

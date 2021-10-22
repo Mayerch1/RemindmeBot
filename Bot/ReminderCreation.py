@@ -227,10 +227,12 @@ class ReminderCreation(commands.Cog):
             # command was called in DM
             rem.g_id = None
             rem.ch_id = None
+            rem.ch_name = 'DM'
         elif isinstance(channel, int):
             # likely a thread, or unresolved channel
             rem.g_id = ctx.guild.id
             rem.ch_id = channel
+            rem.ch_name = Thread.name(channel) # thread name
 
             if not Thread.exists(channel):
                 info += '\n• I might not have access to this thread/channel. Make sure to adjust my permissions'
@@ -238,6 +240,7 @@ class ReminderCreation(commands.Cog):
             # normal text channel
             rem.g_id = ctx.guild.id
             rem.ch_id = channel.id
+            rem.ch_name = channel.name[0:25] # only keep first 25 letters
 
             if rem.ch_id != ctx.channel_id:
                 info += f'\n• This reminder will be delivered to `{channel.name}`.\nMake sure this bot has permission to send messages into that channel'

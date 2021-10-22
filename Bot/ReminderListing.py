@@ -3,6 +3,7 @@ import math
 from enum import Enum
 import random
 from unidecode import unidecode
+from dateutil import tz
 
 import discord
 from discord.ext import commands, tasks
@@ -15,6 +16,7 @@ from lib.Connector import Connector
 from lib.Reminder import Reminder, IntervalReminder
 import lib.input_parser
 import util.interaction
+import util.formatting
 import lib.ReminderRepeater
 
 from lib.Analytics import Analytics, Types
@@ -51,7 +53,7 @@ class ReminderListing(commands.Cog):
  
 
     @staticmethod
-    def _create_reminder_list(reminders):
+    def _create_reminder_list(reminders, tz_str):
         """convert the inputed reminder list
            into a menu-string, with leading emojis
 
@@ -63,14 +65,31 @@ class ReminderListing(commands.Cog):
         """
         out_str = 'Sorted by date\n\n'
 
+        rows = []
         for i, r in enumerate(reminders):
-            out_str += lib.input_parser.num_to_emoji(i + 1)
-            out_str += f' {r.msg[0:50]}\n'
 
-        return out_str
+            MAX_FIELD_LEN = 33
+            MAX_MSG_LEN = 26
+
+            at_local = r.at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str))
+
+            # a total of 33 chars are possible before overflow
+            #
+            # the message will get up to 26 chars
+            # the channel len will get the rest, but at least 7
+            max_ch_len = MAX_FIELD_LEN-min(len(r.msg), MAX_MSG_LEN)
+            
+            rows.append((str(i+1)+'.',
+                        at_local.strftime('%d.%b %H:%M'),
+                        (r.ch_name or 'Unknown')[0:max_ch_len],
+                        r.msg[0:MAX_MSG_LEN]))
+
+        table = util.formatting.generate_code_table(['No.', 'Next', 'Channel', 'Message'], rows, description='Given in your server timezone')
+
+        return '\n'.join(table)
 
     @staticmethod
-    def get_reminder_list_eb(reminders, page):
+    def get_reminder_list_eb(reminders, page, tz_str='UTC'):
         """get the menu embed for all reminders
            in respect to the selected page
 
@@ -85,7 +104,7 @@ class ReminderListing(commands.Cog):
         page_cnt = math.ceil(len(reminders) / 9)
         selectables = ReminderListing.get_reminders_on_page(reminders, page)
 
-        out_str = ReminderListing._create_reminder_list(selectables)
+        out_str = ReminderListing._create_reminder_list(selectables, tz_str)
 
         embed = discord.Embed(title=f'List of reminders {page+1}/{page_cnt}',
                                 description=out_str)
@@ -220,7 +239,7 @@ class ReminderListing(commands.Cog):
                 await stm.menu_msg.delete()
             stm.menu_msg = await stm.dm.send(content='...')
 
-        eb = ReminderListing.get_reminder_list_eb(stm.reminders, stm.page)
+        eb = ReminderListing.get_reminder_list_eb(stm.reminders, stm.page, stm.tz_str)
         await stm.menu_msg.edit(content='', embed=eb, components=[*stm.navigation_rows])
 
 
