@@ -538,10 +538,11 @@ class IntervalReminder(Reminder):
             
             next_trigger = ruleset.after(utcnow)
             
-            # back to UTC, for DB queries
-            next_trigger = next_trigger.replace(tzinfo=tz.gettz(tz_str))
-            next_trigger = next_trigger.astimezone(tz.UTC)
-            next_trigger = next_trigger.replace(tzinfo=None)
+            if next_trigger:
+                # back to UTC, for DB queries
+                next_trigger = next_trigger.replace(tzinfo=tz.gettz(tz_str))
+                next_trigger = next_trigger.astimezone(tz.UTC)
+                next_trigger = next_trigger.replace(tzinfo=None)
             
         else:
             next_trigger = ruleset.after(utcnow)
