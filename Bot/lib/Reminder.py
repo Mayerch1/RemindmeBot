@@ -511,7 +511,9 @@ class IntervalReminder(Reminder):
 
         # the date of the initial remindme
         # is always included by default
-        ruleset.rdate(self.first_at)
+
+        #ruleset.rdate(self.first_at)
+        #TODO: hotfix, fix soon
 
         for rule in self.rrules:
             ruleset.rrule(rr.rrulestr(rule))
