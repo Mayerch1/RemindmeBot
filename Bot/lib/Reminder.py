@@ -512,8 +512,7 @@ class IntervalReminder(Reminder):
         # the date of the initial remindme
         # is always included by default
 
-        #ruleset.rdate(self.first_at)
-        #TODO: hotfix, fix soon
+        ruleset.rdate(self.first_at)
 
         for rule in self.rrules:
             ruleset.rrule(rr.rrulestr(rule))
@@ -534,11 +533,11 @@ class IntervalReminder(Reminder):
             if not tz_str:
                 tz_str = lib.Connector.Connector.get_timezone(instance_id)
 
-            #local_now = utcnow.replace(tzinfo=tz.UTC)
-            #local_now = local_now.astimezone(tz.gettz(tz_str))
-            #local_now = local_now.replace(tzinfo=None)
+            local_now = utcnow.replace(tzinfo=tz.UTC)
+            local_now = local_now.astimezone(tz.gettz(tz_str))
+            local_now = local_now.replace(tzinfo=None)
             
-            next_trigger = ruleset.after(utcnow)
+            next_trigger = ruleset.after(local_now)
             
             if next_trigger:
                 # back to UTC, for DB queries
