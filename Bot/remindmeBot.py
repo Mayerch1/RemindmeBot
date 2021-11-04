@@ -2,6 +2,8 @@ import os
 import re
 import discord
 import asyncio
+import uuid
+from datetime import datetime
 
 from discord.ext import commands, tasks
 from discord_slash import SlashContext, SlashCommand, ComponentContext
@@ -26,6 +28,16 @@ slash = SlashCommand(client, sync_commands=True)
 @client.event
 async def on_slash_command_error(ctx, error):
 
+    def get_err_embed(error_id):
+        eb = discord.Embed(title='An unknown error has ocurred', 
+                            description='The bot crashed while execution your command and we don\'t know why\n\n'\
+                                        'If you want to help improving this bot, '\
+                                        'please report this crash on the [support server](https://discord.gg/Xpyb9DX3D6)')
+        eb.color = 0xff0000  # red
+
+        eb.add_field(name='Error Code', value=str(error_id))
+        return eb
+
     if isinstance(error, discord.ext.commands.errors.MissingPermissions):
         await ctx.send('You do not have permission to execute this command')
     elif isinstance(error, discord.ext.commands.errors.NoPrivateMessage):
@@ -34,8 +46,20 @@ async def on_slash_command_error(ctx, error):
         print(''.join(error.args))
         Analytics.register_exception(error)
     else:
-        print(error)
+        error_id = uuid.uuid4()
+        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+        print(f'{now_str}: UUID: {error_id}\n{error}')
         Analytics.register_exception(error)
+        print('\n')
+
+        if not ctx.responded:
+            try:
+                await ctx.send(embed=get_err_embed(error_id), hidden=True if not ctx.deferred else ctx._deferred_hidden)
+            except:
+                # well...
+                pass
+
         raise error
 
 
