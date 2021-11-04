@@ -134,31 +134,31 @@ def _parse_relative(args, utcnow):
         intvl = timedelta(hours=0) # default in case of no-match
 
         if arg[0] == None:
-            info = info + f'• Ignoring {arg}, as required numerical part is missing\n'
+            return (utcnow, f'• Argument {arg} is starting with a number\n', None)
+
+        if arg[1].startswith('y'):
+            intvl = relativedelta(years=arg[0])
+
+        elif arg[1].startswith('mo'):
+            intvl = relativedelta(months=arg[0])
+
+        elif arg[1].startswith('w'):
+            intvl = relativedelta(weeks=arg[0])
+
+        elif arg[1] == 'd' or arg[1].startswith('da'):
+            # condition must not detect the month 'december'
+            intvl = timedelta(days=arg[0]) 
+
+        elif arg[1].startswith('h'):
+            intvl = timedelta(hours=arg[0])
+
+        elif arg[1].startswith('mi'):
+            intvl = timedelta(minutes=arg[0])
+        
+        elif arg[1] == 'm':
+            intvl = timedelta(minutes=arg[0])
         else:
-            if arg[1].startswith('y'):
-                intvl = relativedelta(years=arg[0])
-
-            elif arg[1].startswith('mo'):
-                intvl = relativedelta(months=arg[0])
-
-            elif arg[1].startswith('w'):
-                intvl = relativedelta(weeks=arg[0])
-
-            elif arg[1] == 'd' or arg[1].startswith('da'):
-                # condition must not detect the month 'december'
-                intvl = timedelta(days=arg[0]) 
-
-            elif arg[1].startswith('h'):
-                intvl = timedelta(hours=arg[0])
-
-            elif arg[1].startswith('mi'):
-                intvl = timedelta(minutes=arg[0])
-            
-            elif arg[1] == 'm':
-                intvl = timedelta(minutes=arg[0])
-            else:
-                info = info + f'• Ignoring {arg}, as this is not a known interval\n'
+            return (utcnow, f'• Unknown parameter {arg}', None)
             
         total_intvl += intvl
 

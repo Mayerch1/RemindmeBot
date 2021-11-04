@@ -222,7 +222,8 @@ class ReminderCreation(commands.Cog):
         rem = Reminder()
 
 
-        info = ''
+
+        info = '' if not info else info
         if channel is None:
             # command was called in DM
             rem.g_id = None
