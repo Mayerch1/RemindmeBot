@@ -344,10 +344,16 @@ class ReminderCreation(commands.Cog):
         # make sure the user owns the reminder
         author_id = Connector.get_author_of_id(rem_id)
         if not author_id:
-            await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was deleted', hidden=True)
+            try:
+                await ctx.send('Could not find a matching reminder for this component.\nThe reminder is already elapsed or was deleted', hidden=True)
+            except discord.NotFound:
+                pass
             return
         elif author_id != ctx.author.id:
-            await ctx.send('You\'re not the author of this reminder', hidden=True)
+            try:
+                await ctx.send('You\'re not the author of this reminder', hidden=True)
+            except discord.NotFound:
+                pass
             return
 
         # either edit the interval, or delete the reminder

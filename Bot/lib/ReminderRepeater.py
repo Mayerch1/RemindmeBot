@@ -765,6 +765,10 @@ async def spawn_interval_setup(client, ctx: ComponentContext, reminder_id: Objec
         await ctx.send(embed=embed, hidden=True)
         return
     
-    await ctx.send('Have a look at your DMs to edit this reminder', hidden=True)
+    try:
+        await ctx.send('Have a look at your DMs to edit this reminder', hidden=True)
+    except discord.NotFound:
+        pass  # ignore timeout here, setup is valid anyway
+
     await test_msg.delete()
     await _interval_stm(client, dm, reminder, tz_str=tz_str, instance_id=instance_id)
