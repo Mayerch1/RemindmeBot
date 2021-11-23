@@ -25,7 +25,7 @@ def exists(thread_id):
     Returns:
         bool: True if thread exists and is visible to bot
     """
-    ret = requests.get(f'{base_url}/channels/{thread_id}', headers=headers)
+    ret = requests.get(f'{base_url}/channels/{thread_id}', headers=headers, timeout=5)
 
     if ret.status_code != 200:
         return False
@@ -49,7 +49,7 @@ def name(thread_id):
         str: name of the thread
     """
 
-    ret = requests.get(f'{base_url}/channels/{thread_id}', headers=headers)
+    ret = requests.get(f'{base_url}/channels/{thread_id}', headers=headers, timeout=5)
 
     if ret.status_code != 200:
         return None
@@ -68,7 +68,7 @@ def dearchive(thread_id):
         bool: True on success, aswell on no-action due to no-archive
     """
  
-    status = requests.get(f'{base_url}/channels/{thread_id}', headers=headers)
+    status = requests.get(f'{base_url}/channels/{thread_id}', headers=headers, timeout=5)
     if status.status_code != 200:
         return False
 
@@ -84,7 +84,7 @@ def dearchive(thread_id):
         'archived': False
     }
 
-    ret = requests.patch(f'{base_url}/channels/{thread_id}', headers=headers, json=payload)
+    ret = requests.patch(f'{base_url}/channels/{thread_id}', headers=headers, json=payload, timeout=5)
     return ret.status_code == 200
 
 
@@ -99,6 +99,6 @@ def send(thread_id, text=None, embed_json=None):
         payload['embeds'] = []
         payload['embeds'].append(embed_json)
     
-    ret = requests.post(f'{base_url}/channels/{thread_id}/messages', headers=headers, json=payload)
+    ret = requests.post(f'{base_url}/channels/{thread_id}/messages', headers=headers, json=payload, timeout=5)
     return ret.status_code == 200
 

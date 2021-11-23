@@ -116,7 +116,7 @@ class ServerCountPost(commands.Cog):
 
         payload = json.dumps(payload)
 
-        r = requests.post(url, data=payload, headers=headers)
+        r = requests.post(url, data=payload, headers=headers, timeout=5)
 
         if r.status_code >= 300:
             print(f'{service.name} Server Count Post failed with {r.status_code}')

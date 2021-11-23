@@ -142,6 +142,8 @@ async def update_community_count():
     comm_cnt = Connector.get_community_count()
     Analytics.community_count(comm_cnt)
 
+    Analytics.guild_cnt(len(client.guilds))
+
 
 @update_community_count.before_loop
 async def update_community_count_before():
@@ -166,7 +168,7 @@ def main():
     client.load_extension(f'AdminModule')
     client.load_extension(f'SettingsModule')
 
-    client.load_extension(f'ServerCountPost')    
+    #client.load_extension(f'ServerCountPost')    
 
     client.run(token)
 
