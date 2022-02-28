@@ -6,6 +6,11 @@ import pymongo
 from pymongo import MongoClient
 
 from lib import Reminder, CommunitySettings
+import logging
+
+
+
+log = logging.getLogger('Remindme.Connector')
 
 
 
@@ -229,7 +234,7 @@ class Connector:
             return list(map(int, mod_json.get('moderators', [])))
     
     @staticmethod
-    def is_moderator(user_roles: []):
+    def is_moderator(user_roles: list):
         """check if any of the user roles are within the noted moderator lists
            query is implicitely protected from cross-guild access
 
@@ -307,7 +312,7 @@ class Connector:
     def update_interval_at(interval: Reminder.IntervalReminder):
         
         if not interval.at:
-            print(f'WARN: orphaned interval reminder {interval._id}.')
+            log.warning(f'Orphaned interval reminder {interval._id}.')
             at_ts = None
         else:
             at_ts = interval._to_json()['at']
@@ -329,7 +334,7 @@ class Connector:
         rems = list(map(Reminder.Reminder, rems))
 
         # this method gets the entries
-        print('WARN: requested reminder without deleting from db')
+        log.warning('Requested reminder without deleting from db')
         return rems
 
 

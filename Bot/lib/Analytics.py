@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from enum import Enum
+import logging
 
 import prometheus_client
 from prometheus_client import Counter, Histogram, Gauge
@@ -11,6 +12,9 @@ from flask import Flask, request, Response
 from waitress import serve
 
 from lib.Reminder import Reminder, IntervalReminder
+
+
+log = logging.getLogger('Remindme.Analytics')
 
 
 class Types:
@@ -197,7 +201,7 @@ class Analytics:
         port = int(os.getenv('PROMETHEUS_PORT'))
 
         _thread.start_new_thread(Analytics._waitress_thread, ('flask server', Analytics.app, host, port))
-        print(f'Analytics Webserver started on {host}:{port}')
+        log.info(f'Webserver started on {host}:{port}')
 
 
     @app.route('/metrics')
@@ -298,7 +302,7 @@ class Analytics:
     @staticmethod
     def register_exception(exception, shard:int = 0):
         ex_type = type(exception).__name__
-        print(f'exposing exception counter \'{ex_type}\'')
+        log.debug(f'exposing exception counter \'{ex_type}\'')
         Analytics.UNEXPECTED_EXCEPTION.labels(str(shard), ex_type).inc()
         
     @staticmethod
