@@ -173,7 +173,7 @@ class TimezoneModule(discord.Cog):
 
 
         tz_eb = self._get_tz_info_eb(tz_obj, value)
-        view = util.interaction.ConfirmDenyView()
+        view = util.interaction.ConfirmDenyView(dangerous_action=False)
 
         if not responded:
             view.message = await ctx.respond(embed=tz_eb, view=view)

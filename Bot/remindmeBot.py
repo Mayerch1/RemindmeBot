@@ -23,6 +23,7 @@ handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(me
 logging.getLogger('discord').setLevel(logging.WARNING) # reduce warning for discord lib
 logging.getLogger('Remindme.Analytics').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Timezones').setLevel(logging.DEBUG)
+logging.getLogger('Remindme.Listing').setLevel(logging.DEBUG)
 
 log = logging.getLogger('Remindme')
 log.setLevel(logging.DEBUG) # own code
@@ -309,3 +310,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

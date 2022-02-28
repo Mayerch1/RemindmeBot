@@ -23,6 +23,8 @@ class Connector:
             self.is_private = is_private
             self.guild_id = guild_id
             self.user_id = user_id
+            self.instance_id = self.guild_id or self.user_id
+
     class ReminderType(Enum):
         TEXT_ONLY = 1
         HYBRID = 2
