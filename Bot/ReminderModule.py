@@ -9,6 +9,7 @@ from bson import ObjectId
 import copy
 from pytz import common_timezones as pytz_common_timezones, country_timezones
 
+
 import discord
 from discord.ext import commands, tasks
 from discord_slash import cog_ext, SlashContext, ComponentContext
@@ -114,6 +115,7 @@ class ReminderModule(commands.Cog):
         
         # respect user preferences
         rem_type = Connector.get_reminder_type(rem.target)
+        tz_str = Connector.get_timezone(rem.target)
         
         if rem_type == Connector.ReminderType.TEXT_ONLY:
             # text is identical to missing permission fallback
@@ -121,10 +123,10 @@ class ReminderModule(commands.Cog):
             eb = None
             text = await rem.get_string(client=self.client, is_dm=True)
         elif rem_type == Connector.ReminderType.EMBED_ONLY:
-            eb = await rem.get_embed(self.client, is_dm=True)
+            eb = await rem.get_embed(self.client, is_dm=True, tz_str=tz_str)
             text = ''
         else:
-            eb = await rem.get_embed(self.client, is_dm=True)
+            eb = await rem.get_embed(self.client, is_dm=True, tz_str=tz_str)
             text = rem.get_embed_text(is_dm=True)
 
         
@@ -173,6 +175,7 @@ class ReminderModule(commands.Cog):
             return
 
         guild = self.client.get_guild(rem.g_id)
+        tz_str = Connector.get_timezone(rem.g_id)
         channel = guild.get_channel(rem.ch_id) if guild else None
         is_thread = Thread.exists(rem.ch_id) if guild else False
 
@@ -192,12 +195,13 @@ class ReminderModule(commands.Cog):
             eb = None
             text = await rem.get_string(client=self.client)
         elif rem_type == Connector.ReminderType.EMBED_ONLY:
-            eb = await rem.get_embed(self.client)
+            eb = await rem.get_embed(self.client, tz_str=tz_str)
             text = rem.target_mention or f'<@{rem.target}>'
         else:
-            eb = await rem.get_embed(self.client)
+            eb = await rem.get_embed(self.client, tz_str=tz_str)
             text = rem.get_embed_text()
 
+        # override reminder text
 
         if channel:
             success = await send_message(guild, channel, text, eb)

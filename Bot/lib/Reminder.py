@@ -3,6 +3,8 @@ from datetime import datetime
 from dateutil import tz
 import dateutil.rrule as rr
 
+from pytz import common_timezones as pytz_common_timezones, country_timezones
+
 import lib.input_parser
 import lib.Connector  # KEEP this syntax, circular import
 
@@ -289,6 +291,10 @@ class Reminder:
             # private dm
             url = f'https://discord.com/channels/@me/9/{self.last_msg_id}'
             eb.add_field(name='\u200B', value=f'[jump to the chat]({url})', inline=False)
+
+        if tz_str in country_timezones['RU']:
+            eb.set_image(url='https://restream.io/blog/content/images/2022/02/restream-stand-with-ukraine-fb.png')
+            print('showing RU image')
 
         return eb
 
