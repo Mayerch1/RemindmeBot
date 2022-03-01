@@ -34,11 +34,7 @@ class STM():
         self.state:STMState = STMState.INIT
         self.page:int=0
         self.reminders:list[Reminder] = []
-
-        self.menu_msg = None
-        self.tz_str = None
-        self.navigation_rows = []
-        self.roles = []
+        self.tz_str:str = None
 
 
 
@@ -212,7 +208,7 @@ class ReminderListing(commands.Cog):
             MAX_FIELD_LEN = 33
             MAX_MSG_LEN = 26
 
-            at_local = r.at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str))
+            at_local = r.at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)) if r.at else None
 
             # a total of 33 chars are possible before overflow
             #
@@ -221,7 +217,7 @@ class ReminderListing(commands.Cog):
             max_ch_len = MAX_FIELD_LEN-min(len(r.msg), MAX_MSG_LEN)
             
             rows.append((str(i+1)+'.',
-                        at_local.strftime('%d.%b %H:%M'),
+                        at_local.strftime('%d.%b %H:%M') if at_local else '-',
                         (r.ch_name or 'Unknown')[0:max_ch_len],
                         r.msg[0:MAX_MSG_LEN]))
 
@@ -278,111 +274,9 @@ class ReminderListing(commands.Cog):
         return reminders[from_idx:to_idx]
 
  
-
     # =====================
     # stm core
     # =====================
-
-
-
-
-    async def process_channel_selector(self, ctx, stm, reminder):
-        
-        guild = self.client.get_guild(reminder.g_id)
-        if not guild:
-            await util.interaction.show_error_ack(self.client, ctx, 
-                                      'Failed to edit Reminder', 
-                                      'Couldn\'t resolve the server of the selected reminder', 
-                                      edit_origin=True)
-            return
-
-        txt_channels = list(filter(lambda ch: isinstance(ch, discord.TextChannel), guild.channels))
-        txt_channels = txt_channels[0:25]  # discord limitation of selectables
-        
-        if not txt_channels:
-            await util.interaction.show_error_ack(self.client, ctx, 
-                                      'Failed to edit Reminder', 
-                                      'Couldn\'t find any text channels. This could be caused by missing permissions on the server.', 
-                                      edit_origin=True)
-            return
-
-        channel_options = [manage_components.create_select_option(
-                                    label= unidecode(r.name)[:25] or '*unknown channel*', 
-                                    value= str(r.id))
-                                    for i, r in enumerate(txt_channels)]
-        reminder_selection = (
-            manage_components.create_select(
-                custom_id='reminder_edit_channel_selection',
-                placeholder='Select a new channel',
-                min_values=1,
-                max_values=1,
-                options=channel_options
-            )
-        )
-        action_rows = [manage_components.create_actionrow(reminder_selection)]
-
-        buttons = [
-            manage_components.create_button(
-                style=ButtonStyle.red,
-                label='Cancel',
-                custom_id='reminderlist_edit_cancel'
-            )
-        ]
-        action_rows.append(manage_components.create_actionrow(*buttons))
-        
-        # already deferred
-        await ctx.edit_origin(components=action_rows)
-
-
-        accepted_ack = False
-        while not accepted_ack:
-            try:
-                edit_ctx = await manage_components.wait_for_component(self.client, components=action_rows, timeout=5*60)
-            except asyncio.exceptions.TimeoutError:
-                # abort channel edit
-                return
-            
-            if edit_ctx.component_id == 'reminderlist_edit_cancel':
-                try:
-                    await edit_ctx.defer(edit_origin=True)
-                except discord.NotFound:
-                    accepted_ack = False
-                else:
-                    return
-            else:
-                # following flow will handle 
-                # NotFound errors
-                accepted_ack = True
-
-        # bot could resolve channel before (when offering drop-down)
-        # therefore channel should be available again
-        sel_channel_id = int(edit_ctx.selected_options[0])
-        sel_channel = self.client.get_channel(sel_channel_id)
-        
-        if not sel_channel:
-            await util.interaction.show_error_ack(self.client, edit_ctx, 
-                                      'Failed to edit Reminder', 
-                                      'Couldn\'t resolve the selected channel. It might have been deleted since the previous message was send.', 
-                                      edit_origin=True)
-            return
-        
-        success = Connector.set_reminder_channel(reminder._id, sel_channel_id)
-        if not success:
-            await util.interaction.show_error_ack(self.client, edit_ctx, 
-                                      'Failed to edit Reminder', 
-                                      'The database access failed, please contact the developers (`/help`) to report this bug.', 
-                                      edit_origin=True)
-            return
-
-        
-        
-        await util.interaction.show_success_ack(self.client, edit_ctx,
-                                    'New Notification Channel',
-                                    f'This reminder will now be delivered to `{sel_channel.name}`.\nMake sure this bot has permission to send messages into that channel, otherwise the reminder might not be delivered',
-                                    edit_origin=True)
-
-
-
 
     async def reminder_stm(self, stm: STM):
         # first fetch of reminders
@@ -395,58 +289,20 @@ class ReminderListing(commands.Cog):
 
 
     # =====================
-    # intro methods
-    # =====================
-
-    async def show_private_reminders(self, ctx):
-        """create a dm with the user and ack the ctx
-
-        Args:
-            ctx ([type]): [description]
-            intro_message ([type]): [description]
-
-        Returns:
-            DM: messeagable, None if creation failed 
-        """
-
-        # only used for debug print
-        session_id = random.randint(1e3, 1e12)
-        log.debug('starting private dm session ' + str(session_id))
-
-        scope = Connector.Scope(is_private=True, user_id=ctx.author.id)
-        stm = STM(ctx=ctx, scope=scope)
-        stm.tz_str = Connector.get_timezone(ctx.author.id)
-
-        await self.reminder_stm(stm)
-        print('ending dm session ' + str(session_id))
-
-
-    async def show_server_reminders(self, ctx):
-
-        # only used for debug print
-        session_id = random.randint(1e3, 1e12)
-        log.debug('starting dm session ' + str(session_id))
-
-        scope = Connector.Scope(is_private=False, guild_id=ctx.guild.id, user_id=ctx.author.id)
-        stm = STM(ctx=ctx, scope=scope)
-        stm.tz_str = Connector.get_timezone(ctx.guild.id)
-        stm.roles = ctx.author.roles
-
-        await self.reminder_stm(stm)
-        print('ending dm session ' + str(session_id))
-
-
-    # =====================
     # commands functions
     # =====================
 
-    @commands.slash_command(name='reminder_list', description='List all reminders created by you', guild_ids=[140150091607441408])
+    @commands.slash_command(name='reminder_list', description='List all reminders created by you')
     async def reminder_list(self, ctx):
 
         if ctx.guild:
-            await self.show_server_reminders(ctx)
+            scope = Connector.Scope(is_private=False, guild_id=ctx.guild.id, user_id=ctx.author.id)
         else:
-            await self.show_private_reminders(ctx)
+            scope = Connector.Scope(is_private=True, user_id=ctx.author.id)
+
+        stm = STM(ctx=ctx, scope=scope)
+        stm.tz_str = Connector.get_timezone(scope.instance_id)
+        await self.reminder_stm(stm)
 
 def setup(client):
     client.add_cog(ReminderListing(client))

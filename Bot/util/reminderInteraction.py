@@ -2,14 +2,144 @@ import discord
 from enum import Enum
 from datetime import datetime, timedelta
 from dateutil import tz
+from unidecode import unidecode
+import logging
 
 import util.interaction
+from util.consts import Consts
+import util.verboseErrors
 import lib.input_parser
 import lib.ReminderRepeater
 from lib.Reminder import Reminder, IntervalReminder
 from lib.Connector import Connector
 from lib.Analytics import Analytics, Types
 
+log = logging.getLogger('Remindme.Listing')
+
+class ReminderChannelEdit(util.interaction.CustomView):
+    def __init__(self, reminder: Reminder, stm, message, *args, **kwargs):
+        super().__init__(message, *args, **kwargs)
+        self.reminder = reminder
+        self.stm = stm
+
+        self.select_btn.disabled=True
+        self.drop_down:discord.ui.Select = None
+
+        self.update_dropdown()
+
+
+    def get_embed(self) -> discord.Embed:
+        return self.reminder.get_info_embed(self.stm.tz_str)
+
+
+    def update_dropdown(self):
+        if not self.stm.ctx.guild:
+            return
+
+        dd_search = [x for x in self.children if isinstance(x, discord.ui.Select)]
+
+        # get channel list of server here
+        channel_list = list(filter(lambda ch: isinstance(ch, discord.TextChannel), self.stm.ctx.guild.channels))[0:25]
+        rule_options = [discord.SelectOption(
+                            label=unidecode(c.name)[:25] or '*unknown channel name*',
+                            value=str(c.id),
+                            default=(c.id==self.reminder.ch_id)) for c in channel_list]
+
+        if dd_search and rule_options:
+            dd = dd_search[0]
+            dd.options = []
+            for opt in rule_options:
+                dd.append_option(opt)
+        elif dd_search and not rule_options:
+            # delete action row
+            self.children.remove(dd_search[0])
+        elif rule_options:
+            self.drop_down = discord.ui.Select(
+                placeholder='Select a new channel',
+                min_values=1,
+                max_values=1,
+                options=rule_options,
+                row=1
+            )
+            #self.drop_down.callback = self.drop_callback
+            self.select_btn.disabled = False # if items in list, enable select btn
+            self.add_item(self.drop_down)
+        # else pass
+
+
+    @discord.ui.button(label='Select', style=discord.ButtonStyle.green, row=2)
+    async def select_btn(self, button:  discord.ui.Button, interaction: discord.Interaction):
+        embed=None
+        view=None
+
+        if self.drop_down.values:
+            new_ch_id = int(self.drop_down.values[0])
+            new_ch = await self.stm.ctx.bot.fetch_channel(new_ch_id)
+
+            
+
+            err_eb = None
+            if not new_ch:
+                err_eb = discord.Embed(title='Failed to edit Reminder',
+                                description='Couldn\'t resolve the selected channel')
+            else:
+                r_type = Connector.get_reminder_type(self.stm.scope.instance_id)
+                if r_type == Connector.ReminderType.TEXT_ONLY:
+                    req_perms = discord.Permissions(send_messages=True)
+                    has_perms = util.verboseErrors.VerboseErrors.has_permission(req_perms, new_ch)
+                else:
+                    has_perms = util.verboseErrors.VerboseErrors.can_embed(new_ch)
+
+                if not has_perms:
+                    # no permissions
+                    err_eb = discord.Embed(title='Failed to set new Channel',
+                                            description='Missing permissions in the new channel',
+                                            color=Consts.col_err)
+            
+            if err_eb:
+                view = util.interaction.AckView(dangerous_action=True)
+                await interaction.response.edit_message(embed=err_eb, view=view)
+                await view.wait()
+                
+            else:
+                view = util.interaction.ConfirmDenyView()
+                eb = discord.Embed(title='New Notification Channel',
+                                    description=f'Do you want to deliver this reminder to `{new_ch.name}`')
+
+                await interaction.response.edit_message(embed=eb, view=view)
+                await view.wait()
+
+                if view.value:
+                    # store the channel change
+                    Connector.set_reminder_channel(self.reminder._id, new_ch_id)
+                    # update local reminder obj
+                    self.reminder.ch_id = new_ch_id
+
+        else:
+            log.error('channel dropdown had an empty selection')
+            view = util.interaction.AckView(dangerous_action=True)
+            embed = discord.Embed(title='Reminder Channel not changed',
+                                    description='You need to set the dropdown to a *different* existing channel',
+                                    color=Consts.col_warn)
+            await interaction.response.edit_message(embed=embed, view=view)
+            await view.wait()
+  
+
+        # go back to normal view
+        self.disable_all()
+        await self.message.edit_original_message(view=self) # in case of timeout
+        self.stop()
+
+            
+
+
+    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.danger, row=2)
+    async def cnacel_btn(self, button:  discord.ui.Button, interaction: discord.Interaction):
+        self.disable_all()
+        await interaction.response.edit_message(view=self) # in case menu timeous out
+        self.stop() # this will give back controll to the list menu
+
+    
 
 class RuleMode(Enum):
     RRULE_ADD=0
@@ -44,18 +174,6 @@ class RuleModal(discord.ui.Modal):
             await self.custom_callback(interaction, self.value, self.mode)
         else:
             await interaction.response.send_message('OK', ephemeral=True)
-
-
-class ReminderIntervalModifyView(util.interaction.CustomView):
-    def __init__(self, reminder: Reminder, stm, message, *args, **kwargs):
-        super().__init__(message, *args, **kwargs)
-
-        self.reminder = reminder
-        self.stm = stm
-
-    def get_embed(self) -> discord.Embed:
-        return discord.Embed()
-
 
 
 class ReminderIntervalAddView(util.interaction.CustomView):
@@ -253,6 +371,151 @@ class ReminderIntervalAddView(util.interaction.CustomView):
 
 
 
+class ReminderIntervalModifyView(util.interaction.CustomView):
+    def __init__(self, reminder: IntervalReminder, stm, message, *args, **kwargs):
+        super().__init__(message, *args, **kwargs)
+
+        self.reminder: IntervalReminder = reminder
+        self.stm = stm
+        self.rule_index:int = None
+
+        # this button possibly can't be active w/o selection
+        self.del_rule.disabled=True
+
+        # populate the dropdown selection
+        self.update_dropdown()
+
+
+
+    def get_embed(self, rule_id:int=None) -> discord.Embed:
+
+        rules = self.reminder.get_rule_dicts()
+    
+        if self.rule_index is None:
+            descr = 'You can show more detailed information for existing rules.'\
+                            'You can aswell delete selected rules/dates'
+        else:
+            descr = rules[self.rule_index]['descr']
+
+        return discord.Embed(
+            title='Show/Delete existing rules',
+            description=descr
+        )
+
+
+    def update_dropdown(self):
+        rules = self.reminder.get_rule_dicts()
+
+        dd_search = [x for x in self.children if isinstance(x, discord.ui.Select)]
+
+        rule_options = [discord.SelectOption(
+                        label=r['label'], 
+                        description=r['descr'], 
+                        value=str(i),
+                        default=(i==self.rule_index)) for i, r in enumerate(rules)]
+
+        if dd_search and rule_options:
+            dd = dd_search[0]
+            dd.options = []
+            for opt in rule_options:
+                dd.append_option(opt)
+        elif dd_search and not rule_options:
+            # delete action row
+            self.children.remove(dd_search[0])
+        elif rule_options:
+            self.drop_down = discord.ui.Select(
+                placeholder='Select a rule/date for more info',
+                min_values=1,
+                max_values=1,
+                options=rule_options,
+                row=1
+            )
+            self.drop_down.callback = self.drop_callback
+            self.add_item(self.drop_down)
+        
+        # else pass
+
+
+    @discord.ui.button(label='Add New Rule', style=discord.ButtonStyle.primary, row=2)
+    async def add_rule(self, button:  discord.ui.Button, interaction: discord.Interaction):
+        view = ReminderIntervalAddView(self.reminder, self.stm, self.message)
+        eb = view.get_embed()
+
+        await interaction.response.edit_message(embed=eb, view=view)
+        await view.wait()
+
+        self.message = view.message # in case of migration
+
+        # go back to current menu
+        self.rule_index=None
+        self.del_rule.disabled=True
+        eb = self.get_embed()
+        self.update_dropdown()
+        await self.message.edit_original_message(embed=eb, view=self)
+
+
+
+    @discord.ui.button(label='Delete Selected', style=discord.ButtonStyle.danger, row=2)
+    async def del_rule(self, button:  discord.ui.Button, interaction: discord.Interaction):
+
+        rules = self.reminder.get_rule_dicts()
+        rule_descr = rules[self.rule_index]['descr']
+        
+        view = util.interaction.ConfirmDenyView(dangerous_action=True)
+        embed = discord.Embed(
+            title='Danger',
+            description=f'Are you sure to delete the rule `{rule_descr}`?',
+            color=0xff0000
+        )
+
+        await interaction.response.edit_message(embed=embed, view=view)
+        await view.wait()
+
+        if view.value:
+            # go aheaad with deletion
+            self.reminder = lib.ReminderRepeater.rm_rules(self.reminder, rule_idx=self.rule_index)
+
+            if not self.reminder.at:
+                eb = discord.Embed(title='Orphan warning',
+                    color=0xaa3333,
+                    description='The reminder has no further events pending. It will be deleted soon, if no new rule is added')
+                view = util.interaction.AckView(dangerous_action=True)
+
+                await self.message.edit_original_message(embed=eb, view=view)
+                await view.wait()
+
+        # return back to normal view in any case
+        self.rule_index=None
+        self.del_rule.disabled=True
+        eb = self.get_embed()
+        self.update_dropdown()
+        await self.message.edit_original_message(embed=eb, view=self)
+    
+
+
+    @discord.ui.button(label='Return', style=discord.ButtonStyle.secondary, row=3)
+    async def return_btn(self, button:  discord.ui.Button, interaction: discord.Interaction):
+
+        self.disable_all()
+        await interaction.response.edit_message(view=self) # in case menu timeous out
+        self.stop() # this will give back controll to the list menu
+
+
+
+    async def drop_callback(self, interaction: discord.Interaction):
+        sel = interaction.data['values'][0] # min_select 1
+        self.rule_index = int(sel)
+
+        # update the embed with the rule details
+        self.del_rule.disabled=False
+        eb = self.get_embed()
+        self.update_dropdown()
+        await interaction.response.edit_message(embed=eb, view=self)
+
+
+
+
+
 
 class ReminderEditView(util.interaction.CustomView):
     def __init__(self, reminder: Reminder, stm, message=None, *args, **kwargs):
@@ -264,13 +527,28 @@ class ReminderEditView(util.interaction.CustomView):
         if isinstance(reminder, IntervalReminder):
             self.set_interval.label = 'Edit Interval' # override decorator
 
+        if self.stm.scope.is_private:
+            # private reminders cannot change the channel
+            self.edit_channel.disabled=True
+
     def get_embed(self) -> discord.Embed:
         return self.reminder.get_info_embed(self.stm.tz_str)
 
 
     @discord.ui.button(label='Edit Channel', style=discord.ButtonStyle.primary)
     async def edit_channel(self, button:  discord.ui.Button, interaction: discord.Interaction):
-        pass
+        
+        view = ReminderChannelEdit(self.reminder, self.stm, message=self.message)
+        eb = view.get_embed()
+
+        await interaction.response.edit_message(embed=eb, view=view)
+        await view.wait()
+        self.message = view.message # in case of migration
+
+        # go back to normal view
+        eb = self.get_embed()
+        await self.message.edit_original_message(embed=eb, view=self)
+
 
 
     @discord.ui.button(label='Set Interval', style=discord.ButtonStyle.primary)
@@ -280,9 +558,7 @@ class ReminderEditView(util.interaction.CustomView):
             view = ReminderIntervalModifyView(self.reminder, self.stm, message=self.message)
         else:
             view = ReminderIntervalAddView(self.reminder, self.stm, message=self.message)
-
-        # TODO: debug
-        view = ReminderIntervalAddView(self.reminder, self.stm, message=self.message)
+    
 
         eb = view.get_embed()
         await interaction.response.edit_message(embed=eb, view=view)
@@ -320,6 +596,4 @@ class ReminderEditView(util.interaction.CustomView):
             Connector.delete_interval(self.reminder._id)
             Analytics.interval_deleted(Types.DeleteAction.LISTING)
 
-        self.disable_all()
-        await interaction.edit_original_message(view=self) # in case menu timeous out
-        self.stop()
+        await interaction.edit_original_message(embed=self.get_embed(), view=self)

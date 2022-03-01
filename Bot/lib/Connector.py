@@ -86,7 +86,7 @@ class Connector:
         
         
     @staticmethod
-    def  get_reminder_type(instance_id: int):
+    def  get_reminder_type(instance_id: int) -> ReminderType:
         
         # keep g_id as key for backwards compatibility
         rem_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'reminder_type': 1})

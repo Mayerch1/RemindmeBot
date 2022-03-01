@@ -27,6 +27,7 @@ class CustomView(discord.ui.View):
                 child.style = discord.ButtonStyle.secondary
             child.disabled = True
 
+
     async def on_timeout(self):
         self.disable_all()
 
@@ -58,7 +59,7 @@ class CustomView(discord.ui.View):
 class AckView(CustomView):
     def __init__(self, dangerous_action=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        self.danger = dangerous_action
         if dangerous_action:
             self.ack.style = discord.ButtonStyle.danger
 
@@ -68,7 +69,7 @@ class AckView(CustomView):
         # but remove the other button this time
         self.disable_all()
         button.label = 'Confirmed'
-        button.style = discord.ButtonStyle.green
+        button.style = discord.ButtonStyle.red if self.danger else discord.ButtonStyle.green
         self.children = [button]
 
         await interaction.response.edit_message(view=self)
@@ -79,7 +80,7 @@ class AckView(CustomView):
 
 
 class ConfirmDenyView(AckView):
-    def __init__(self, dangerous_action, *args, **kwargs):
+    def __init__(self, dangerous_action=False, *args, **kwargs):
         super().__init__(dangerous_action, *args , **kwargs)
 
     # This one is similar to the confirmation button except sets the inner value to `False`

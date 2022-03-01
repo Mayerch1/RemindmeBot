@@ -445,7 +445,7 @@ class IntervalReminder(Reminder):
                 len(self.rdates) + len(self.exdates)
 
 
-    def get_rule_dicts(self):
+    def get_rule_dicts(self) -> list:
         """get a list of dictionaries
            each describing a set rule (or exclusion)
 

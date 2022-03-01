@@ -1,31 +1,11 @@
-from bson import ObjectId
-import asyncio
-
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import tz
 import dateutil.rrule as rr
-
-import discord
-from discord.ext import commands, tasks
 
 from lib.Connector import Connector
 from lib.Analytics import Analytics
 from lib.Reminder import Reminder, IntervalReminder
-import lib.input_parser
-import util.interaction
 
-from lib.CommunitySettings import CommunitySettings, CommunityAction
-
-
-class _STM():
-    def __init__(self):
-        self.client = None
-        self.timezone = None
-        self.dm = None
-        self.instance_id = None
-        self.reminder = None
-        self.q_msg = None
-        self.navigation_rows = []
 
 #====================
 # Transformation Ops
@@ -118,7 +98,7 @@ def add_rules(reminder, rrule=None, exrule=None, rdate=None, exdate=None) -> Int
     return reminder
 
 
-def _rm_rules(reminder, rule_idx=None):
+def rm_rules(reminder: IntervalReminder, rule_idx=None):
 
     utcnow = datetime.utcnow()
 
@@ -188,131 +168,3 @@ def _rule_normalize(rule_str, dtstart):
     return rule, None
 
 
-#====================
-# I/O Helper Methods
-#====================
-
-
-#======================
-# Edit Rules and Dates
-#======================
-
-
-async def _show_rule_deletion(stm):
-
-    eb = discord.Embed(title='Show/Delete existing rules',
-                            description='You can show more detailed information for existing rules.\n'\
-                                        'You can aswell delete selected rules/dates\n')
-
-
-    def set_stm_reminder_comps(stm, select_idx=None):
-        
-        if isinstance(stm.reminder, IntervalReminder):
-            rules = stm.reminder.get_rule_dicts()
-        else:
-            rules = []
-
-        if len(rules) > 0:
-            if select_idx != None:
-                rules[select_idx]['default'] = True
-
-            rule_options = [manage_components.create_select_option(label=r['label'], 
-                                                                    description=r['descr'], 
-                                                                    value=str(i),
-                                                                    default=r['default']) for i, r in enumerate(rules)]
-
-            rule_selection = (
-                manage_components.create_select(
-                    custom_id='repeater_delete_existsing_selection',
-                    placeholder='Select a rule/date for more info',
-                    min_values=1,
-                    max_values=1,
-                    options=rule_options
-                )
-            )
-            stm.navigation_rows = [manage_components.create_actionrow(rule_selection)]
-
-        else:
-            stm.navigation_rows = []
-
-
-        buttons = [
-            manage_components.create_button(
-                style=ButtonStyle.primary,
-                label='Add New Rule',
-                custom_id='repeater_skip_delete',
-                disabled=len(rules) >= 25
-            ),
-            manage_components.create_button(
-                style=ButtonStyle.danger,
-                label='Delete Selected',
-                custom_id='repeater_del_selected',
-                disabled=(select_idx==None)
-            )
-        ]
-        stm.navigation_rows.extend([manage_components.create_actionrow(*buttons)])
-
-        buttons = [
-            manage_components.create_button(
-                style=ButtonStyle.secondary,
-                label='Return',
-                custom_id='repeater_del_return'
-            )
-        ]
-        stm.navigation_rows.extend([manage_components.create_actionrow(*buttons)])
-
-
-    set_stm_reminder_comps(stm, None)
-    await stm.q_msg.edit(embed=eb, components=[*stm.navigation_rows])
-
-
-    selected_idx = None
-    while True:
-        try:
-            intvl_ctx = await manage_components.wait_for_component(stm.client, components=stm.navigation_rows, timeout=10*60)
-        except asyncio.exceptions.TimeoutError:
-            # abort the deletion
-            await _exit_stm(stm)
-            return False
-        
-        try:
-            await intvl_ctx.defer(edit_origin=True)
-        except discord.NotFound:
-            # just try again
-            continue
-        
-
-        if intvl_ctx.custom_id == 'repeater_del_selected':
-
-            stm.reminder = _rm_rules(stm.reminder, rule_idx=selected_idx)
-            selected_idx = None
-            set_stm_reminder_comps(stm, selected_idx)
-            await stm.q_msg.edit(components=[*stm.navigation_rows])
-
-            if not stm.reminder.at:
-                eb = discord.Embed(title='Orphan warning',
-                                color=0xaa3333,
-                                description='The reminder has no further events pending. It will be deleted soon, if no new rule is added')
-                await stm.dm.send(embed=eb)
-
-        elif intvl_ctx.custom_id == 'repeater_delete_existsing_selection':
-
-            selected_idx = int(intvl_ctx.selected_options[0])
-            set_stm_reminder_comps(stm, selected_idx)
-            await stm.q_msg.edit(components=[*stm.navigation_rows])
-
-        elif intvl_ctx.custom_id == 'repeater_del_return':
-            return False
-        else:
-            return True
-
-#==================
-# STM core methods
-#==================
-async def dummy():
-    # TODO: show this on rule deletion    
-    if not stm.reminder.at:
-        eb = discord.Embed(title='Orphan warning',
-                        color=0xaa3333,
-                        description='The reminder has no further events pending. It will be deleted soon, if no new rule is added')
-        await stm.dm.send(embed=eb)

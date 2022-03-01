@@ -25,6 +25,9 @@ logging.getLogger('Remindme.Analytics').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Timezones').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Listing').setLevel(logging.DEBUG)
 
+# tmp verbosity
+logging.getLogger('ext.servercount').setLevel(logging.DEBUG)
+
 log = logging.getLogger('Remindme')
 log.setLevel(logging.DEBUG) # own code
 
