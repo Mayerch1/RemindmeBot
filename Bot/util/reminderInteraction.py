@@ -497,7 +497,7 @@ class ReminderIntervalModifyView(util.interaction.CustomView):
 
                 await self.message.edit_original_message(embed=eb, view=view)
                 await view.wait()
-
+        
         # return back to normal view in any case
         self.rule_index=None
         self.del_rule.disabled=True
@@ -602,7 +602,6 @@ class ReminderEditView(util.interaction.CustomView):
         eb = self.get_embed()
         eb.title = 'Delete Reminder?'
         await interaction.response.edit_message(embed=eb, view=view)
-
         await view.wait()
 
         if view.value:
@@ -610,4 +609,10 @@ class ReminderEditView(util.interaction.CustomView):
             Connector.delete_interval(self.reminder._id)
             Analytics.interval_deleted(Types.DeleteAction.LISTING)
 
+            # go back to previous view
+            self.disable_all()
+            
+
         await interaction.edit_original_message(embed=self.get_embed(), view=self)
+        if view.value:
+            self.stop() # must be after last edit

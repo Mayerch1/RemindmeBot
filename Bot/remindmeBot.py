@@ -22,11 +22,13 @@ handler = logging.FileHandler(filename='./logs/discord.log', encoding='utf-8', m
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 
 logging.getLogger('discord').setLevel(logging.WARNING) # reduce warning for discord lib
+
 logging.getLogger('Remindme.Analytics').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Timezones').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Listing').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Creation').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Core').setLevel(logging.DEBUG)
+logging.getLogger('Remindme.Admin').setLevel(logging.DEBUG)
 
 # tmp verbosity
 logging.getLogger('ext.servercount').setLevel(logging.DEBUG)
@@ -274,10 +276,10 @@ def main():
     # client.load_extension(f'ReminderListing')
     # client.load_extension(f'TimezoneModule')
     # client.load_extension(f'ReminderCreation')
+    # client.load_extension(f'AdminModule')
 
     # client.load_extension(f'HelpModule')
     # client.load_extension(f'ReminderModule')
-    # client.load_extension(f'AdminModule')
     # client.load_extension(f'SettingsModule')
 
     for filename in os.listdir(Path(__file__).parent / 'cogs'):

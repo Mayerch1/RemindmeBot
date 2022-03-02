@@ -19,6 +19,7 @@ from lib.Reminder import Reminder, IntervalReminder
 import lib.input_parser
 import lib.ReminderRepeater
 from util.verboseErrors import VerboseErrors
+from util.consts import Consts
 
 from lib.Analytics import Analytics, Types
 
@@ -51,18 +52,29 @@ class ReminderModule(commands.Cog):
         self.clean_interval_orphans.cancel()
         
         
-    async def warn_author_dm(self, rem: Reminder, reason, channel=None, err_msg=None):
+    async def warn_author_dm(self, rem: Reminder, reason, channel:discord.TextChannel=None, err_msg=None):
         
         if rem.author == rem.target:
             # nothing be done here
-            # dm already failed before
+            # dm already failed before, 
+            # only convert reason from target->author
+            if reason == Types.DeliverFailureReason.TARGET_FETCH:
+                conv_reason = Types.DeliverFailureReason.AUTHOR_FETCH
+            else:
+                conv_resaon = Types.DeliverFailureReason.AUTHOR_DM
             Analytics.reminder_not_delivered(rem, reason)
             return
         
+
+        # expose non-critical error of target not notified
+        Analytics.reminder_not_delivered(rem, reason)
+
+
         # try to notify the author of the reminder
         try:
             author = await self.client.fetch_user(rem.author)
         except discord.errors.NotFound:
+            # expose second counter for author warn failed
             log.warning(f'cannot find user {rem.author} for author warning')
             Analytics.reminder_not_delivered(rem, Types.DeliverFailureReason.AUTHOR_FETCH)
             return
@@ -70,19 +82,18 @@ class ReminderModule(commands.Cog):
         guild = self.client.get_guild(rem.g_id) if rem.g_id else None
         dm =  await author.create_dm()
         eb = rem.get_info_embed()
+
+        guild_name = guild.name if guild else '*Unresolved Guild*'
+        channel_name = channel.name if channel else '*Unresolved Channel*'
         
         help_text = 'Couldn\'t send the reminder into the requested channel\n\n'\
-                   f'• Make sure I have permission to send messages into the channel `{channel.name}` on `{guild.name}`\n'\
+                   f'• Make sure I have permission to send messages into the channel `{channel_name}` on `{guild_name}`\n'\
                     '• or make sure the receiver allows to receive DMs from me\n'\
-                    '• or edit the Reminder to be send into an existing channel'\
-                    if channel and guild else \
-                    'The reminder was created within a thread, or the initial channel is not existing anymore\n\n'\
-                    '• Make sure the receiver allows to receive DMs (if the receiver is a single User)\n'\
                     '• or edit the Reminder to be send into an existing channel'
         
         eb_warn = discord.Embed(title='Failed to deliver Reminder',
                                 description=f'{help_text}',
-                                color=0xff0000)
+                                color=Consts.col_crit)
 
         try:
             await dm.send(embed=eb_warn)
@@ -90,6 +101,7 @@ class ReminderModule(commands.Cog):
         except discord.errors.Forbidden:
             # dm has no embed permissions, embeds must always succeed
             log.warning(f'failed to send author warning')
+            # expose second counter for author warn failed
             Analytics.reminder_not_delivered(rem, Types.DeliverFailureReason.AUTHOR_DM)
             return
 
@@ -177,7 +189,10 @@ class ReminderModule(commands.Cog):
 
         if not channel:
             # this gets archived threads
-            channel = await self.client.fetch_channel(rem.ch_id)
+            try:
+                channel = await self.client.fetch_channel(rem.ch_id)
+            except discord.errors.NotFound:
+                channel = None
 
         # no need to resolve author, target is sufficient
         if not channel:
@@ -257,6 +272,7 @@ class ReminderModule(commands.Cog):
                 Analytics.register_exception(e) # add these to ex counter
 
         self.last_loop = datetime.utcnow()
+        log.debug(f'intervals sent in {(self.last_loop-now).total_seconds()}s')
     
 
     @tasks.loop(minutes=1)
@@ -275,6 +291,8 @@ class ReminderModule(commands.Cog):
                 Analytics.register_exception(e) # add these to ex counter
 
             Analytics.reminder_delay(reminder, now=now, allowed_delay=1*60)
+
+        log.debug(f'reminders sent in {(datetime.utcnow()-now).total_seconds()}s')
     
    
     @tasks.loop(minutes=15)

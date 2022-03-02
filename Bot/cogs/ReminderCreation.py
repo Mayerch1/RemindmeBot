@@ -311,7 +311,7 @@ class ReminderCreation(commands.Cog):
 
         stm = util.reminderInteraction.STM(
             ctx,
-            Connector.Scope(is_private=False, guild_id=ctx.guild.id, user_id=ctx.author.id)
+            Connector.Scope(is_private=False, guild_id=ctx.guild.id if ctx.guild else None, user_id=ctx.author.id)
         )
         stm.tz_str = tz_str
 
@@ -335,7 +335,7 @@ class ReminderCreation(commands.Cog):
     # =====================
     # commands functions
     # =====================
-
+    # TODO: fix selection
     @commands.slash_command(name='remind', description='set a reminder after a certain time period', guild_ids=[140150091607441408])
     async def remind_user(self, ctx:discord.ApplicationContext,
                         target:discord.Option(discord.Role, 'the user or role you want to remind', required=True),
@@ -367,7 +367,7 @@ class ReminderCreation(commands.Cog):
         await self.process_reminder(ctx, ctx.author, target, time, message, channel=channel)
     
 
-    @commands.slash_command(name='remindme', description='set a reminder after a certain time period', guild_ids=[140150091607441408])
+    @commands.slash_command(name='remindme', description='set a reminder after a certain time period')
     async def remindme(self, ctx:discord.ApplicationContext,
                         time:discord.Option(str, 'time/date when the reminder is triggered (see syntax page on /help)', required=True),
                         message:discord.Option(str, 'the bot will remind you with this message', required=True), 
