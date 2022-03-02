@@ -195,7 +195,7 @@ class TimezoneModule(discord.Cog):
 
     @discord.Cog.listener()
     async def on_ready(self):
-        log.info('TimezoneModule loaded')
+        log.info('loaded')
 
 
     ##################

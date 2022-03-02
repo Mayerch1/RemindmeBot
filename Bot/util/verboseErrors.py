@@ -110,6 +110,34 @@ class VerboseErrors:
 
 
     @staticmethod
+    def get_send_messages_perms():
+        """get Permissions obj for send_messages
+
+        Returns:
+            [discord.Permissions]: has enough Perms for send_messages
+        """
+        return discord.Permissions(send_messages=True, read_messages=True)
+
+    @staticmethod
+    def can_send_messages(channel: discord.TextChannel, channel_overwrite = True, granted_perms: discord.Permissions = None, user_override = None):
+        """shortcut for has_permissions with send_messages
+
+        Args:
+            channel (discord.TextChannel): channel for overwrite, supplies guild and channel permissions
+            channel_overwrite (bool, optional): apply channel overwrite (for bot user). Defaults to True.
+            granted_perms (discord.Permissions): override guild permissions of 'channel' of not None. Defaults to None
+            user_override (discord.Member): evaluate permissions for the given user, not for the bot. Defaults to None (=Bot)
+
+        Returns:
+            [type]: true, if requested permissions are granted
+        """
+        return VerboseErrors.has_permission(VerboseErrors.get_send_messages_perms(), 
+                    channel = channel, 
+                    channel_overwrite= channel_overwrite, 
+                    granted_perms = granted_perms,
+                    user_override=user_override)
+
+    @staticmethod
     def get_embed_perms():
         """get Permissions obj for embed_links
 

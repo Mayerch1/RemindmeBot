@@ -15,7 +15,7 @@ class CustomView(discord.ui.View):
         super().__init__(*args, **kwargs)
         
         self.value = None
-        self.message: Union[discord.Message, discord.Interaction] = message
+        self.message: Union[discord.Message, discord.Interaction, discord.WebhookMessage] = message
 
     def disable_all(self):
         """disable all components in this view
@@ -45,11 +45,17 @@ class CustomView(discord.ui.View):
             override_old (_type_): _description_
         """
         
+        if isinstance(self.message, discord.WebhookMessage):
+            func = self.message.edit
+        else:
+            func = self.message.edit_original_message
+
         if self.message:
             if override_old:
-                await self.message.edit_original_message(content='Please see the Message below', embed=None, view=None)
+                await func(content='Please see the Message below', embed=None, view=None)
             else:
-                await self.message.edit_original_message(view=None)
+                await func(view=None)
+                
 
         self.message = new_msg
 

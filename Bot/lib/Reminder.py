@@ -195,7 +195,7 @@ class Reminder:
         return eb
     
 
-    def get_tiny_embed(self, title='New Reminder Created', now=None, info=None, rrule_override=None):
+    def get_tiny_embed(self, title='New Reminder Created', now=None, info:str=None, rrule_override=None):
         """return a tiny info embed of the reminder
            used upon reminder creation, to not bloat main chat
            Show interval till next/first trigger
@@ -343,7 +343,7 @@ class IntervalReminder(Reminder):
         return d
 
 
-    def get_tiny_embed(self, title='New Interval Created', now=None, info=None, rrule_override=None):
+    def get_tiny_embed(self, title='New Interval Created', now=None, info:str=None, rrule_override=None):
         """return a tiny info embed of the reminder
            used upon reminder creation, to not bloat main chat
            Show interval till next/first trigger

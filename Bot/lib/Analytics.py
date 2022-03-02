@@ -46,9 +46,10 @@ class Types:
         PAST_DATE = 1
         
     class DeliverFailureReason(Enum):
-        DM_SEND = 0
-        USER_FETCH = 1
-        AUTHOR_WARN_FAILED = 2
+        TARGET_FETCH = 0
+        TARGET_DM = 1
+        AUTHOR_FETCH = 2
+        AUTHOR_DM = 3
 
 class Analytics:
 

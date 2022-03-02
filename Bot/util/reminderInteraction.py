@@ -16,8 +16,22 @@ from lib.Analytics import Analytics, Types
 
 log = logging.getLogger('Remindme.Listing')
 
+
+class STMState(Enum):
+        INIT=0
+
+class STM():
+    def __init__(self, ctx, scope):
+        self.ctx: discord.ApplicationContext=ctx
+        self.scope:Connector.Scope=scope
+        self.state:STMState = STMState.INIT
+        self.page:int=0
+        self.reminders:list[Reminder] = []
+        self.tz_str:str = None
+
+
 class ReminderChannelEdit(util.interaction.CustomView):
-    def __init__(self, reminder: Reminder, stm, message, *args, **kwargs):
+    def __init__(self, reminder: Reminder, stm: STM, message, *args, **kwargs):
         super().__init__(message, *args, **kwargs)
         self.reminder = reminder
         self.stm = stm
@@ -177,7 +191,7 @@ class RuleModal(discord.ui.Modal):
 
 
 class ReminderIntervalAddView(util.interaction.CustomView):
-    def __init__(self, reminder: Reminder, stm, message, *args, **kwargs):
+    def __init__(self, reminder: Reminder, stm: STM, message, *args, **kwargs):
         super().__init__(message, *args, **kwargs)
 
         self.reminder = reminder

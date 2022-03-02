@@ -24,25 +24,11 @@ log = logging.getLogger('Remindme.Listing')
 
 
 
-class STMState(Enum):
-        INIT=0
-
-class STM():
-    def __init__(self, ctx, scope):
-        self.ctx: discord.ApplicationContext=ctx
-        self.scope:Connector.Scope=scope
-        self.state:STMState = STMState.INIT
-        self.page:int=0
-        self.reminders:list[Reminder] = []
-        self.tz_str:str = None
-
-
-
 class ReminderListView(util.interaction.CustomView):
     def __init__(self, stm, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.stm:STM = stm
+        self.stm:util.reminderInteraction.STM = stm
         self.update_dropdown()
 
     def get_embed(self) -> discord.Embed:
@@ -181,7 +167,7 @@ class ReminderListing(commands.Cog):
 
     @discord.Cog.listener()
     async def on_ready(self):
-        log.info('ReminderListing loaded')
+        log.info('loaded')
 
     # =====================
     # helper methods
@@ -278,7 +264,7 @@ class ReminderListing(commands.Cog):
     # stm core
     # =====================
 
-    async def reminder_stm(self, stm: STM):
+    async def reminder_stm(self, stm: util.reminderInteraction.STM):
         # first fetch of reminders
         stm.reminders = Connector.get_scoped_reminders(stm.scope)
 
@@ -300,7 +286,7 @@ class ReminderListing(commands.Cog):
         else:
             scope = Connector.Scope(is_private=True, user_id=ctx.author.id)
 
-        stm = STM(ctx=ctx, scope=scope)
+        stm = util.reminderInteraction.STM(ctx=ctx, scope=scope)
         stm.tz_str = Connector.get_timezone(scope.instance_id)
         await self.reminder_stm(stm)
 

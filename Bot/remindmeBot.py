@@ -24,6 +24,8 @@ logging.getLogger('discord').setLevel(logging.WARNING) # reduce warning for disc
 logging.getLogger('Remindme.Analytics').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Timezones').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Listing').setLevel(logging.DEBUG)
+logging.getLogger('Remindme.Creation').setLevel(logging.DEBUG)
+logging.getLogger('Remindme.Core').setLevel(logging.DEBUG)
 
 # tmp verbosity
 logging.getLogger('ext.servercount').setLevel(logging.DEBUG)
@@ -102,6 +104,10 @@ async def on_ready():
     log.info('----------------')
 
     config_help()
+
+    # await client.change_presence(activity=discord.Game(name='/remindme'))
+    # update_community_count.start()
+    # update_experimental_count.start()
 
 
 @bot.event
@@ -191,34 +197,6 @@ def config_help():
 
 
 
-
-
-# @client.event
-# async def on_command_error(cmd, error):
-
-#     if isinstance(error, discord.ext.commands.errors.NoPrivateMessage):
-#         await cmd.send('This command is only to be used on servers')
-#     elif isinstance(error, discord.ext.commands.errors.CommandNotFound):
-#         pass # silently catch these
-#     else:
-#         print(error)
-#         
-#         raise error
-
-
-# @client.event
-# async def on_ready():
-#     # debug log
-#     print('Logged in as')
-#     print(client.user.name)
-#     print(client.user.id)
-#     print('-----------')
-#     await client.change_presence(activity=discord.Game(name='/remindme'))
-    
-#     update_community_count.start()
-#     update_experimental_count.start()
-
-
 # @client.event
 # async def on_guild_remove(guild):
 #     del_rem, del_intvl = Connector.delete_guild(guild.id)
@@ -290,11 +268,12 @@ def main():
     Connector.init()
     Analytics.init()
 
-    # client.load_extension(f'ReminderModule')
-    # client.load_extension(f'ReminderCreation')
     # client.load_extension(f'ReminderListing')
-    # client.load_extension(f'HelpModule')
     # client.load_extension(f'TimezoneModule')
+    # client.load_extension(f'ReminderCreation')
+
+    # client.load_extension(f'HelpModule')
+    # client.load_extension(f'ReminderModule')
     # client.load_extension(f'AdminModule')
     # client.load_extension(f'SettingsModule')
 
