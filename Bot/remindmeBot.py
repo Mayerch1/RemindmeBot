@@ -29,6 +29,7 @@ logging.getLogger('Remindme.Listing').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Creation').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Core').setLevel(logging.DEBUG)
 logging.getLogger('Remindme.Admin').setLevel(logging.DEBUG)
+logging.getLogger('Remindme.Settings').setLevel(logging.DEBUG)
 
 # tmp verbosity
 logging.getLogger('ext.servercount').setLevel(logging.DEBUG)
@@ -119,6 +120,7 @@ async def on_shard_connect(shard_id):
     log.debug(f'shard {shard_id} connected')
 
 
+
 @bot.event
 async def on_application_command_error(ctx: discord.ApplicationContext, error: Exception):
     await log_exception(ctx, error)
@@ -164,6 +166,49 @@ async def on_error(event_method, *args, **kwargs):
     log.critical('non-application error occurred', exc_info=exc_info)
 
 
+
+@bot.event
+async def on_guild_remove(guild):
+    del_rem, del_intvl = Connector.delete_guild(guild.id)
+    
+    Analytics.guild_removed()
+    Analytics.reminder_deleted(Types.DeleteAction.KICK, count=del_rem)
+    Analytics.interval_deleted(Types.DeleteAction.KICK, count=del_intvl)
+
+    log.debug(f'removed from guild (total count: {len(bot.guilds)})')
+
+
+
+
+@bot.event
+async def on_guild_join(guild):
+
+    # new guilds do not use the legacy mode
+    Connector.set_legacy_interval(guild.id, False)
+
+    Analytics.guild_added()
+    guild_cnt = len(bot.guilds)
+    log.info(f'added to guild (total count: {guild_cnt})')
+
+    if not guild.system_channel:
+        return
+
+    def is_round_number(x):
+        while x%10 == 0 and x>0:
+            x /= 10
+        if x < 10:
+            return True
+        return False
+    
+    if is_round_number(guild_cnt):
+        log.info('sending celebration embed')
+        eb = discord.Embed(title=f'You\'re the {guild_cnt}th server I\'ve been added to', 
+                        description='Here\'s a cool gif, just for you')
+        eb.set_image(url='https://media.giphy.com/media/kyLYXonQYYfwYDIeZl/giphy.gif')
+        await guild.system_channel.send(embed=eb)
+        
+
+
 # #############
 # # Commands
 # ############
@@ -198,45 +243,6 @@ def config_help():
         description=SYNTAX_HELP_PAGE
     )
     Help.add_page(page)
-
-
-
-# @client.event
-# async def on_guild_remove(guild):
-#     del_rem, del_intvl = Connector.delete_guild(guild.id)
-    
-#     Analytics.guild_removed()
-#     Analytics.reminder_deleted(Types.DeleteAction.KICK, count=del_rem)
-#     Analytics.interval_deleted(Types.DeleteAction.KICK, count=del_intvl)
-
-#     print(f'removed from guild (total count: {len(client.guilds)})')
-
-
-# @client.event
-# async def on_guild_join(guild):
-
-#     # new guilds do not use the legacy mode
-#     Connector.set_legacy_interval(guild.id, False)
-
-#     Analytics.guild_added()
-#     guild_cnt = len(client.guilds)
-#     print(f'added to guild (total count: {guild_cnt})')
-
-#     if not guild.system_channel:
-#         return
-
-#     def is_round_number(x):
-#         while x%10 == 0 and x>0:
-#             x /= 10
-#         if x < 10:
-#             return True
-#         return False
-    
-#     if is_round_number(guild_cnt):
-#         eb = discord.Embed(title=f'You\'re the {guild_cnt}th server I\'ve been added to', 
-#                         description='Here\'s a cool gif, just for you')
-#         eb.set_image(url='https://media.giphy.com/media/kyLYXonQYYfwYDIeZl/giphy.gif')
-#         await guild.system_channel.send(embed=eb)
 
 
 
@@ -277,10 +283,10 @@ def main():
     # client.load_extension(f'TimezoneModule')
     # client.load_extension(f'ReminderCreation')
     # client.load_extension(f'AdminModule')
-
-    # client.load_extension(f'HelpModule')
     # client.load_extension(f'ReminderModule')
     # client.load_extension(f'SettingsModule')
+
+    # client.load_extension(f'HelpModule')
 
     for filename in os.listdir(Path(__file__).parent / 'cogs'):
         if filename.endswith('.py'):

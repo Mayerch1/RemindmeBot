@@ -32,7 +32,7 @@ class TimezoneModule(discord.Cog):
     timezones = list(ZoneInfoFile(getzoneinfofile_stream()).zones.keys())
 
 
-    settings_group = discord.SlashCommandGroup('settings', 'Change the config of this bot')
+    settings_group = discord.SlashCommandGroup('settings', 'Change the config of this bot', guild_ids=[140150091607441408])
     
     def __init__(self, client):
         self.client = client

@@ -5,7 +5,10 @@ from enum import Enum
 import pymongo
 from pymongo import MongoClient
 
-from lib import Reminder, CommunitySettings
+from lib.Reminder import Reminder, IntervalReminder
+from lib.CommunitySettings import CommunitySettings
+
+
 import logging
 
 
@@ -144,7 +147,7 @@ class Connector:
 
 
     @staticmethod
-    def is_legacy_interval(instance_id: int):
+    def is_legacy_interval(instance_id: int) -> bool:
         """check if the instance uses legacy intervals
            if no entry exists, legacy is assumed for backwards compatibility
         """
@@ -184,7 +187,7 @@ class Connector:
 
 
     @staticmethod
-    def set_community_settings(instance_id: int, settings: CommunitySettings):
+    def set_community_settings(instance_id: int, settings: CommunitySettings) -> CommunitySettings:
         
         settings_json = settings._to_json()
         Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {'community_settings': settings_json}}, new=False, upsert=True)
@@ -193,22 +196,22 @@ class Connector:
     @staticmethod
     def set_community_setting(instance_id: int, setting_name: str, value: bool):
         
-        dummy_settings = CommunitySettings.CommunitySettings()
+        dummy_settings = CommunitySettings()
         if not hasattr(dummy_settings, setting_name):
             raise ValueError(f'{setting_name} is not an attribute of CommunitySettings')
         
         Connector.db.settings.find_one_and_update({'g_id': str(instance_id)}, {'$set': {f'community_settings.{setting_name}': value}}, new=False, upsert=True)
     
     @staticmethod
-    def get_community_settings(instance_id: int):
+    def get_community_settings(instance_id: int) -> CommunitySettings:
         
         # keep g_id as key for backwards compatibility
         comm_json = Connector.db.settings.find_one({'g_id': str(instance_id)}, {'community_settings': 1})
         
         if not comm_json:
-            return CommunitySettings.CommunitySettings()
+            return CommunitySettings()
         else:
-            return CommunitySettings.CommunitySettings(comm_json.get('community_settings', {}))
+            return CommunitySettings(comm_json.get('community_settings', {}))
 
 
     @staticmethod
@@ -282,11 +285,11 @@ class Connector:
 
 
     @staticmethod
-    def add_reminder(reminder: Reminder.Reminder):
+    def add_reminder(reminder: Reminder):
         """save the reminder into the database
 
         Args:
-            reminder (Reminder.Reminder): reminder object to be saved
+            reminder (Reminder): reminder object to be saved
 
         Returns:
             ObjectId: id of the database entry
@@ -295,14 +298,14 @@ class Connector:
         return insert_obj.inserted_id
 
     @staticmethod
-    def add_interval(interval: Reminder.IntervalReminder):
+    def add_interval(interval: IntervalReminder):
         
         insert_obj = Connector.db.intervals.insert_one(interval._to_json())
         return insert_obj.inserted_id
 
 
     @staticmethod
-    def update_interval_rules(interval: Reminder.IntervalReminder):
+    def update_interval_rules(interval: IntervalReminder):
 
         intvl_js = interval._to_json()
         Connector.db.intervals.find_one_and_update({'_id': interval._id}, {'$set': {'rdates': intvl_js['rdates'],
@@ -311,7 +314,7 @@ class Connector:
                                                                                     'exrules': intvl_js['exrules']}}, new=False, upsert=False)
 
     @staticmethod
-    def update_interval_at(interval: Reminder.IntervalReminder):
+    def update_interval_at(interval: IntervalReminder):
         
         if not interval.at:
             log.warning(f'Orphaned interval reminder {interval._id}.')
@@ -333,7 +336,7 @@ class Connector:
     def get_elapsed_reminders(timestamp):
 
         rems =  list(Connector.db.reminders.find({'at': {'$lt': timestamp}}))
-        rems = list(map(Reminder.Reminder, rems))
+        rems = list(map(Reminder, rems))
 
         # this method gets the entries
         log.warning('Requested reminder without deleting from db')
@@ -344,7 +347,7 @@ class Connector:
     def pop_elapsed_reminders(timestamp):
 
         rems =  list(Connector.db.reminders.find({'at': {'$lt': timestamp}}))
-        rems = list(map(Reminder.Reminder, rems))
+        rems = list(map(Reminder, rems))
 
         # this method pops the entries
         Connector.db.reminders.delete_many({'at': {'$lt': timestamp}})
@@ -355,7 +358,7 @@ class Connector:
     def get_pending_intervals(timestamp):
 
         intvl =  list(Connector.db.intervals.find({'at': {'$lt': timestamp}}))
-        intvl = list(map(Reminder.IntervalReminder, intvl))
+        intvl = list(map(IntervalReminder, intvl))
 
         return intvl
 
@@ -376,7 +379,7 @@ class Connector:
         reminder = Connector.db.reminders.find_one({'_id': reminder_id})
 
         if reminder:
-            return Reminder.Reminder(reminder)
+            return Reminder(reminder)
         else:
             return None
         
@@ -386,7 +389,7 @@ class Connector:
         interval = Connector.db.intervals.find_one({'_id': interval_id})
 
         if interval:
-            return Reminder.IntervalReminder(interval)
+            return IntervalReminder(interval)
         else:
             return None
 
@@ -495,10 +498,10 @@ class Connector:
     def _get_user_reminders(guild_id: int, user_id: int):
 
         rems = list(Connector.db.reminders.find({'g_id': str(guild_id), 'author': str(user_id)}))
-        rems = list(map(Reminder.Reminder, rems))
+        rems = list(map(Reminder, rems))
 
         intvl = list(Connector.db.intervals.find({'g_id': str(guild_id), 'author': str(user_id)}))
-        intvl = list(map(Reminder.IntervalReminder, intvl))
+        intvl = list(map(IntervalReminder, intvl))
 
         return rems + intvl
 
@@ -506,10 +509,10 @@ class Connector:
     def _get_user_private_reminders(user_id: int):
 
         rems = list(Connector.db.reminders.find({'g_id': None, 'author': str(user_id)}))
-        rems = list(map(Reminder.Reminder, rems))
+        rems = list(map(Reminder, rems))
 
         intvl = list(Connector.db.intervals.find({'g_id': None, 'author': str(user_id)}))
-        intvl = list(map(Reminder.IntervalReminder, intvl))
+        intvl = list(map(IntervalReminder, intvl))
 
         return rems + intvl
 

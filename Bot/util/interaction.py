@@ -92,7 +92,7 @@ class ConfirmDenyView(AckView):
     # This one is similar to the confirmation button except sets the inner value to `False`
     @discord.ui.button(label="Abort", style=discord.ButtonStyle.grey)
     async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
-        
+
         # modify button colors
         self.disable_all()
         button.label='Aborted'
