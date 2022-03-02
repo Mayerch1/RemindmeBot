@@ -1,5 +1,6 @@
 import os
 import discord
+from discord.ext import tasks
 import logging
 import traceback
 import sys
@@ -106,8 +107,9 @@ async def on_ready():
     config_help()
 
     # await client.change_presence(activity=discord.Game(name='/remindme'))
-    # update_community_count.start()
-    # update_experimental_count.start()
+    log.debug('starting base-file loops')
+    update_community_count.start()
+    update_experimental_count.start()
 
 
 @bot.event
@@ -237,30 +239,31 @@ def config_help():
 
 
 
-# @tasks.loop(hours=6)
-# async def update_experimental_count():
+@tasks.loop(hours=6)
+async def update_experimental_count():
     
-#     comm_cnt = Connector.get_experimental_count()
-#     Analytics.experimental_count(comm_cnt)
+    log.debug('updating experimental server count')
+    comm_cnt = Connector.get_experimental_count()
+    Analytics.experimental_count(comm_cnt)
 
 
-# @tasks.loop(hours=6)
-# async def update_community_count():
-    
-#     comm_cnt = Connector.get_community_count()
-#     Analytics.community_count(comm_cnt)
+@tasks.loop(hours=3)
+async def update_community_count():
+    log.debug('updating anayltics guild/community count')
 
-#     Analytics.guild_cnt(len(client.guilds))
-
-
-# @update_community_count.before_loop
-# async def update_community_count_before():
-#     await client.wait_until_ready()
+    comm_cnt = Connector.get_community_count()
+    Analytics.community_count(comm_cnt)
+    Analytics.guild_cnt(len(bot.guilds))
 
 
-# @update_experimental_count.before_loop
-# async def update_experimental_count_before():
-#     await client.wait_until_ready()
+@update_community_count.before_loop
+async def update_community_count_before():
+    await bot.wait_until_ready()
+
+
+@update_experimental_count.before_loop
+async def update_experimental_count_before():
+    await bot.wait_until_ready()
 
 
 

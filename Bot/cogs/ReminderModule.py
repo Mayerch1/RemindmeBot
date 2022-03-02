@@ -22,8 +22,6 @@ from util.verboseErrors import VerboseErrors
 
 from lib.Analytics import Analytics, Types
 
-import net.threads as Thread
-
 log = logging.getLogger('Remindme.Core')
 
 class ReminderModule(commands.Cog):
