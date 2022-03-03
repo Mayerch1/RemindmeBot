@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from enum import Enum
+from typing import Union
 
 import pymongo
 from pymongo import MongoClient
@@ -215,7 +216,7 @@ class Connector:
 
 
     @staticmethod
-    def set_moderators(guild_id: int, moderators: list):
+    def set_moderators(guild_id: int, moderators: list[Union[int, str]]):
         """set a list as new moderators, this list overwrites all existing mods
 
         Args:
