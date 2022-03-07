@@ -50,6 +50,7 @@ class Types:
         TARGET_DM = 1
         AUTHOR_FETCH = 2
         AUTHOR_DM = 3
+        TARGET_IS_BOT = 4
 
 class Analytics:
 

@@ -144,7 +144,7 @@ class ReminderCreation(commands.Cog):
     async def process_reminder(self, ctx: discord.ApplicationContext, author: Union[discord.User, discord.Member], target, period, message, channel):
 
         if ctx.guild:
-            instance_id = author.guild.id
+            instance_id = ctx.guild.id
             # try and get the last message, for providing a jump link
             try:
                 last_msg = await ctx.channel.history(limit=1).flatten()
@@ -332,20 +332,29 @@ class ReminderCreation(commands.Cog):
         log.info('loaded')
 
 
+    @commands.slash_command(name='test', description='test', guild_ids=[140150091607441408])
+    async def test_routine(self, ctx: discord.ApplicationContext,
+                                target: discord.Option(discord.SlashCommandOptionType.mentionable, 'the user or role you want to remind', required=True)):
+        await ctx.respond(f'Hello {target.mention}')
+
+
     # =====================
     # commands functions
     # =====================
-    # TODO: fix selection
+    # TODO: fix mentionable type
     @commands.slash_command(name='remind', description='set a reminder after a certain time period', guild_ids=[140150091607441408])
     async def remind_user(self, ctx:discord.ApplicationContext,
-                        target:discord.Option(discord.Role, 'the user or role you want to remind', required=True),
+                        target:discord.Option((discord.Member, discord.Role), 'the user or role you want to remind', required=True),
                         time:discord.Option(str, 'time/date when the reminder is triggered (see syntax page on /help)', required=True),
                         message:discord.Option(str, 'the bot will remind you with this message', required=True), 
                         channel:discord.Option(discord.TextChannel, 'Show the reminder in a channel other than the current one', required=False)=None):
 
         if not target:
+            # TODO: try to trigger this condition, or see if it can be removed
             # delays execution significantly, only if not already cached
             target_resolve = await ctx.guild.fetch_member(int(target))
+            log.critical('user not loaded, investigation required')
+            1/0
 
         # determining if the mention is @everyone depends
         # on how the role was resolved (and if it even is a role)
@@ -356,13 +365,16 @@ class ReminderCreation(commands.Cog):
         else:
             is_everyone = (ctx.guild.default_role == target)
 
-        # only allow execution if all permissions are present        
-        action = CommunityAction(foreign=True, everyone=is_everyone)
-        err_eb = lib.permissions.get_missing_permissions_embed(ctx.guild.id, ctx.author.roles, required_perms=action)
-        if err_eb:
-            await ctx.respond(embed=err_eb)
-            return
+        if ctx.guild:
+             # only allow execution if all permissions are present        
+            action = CommunityAction(foreign=True, everyone=is_everyone)
+            err_eb = lib.permissions.get_missing_permissions_embed(ctx.guild.id, ctx.author.roles, required_perms=action)
+            if err_eb:
+                await ctx.respond(embed=err_eb)
+                return
 
+            # update channel, when not specified (optional parameter)
+            channel = channel or ctx.channel
 
         await self.process_reminder(ctx, ctx.author, target, time, message, channel=channel)
     
@@ -382,6 +394,7 @@ class ReminderCreation(commands.Cog):
             channel = channel or ctx.channel # overwrite if not specified
 
         await self.process_reminder(ctx, ctx.author, ctx.author, time, message, channel=channel)
+        
 
 
 def setup(client):

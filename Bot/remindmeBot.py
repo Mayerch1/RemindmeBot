@@ -4,6 +4,7 @@ from discord.ext import tasks
 import logging
 import traceback
 import sys
+import uuid
 
 from pathlib import Path
 from discord.ext.help import Help, HelpElement, HelpPage
@@ -86,14 +87,22 @@ SYNTAX_HELP_PAGE = \
 # ###########
 # Methods
 # ###########
-async def log_exception(ctx: discord.ApplicationContext, error: Exception):
-    
+async def log_exception(ctx: discord.ApplicationContext, error: Exception, error_id: str):
+    """log the given exception to the local logger
+       and register a datapoint for analytics
+
+    Args:
+        ctx (discord.ApplicationContext): _description_
+        error (Exception): _description_
+        error_id (str): _description_
+    """
     Analytics.register_exception(error)
     if isinstance(error, discord.NotFound):
         log.warning('interaction timed out (not found)')
     else:
         t = (type(error), error, error.__traceback__)
-        log.error(''.join(traceback.format_exception(*t)))
+        ex_str = ''.join(traceback.format_exception(*t))
+        log.error(f'ErrorCode: {error_id}\n{ex_str}')
 
 
 # ###########
@@ -123,41 +132,37 @@ async def on_shard_connect(shard_id):
 
 @bot.event
 async def on_application_command_error(ctx: discord.ApplicationContext, error: Exception):
-    await log_exception(ctx, error)
+    err_id = str(uuid.uuid4())
 
-    #     def get_err_embed(error_id):
-#         eb = discord.Embed(title='An unknown error has ocurred', 
-#                             description='The bot crashed while execution your command and we don\'t know why\n\n'\
-#                                         'If you want to help improving this bot, '\
-#                                         'please report this crash on the [support server](https://discord.gg/Xpyb9DX3D6)')
-#         eb.color = 0xff0000  # red
+    await log_exception(ctx, error, error_id=err_id)
 
-#         eb.add_field(name='Error Code', value=str(error_id))
-#         return eb
+    def get_err_embed(error_id):
+        eb = discord.Embed(title='An unknown error has ocurred', 
+                            description='The bot crashed while execution your command and we don\'t know why\n\n'\
+                                        'If you want to help improving this bot, '\
+                                        'please report this crash on the [support server](https://discord.gg/Xpyb9DX3D6)')
+        eb.color = 0xff0000  # red
 
-#     if isinstance(error, discord.ext.commands.errors.MissingPermissions):
-#         await ctx.send('You do not have permission to execute this command')
-#     elif isinstance(error, discord.ext.commands.errors.NoPrivateMessage):
-#         await ctx.send('This command is only to be used on servers')
-#     elif isinstance(error, discord.NotFound):
-#         print(''.join(error.args))
-#         Analytics.register_exception(error)
-#     else:
-#         error_id = uuid.uuid4()
-#         now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        eb.add_field(name='Error Code', value=str(error_id))
+        return eb
 
-#         print(f'{now_str}: UUID: {error_id}\n{error}')
-#         Analytics.register_exception(error)
-#         print('\n')
+    # not all commands are equally report-worthy
+    # decide what to show based on the exception type
+    # if isinstance(error, discord.ext.commands.errors.MissingPermissions):
+    #     await ctx.send('You do not have permission to execute this command')
+    # elif isinstance(error, discord.ext.commands.errors.NoPrivateMessage):
+    #     await ctx.send('This command is only to be used on servers')
+    # elif isinstance(error, discord.NotFound):
+    #     print(''.join(error.args))
+    #     Analytics.register_exception(error)
 
-#         if not ctx.responded:
-#             try:
-#                 await ctx.send(embed=get_err_embed(error_id), hidden=True if not ctx.deferred else ctx._deferred_hidden)
-#             except:
-#                 # well...
-#                 pass
-
-#         raise error
+    
+    try:
+        await ctx.respond(embed=get_err_embed(err_id), ephemeral=True)
+        #await ctx.send(embed=get_err_embed(err_id), hidden=True if not ctx.deferred else ctx._deferred_hidden)
+    except:
+        # prevent recursion with wildcard catch
+        pass
 
 
 @bot.event

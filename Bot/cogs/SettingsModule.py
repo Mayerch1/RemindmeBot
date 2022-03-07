@@ -1,6 +1,7 @@
 import asyncio
 import re
 import logging
+from typing import Union
 
 from enum import Enum
 from datetime import datetime, timedelta
@@ -15,14 +16,16 @@ from pytz import common_timezones as pytz_common_timezones, country_timezones
 import discord
 from discord.ext import commands, tasks
 
+from util.consts import Consts
+import lib.permissions
 import util.interaction
 from lib.Connector import Connector
-from lib.CommunitySettings import CommunitySettings
+from lib.CommunitySettings import CommunitySettings, CommunityAction
 from lib.Analytics import Analytics, Types
 
 
 log = logging.getLogger('Remindme.Settings')
-#TODO: permissions for settings changes
+
 class MenuDropdown(discord.ui.Select):
     def __init__(self, page_num: int, page_switch_callback, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -50,10 +53,11 @@ class MenuDropdown(discord.ui.Select):
 
 
 class CommunitySubSettings(util.interaction.CustomView):
-    def __init__(self, scope: Connector.Scope, roles, *args, **kwargs):
+    def __init__(self, scope: Connector.Scope, roles=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.scope = scope
         self.update_ui_elements()
+        
 
 
     def update_ui_elements(self):
@@ -118,10 +122,9 @@ class CommunitySubSettings(util.interaction.CustomView):
 
 
     def get_embed(self) -> discord.Embed:
-        eb = discord.Embed(title='Remindme Settings',
-                description='Server Managers can edit these settings by pressing the '\
-                            'corresponding buttons below.\n'\
-                            'The grayed-out buttons are the current selected options.')
+        eb = discord.Embed(title='Remindme Community-Settings',
+                description='This page allows moderators to restrict certain features to moderators.\n'\
+                            'In "Mods-Only" mode, the bot is only usable by moderators')
         return eb
     
 
@@ -211,9 +214,17 @@ class SettingsPageTemplate(util.interaction.CustomView):
 
 
 class ExperimentalSettings(SettingsPageTemplate):
-    def __init__(self, scope, roles, page_callback, *args, **kwargs):
+    def __init__(self, scope, author: Union[discord.User, discord.Member], guild_roles: list[discord.Role], page_callback, *args, **kwargs):
         super().__init__(scope=scope, page=2, page_callback=page_callback, dropdown_row=4, *args, **kwargs)
         self.update_ui_elements()
+
+        action = CommunityAction(settings=True)
+        self.forbidden = not lib.permissions.check_user_permission(self.scope.instance_id, author.roles, required_perms=action)
+
+        if scope.is_private or (self.forbidden and not author.guild_permissions.administrator):
+            self.disable_all()
+            self.dd.disabled = False
+
 
     def update_ui_elements(self):
         is_exp = Connector.is_experimental(self.scope.instance_id)
@@ -231,10 +242,15 @@ class ExperimentalSettings(SettingsPageTemplate):
 
 
     def get_embed(self) -> discord.Embed:
-        eb = discord.Embed(title='Remindme Settings',
-                description='Server Managers can edit these settings by pressing the '\
-                            'corresponding buttons below.\n'\
-                            'The grayed-out buttons are the current selected options.')
+        eb = discord.Embed(title='Remindme Experimental-Settings',
+                description='Server Managers can enable experimental settings.\n'\
+                            'These are new features which are not yet ready to be deployed for everyone.\n'\
+                            'Be aware that the Bot might not be as reliable with these turned on.')
+        
+        if self.forbidden:
+            eb.color = Consts.col_err
+            eb.description = 'You do not have permissions to modify the community settings of this server. Only moderators can do so.'
+
         return eb
     
 
@@ -258,17 +274,18 @@ class ExperimentalSettings(SettingsPageTemplate):
 
 
 class RoleDropDown(discord.ui.Select):
-    def __init__(self, scope: Connector.Scope, roles: list[discord.Role], mod_roles: list[int], *args, **kwargs):
+    def __init__(self, scope: Connector.Scope, author: Union[discord.User, discord.Member], guild_roles: list[discord.Role], mod_roles: list[int], *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.scope=scope
         self.placeholder='Select the Moderator Role(s)'
         
-        self.roles = roles[::-1][:25] # only show the "highest" 25
+        self.guild_roles = guild_roles[::-1][:25] # only show the "highest" 25
+        self.author = author
         self.mod_roles = mod_roles
 
         opts = [
-            discord.SelectOption(label=r.name[:25], value=str(r.id), default=r.id in self.mod_roles) for r in self.roles
+            discord.SelectOption(label=r.name[:25], value=str(r.id), default=r.id in self.mod_roles) for r in self.guild_roles
         ]
         self.options = opts
 
@@ -283,14 +300,24 @@ class RoleDropDown(discord.ui.Select):
 
 
 class CommunitySettingsView(SettingsPageTemplate):
-    def __init__(self, scope, roles, page_callback, *args, **kwargs):
-        super().__init__(scope=scope, page=1, page_callback=page_callback, dropdown_row=4, *args, **kwargs)
+    def __init__(self, scope:Connector.Scope, author: Union[discord.User, discord.Member], guild_roles: list[discord.Role], page_callback, *args, **kwargs):
+        super().__init__(scope, page=1, page_callback=page_callback, dropdown_row=4, *args, **kwargs)
         self.update_ui_elements()
 
+        self.guild_roles = guild_roles
+        self.author = author
 
         mod_roles = Connector.get_moderators(self.scope.instance_id)
-        role_drop = RoleDropDown(scope=scope, roles=roles, mod_roles=mod_roles)
-        self.add_item(role_drop)
+
+        self.role_drop = RoleDropDown(scope=scope, author=self.author, guild_roles=self.guild_roles, mod_roles=mod_roles)
+        self.add_item(self.role_drop)
+
+        action = CommunityAction(settings=True)
+        self.forbidden = not lib.permissions.check_user_permission(self.scope.instance_id, self.author.roles, required_perms=action)
+
+        if scope.is_private or (self.forbidden and not self.author.guild_permissions.administrator):
+            self.disable_all()
+            self.dd.disabled = False
 
 
     def update_ui_elements(self):
@@ -313,12 +340,21 @@ class CommunitySettingsView(SettingsPageTemplate):
 
 
     def get_embed(self) -> discord.Embed:
-        eb = discord.Embed(title='Remindme Settings',
-                description='Server Managers can edit these settings by pressing the '\
-                            'corresponding buttons below.\n'\
-                            'The grayed-out buttons are the current selected options.')
+        eb = discord.Embed(title='Remindme Community-Settings',
+                description='Server Managers can toggle the community mode, aswell as declare new moderators for this bot.'\
+                            'The restrictions in community modes can be specified in "Config..."')
+
+        if self.forbidden:
+            eb.color = Consts.col_err
+            eb.description = 'You do not have permissions to modify the community settings of this server. Only moderators can do so.'
+
         return eb
-    
+
+
+    def get_denied_embed(self) -> discord.Embed:
+        return discord.Embed(title='Missing Permissions',
+                                description='You are missing the privileges to modify the community settings of this bot',
+                                color=Consts.col_err)
 
     async def send_update_ui(self, interaction: discord.Interaction):
         self.update_ui_elements()
@@ -341,7 +377,7 @@ class CommunitySettingsView(SettingsPageTemplate):
 
     @discord.ui.button(label='Configure...', style=discord.ButtonStyle.secondary, row=0)
     async def mode_config(self, button: discord.ui.Button, interaction: discord.Interaction):
-        
+
         view = CommunitySubSettings(self.scope, message=self.message)
         eb = view.get_embed()
         await interaction.response.edit_message(embed=eb, view=view)
@@ -361,9 +397,16 @@ class CommunitySettingsView(SettingsPageTemplate):
 
 
 class BaseSettings(SettingsPageTemplate):
-    def __init__(self, scope, roles, page_callback, *args, **kwargs):
+    def __init__(self, scope: Connector.Scope, author: Union[discord.User, discord.Member], guild_roles: list[discord.Role], page_callback, *args, **kwargs):
         super().__init__(scope=scope, page=0, roles=[], page_callback=page_callback, dropdown_row=4, *args, **kwargs)
         self.update_ui_elements()
+
+        action = CommunityAction(settings=True)
+        self.forbidden = not lib.permissions.check_user_permission(self.scope.instance_id, author.roles, required_perms=action)
+
+        if scope.is_private or (self.forbidden and not author.guild_permissions.administrator):
+            self.disable_all()
+            self.dd.disabled = False
 
 
     def update_ui_elements(self):
@@ -435,6 +478,11 @@ class BaseSettings(SettingsPageTemplate):
                 description='Server Managers can edit these settings by pressing the '\
                             'corresponding buttons below.\n'\
                             'The grayed-out buttons are the current selected options.')
+
+        if self.forbidden:
+            eb.color = Consts.col_err
+            eb.description = 'You do not have permissions to modify the community settings of this server. Only moderators can do so.'
+
         return eb
     
 
@@ -517,7 +565,7 @@ class SettingsManager():
 
         self.roles = ctx.guild.roles if ctx.guild else []
 
-        self.view:SettingsPageTemplate = self._page_lookup(page)(scope=scope, roles=self.roles, page_callback=self.page_switch)
+        self.view:SettingsPageTemplate = self._page_lookup(page)(scope=scope, author=ctx.author, guild_roles=self.roles, page_callback=self.page_switch)
         
 
     def _page_lookup(self, page: int) -> SettingsPageTemplate:
@@ -543,7 +591,7 @@ class SettingsManager():
         if self.view.dd.page != self.view.dd.next_page:
             # get view based on next page
             new_page = int(self.view.dd.next_page)
-            new_view = self._page_lookup(new_page)(scope=self.scope, roles=self.roles, page_callback=self.page_switch, message=self.view.message)
+            new_view = self._page_lookup(new_page)(scope=self.scope, author=self.ctx.author, guild_roles=self.roles, page_callback=self.page_switch, message=self.view.message)
 
             # stop the old view and replac with new one
             message = self.view.message
@@ -558,8 +606,6 @@ class SettingsModule(commands.Cog):
     ##################
     # Statics
     #################
-
-    settings_group = discord.SlashCommandGroup('st', 'Change the config of this bot', guild_ids=[140150091607441408])
 
     def __init__(self, client):
         self.client = client
@@ -615,12 +661,12 @@ class SettingsModule(commands.Cog):
     async def on_ready(self):
         log.info('loaded')
 
-
+    
     ##################
     # Commands methods
     ##################
 
-    @settings_group.command(name='menu', description='Get an overview over all settings') 
+    @commands.slash_command(name='menu', description='Get an overview over all settings', guild_ids=[140150091607441408]) 
     async def settings_menu_cmd(self, ctx):
         
         scope = Connector.Scope(

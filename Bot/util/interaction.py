@@ -63,8 +63,8 @@ class CustomView(discord.ui.View):
 
 
 class AckView(CustomView):
-    def __init__(self, dangerous_action=False, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, dangerous_action=False, message=None, *args, **kwargs):
+        super().__init__(message=message, *args, **kwargs)
         self.danger = dangerous_action
         if dangerous_action:
             self.ack.style = discord.ButtonStyle.danger
@@ -133,39 +133,3 @@ class MulitDropdownView(CustomView):
         opt.default = True
         self.stop()
 
-
-
-
-# async def get_client_response(client, message: discord.Message, timeout, author, validation_fnc=None, silent_error=False):
-#     """Wait for user input into channel of message
-#        waits until a message is received which fullfills validation_fnc
-
-#     Args:
-#         client ([type]): bot client
-#         message (discord.Message): only channel of this message is allowed
-#         timeout ([type]): timeout before None is returned
-#         author ([type]): author of message
-#         validation_fnc ([type], optional): function only returns when this is fullfilled (or timeout). Defaults to None
-#     """
-#     def check(m):
-#         return m.channel.id == message.channel.id and m.author == author
-
-
-#     answer_accepted = False
-#     while not answer_accepted:
-#         try:
-#             reaction = await client.wait_for('message', check=check, timeout=timeout)
-#         except asyncio.exceptions.TimeoutError:
-#             await message.add_reaction('⏲') # timer clock
-#             return None
-#         else:
-#             # check against validation_fnc, if given
-#             answer = reaction.content
-#             if validation_fnc is not None:
-#                 answer_accepted = validation_fnc(answer)
-#                 if not answer_accepted and not silent_error:
-#                     await message.channel.send('Invalid format, try again')
-#             else: 
-#                 answer_accepted = True
-
-#     return answer

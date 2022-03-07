@@ -59,11 +59,11 @@ class ReminderModule(commands.Cog):
             # dm already failed before, 
             # only convert reason from target->author
             if reason == Types.DeliverFailureReason.TARGET_FETCH:
-                conv_reason = Types.DeliverFailureReason.AUTHOR_FETCH
-            else:
-                conv_resaon = Types.DeliverFailureReason.AUTHOR_DM
+                reason = Types.DeliverFailureReason.AUTHOR_FETCH
+            elif reason == Types.DeliverFailureReason.TARGET_DM:
+                reason = Types.DeliverFailureReason.AUTHOR_DM
             Analytics.reminder_not_delivered(rem, reason)
-            return
+            return # no need for second try on same user
         
 
         # expose non-critical error of target not notified
@@ -117,8 +117,12 @@ class ReminderModule(commands.Cog):
             await self.warn_author_dm(rem, Types.DeliverFailureReason.TARGET_FETCH, channel=channel, err_msg=err_msg)
             return
 
+        if target.bot:
+            await self.warn_author_dm(rem, Types.DeliverFailureReason.TARGET_IS_BOT, channel=channel, err_msg=err_msg)
+            return
+
         # dm if channel not existing anymor
-        dm =  await target.create_dm()
+        dm = await target.create_dm()
         
         
         # respect user preferences
