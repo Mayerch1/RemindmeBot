@@ -1,28 +1,36 @@
-Privacy Notice for **FuelBot**
+Privacy Notice for **RemindmeBot**
 
 Please note that this bot is **not** a service provided by or affiliated with Discord Inc.
 This notice has no implications on the *Discord Privacy notice*. Both documents coexist independently.
 
-__**Data collection**__
-The bot does not collect or store any user data.
-The bot does not forward any user data to third parties.
 
-Whenever a command is invoked, the entered data is temporarily held in volatile memory, which is discarded on completion of the command. The invocation of the command itself is not logged (see: *Error case*).
+Data stored by this bot is never shared with 3rd parties.
+All data remains "In-house" at any given points.
+
+If the bot is kicked from a server, all information is deleted (see exceptions below).
+
+
+__**Midterm User Data**__
+Whenever a reminder is created, the bot stores all information in a database, required to deliver the reminder.
+These information are only used to deliver the reminder as and will be completely once the reminder elapsed or has no future ocurrences (whichever is later).
+
+
+__**Long Term User Data**__
+The bot stores all settings (`/settings`) as long term data.
+This means that any custom settings will be stored as long as the bot is on your server.
+
 
 __Direct Feedback__
-If you choose to enter feedback using the `Direct Feedback` (`/help`), the inputted text is sent into a private channel on the "Bot Support Server" (see `/help` as well).
-This private feedback channel is only visible for developers of this library and is not downloaded to our devices.
+If you choose to enter feedback using the `Direct Feedback` (`/help`), the inputted text is sent into a private channel on the "Bot Support Server", in combination with your discord user ID.
+The personal data given in the direct feedback will only be used to improve the bot. The feedback is only visible to Moderators of the Server.
 
-__Data Request__
-You cannot request automatically collected user data, as there is no data stored to be requested.
-To get entered feedback data, join the Support Server (`/help`) and DM/tag a Mod to receive your entered feedbacks.
+An automatic removal of this feedback is not possible, as the Bot doesn't store any relations between users and feedback.
+If you want your feedback to be deleted, you need to manually join the Support Server.
 
-__Deletion Request__
-You cannot request a deletion of automatically collected data, as there is no data stored to be deleted.
-To delete previously given feedback, join the Support Server (`/help`) and DM/tag a Mod with your request.
 
-__**Error case**__
-In case a command causes an unexpected error, a so called `Stack-Trace` is dumped into log files.
-This stack trace does log the invocation of a command, but does not contain any personal information.
+__Analytics__
+Some actions (Reminder Creation, `/help` call, ...) will be written into an Analytics Database.
+The only data stored in this database, is *what* event ocurred and *when* in ocurred. The content of the event is never stored, 
+which leads to a removal of all identifying and personal data like *User ID* or *Reminder Content*.
 
-This privacy policy itself may be updated or extended without prior warning or notification.
+This data cannot be deleted as it's completely anonymized and not back-trackable.

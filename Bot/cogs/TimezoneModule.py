@@ -12,6 +12,7 @@ from dateutil.zoneinfo import getzoneinfofile_stream, ZoneInfoFile
 from pytz import common_timezones as pytz_common_timezones, country_timezones
 
 import discord
+from discord.ext import commands, tasks
 
 import lib.permissions
 import util.interaction
@@ -31,8 +32,6 @@ class TimezoneModule(discord.Cog):
 
     timezones = list(ZoneInfoFile(getzoneinfofile_stream()).zones.keys())
 
-
-    settings_group = discord.SlashCommandGroup('settings', 'Change the config of this bot', guild_ids=[140150091607441408])
     
     def __init__(self, client):
         self.client = client
@@ -202,7 +201,7 @@ class TimezoneModule(discord.Cog):
     # Commands methods
     ##################
     
-    @settings_group.command(name='timezone', description='Set the timezone of this server') 
+    @commands.slash_command(name='timezone', description='Set the timezone of this server') 
     async def set_timezone_sub_cmd(self, 
                                     ctx: discord.ApplicationContext, 
                                     new_timezone: discord.Option(

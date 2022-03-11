@@ -332,16 +332,10 @@ class ReminderCreation(commands.Cog):
         log.info('loaded')
 
 
-    @commands.slash_command(name='test', description='test', guild_ids=[140150091607441408])
-    async def test_routine(self, ctx: discord.ApplicationContext,
-                                target: discord.Option(discord.SlashCommandOptionType.mentionable, 'the user or role you want to remind', required=True)):
-        await ctx.respond(f'Hello {target.mention}')
-
-
     # =====================
     # commands functions
     # =====================
-    # TODO: fix mentionable type
+    # TODO: fix mentionable type, wait for lib fix
     @commands.slash_command(name='remind', description='set a reminder after a certain time period', guild_ids=[140150091607441408])
     async def remind_user(self, ctx:discord.ApplicationContext,
                         target:discord.Option((discord.Member, discord.Role), 'the user or role you want to remind', required=True),
@@ -350,8 +344,7 @@ class ReminderCreation(commands.Cog):
                         channel:discord.Option(discord.TextChannel, 'Show the reminder in a channel other than the current one', required=False)=None):
 
         if not target:
-            # TODO: try to trigger this condition, or see if it can be removed
-            # delays execution significantly, only if not already cached
+            # TODO: monitor if this ever gets hit
             target_resolve = await ctx.guild.fetch_member(int(target))
             log.critical('user not loaded, investigation required')
             1/0

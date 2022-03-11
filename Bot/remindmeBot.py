@@ -84,6 +84,16 @@ SYNTAX_HELP_PAGE = \
                 'Note: eow is end of the working week (Friday Evening)\n'\
                 '```'
 
+TIMEZONE_HELP_PAGE = \
+                    'Set a new timezone with `/timezone <string>`\n'\
+                    '\n'\
+                    'The bot will try to suggest valid timezone options, while you are typing\n'\
+                    '\n'\
+                    '• Allowed are all timezones [defined by the IANA](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)\n'\
+                    '• Some timezones are marked as \'deprecated\' but can be used with a warning\n'\
+                    '• geo-referencing timezones (e.g. `Europe/Berlin`) should be preferred\n'\
+                    '  over more general (and deprecated) timezones (e.g. `CET`)'
+
 # ###########
 # Methods
 # ###########
@@ -159,7 +169,6 @@ async def on_application_command_error(ctx: discord.ApplicationContext, error: E
     
     try:
         await ctx.respond(embed=get_err_embed(err_id), ephemeral=True)
-        #await ctx.send(embed=get_err_embed(err_id), hidden=True if not ctx.deferred else ctx._deferred_hidden)
     except:
         # prevent recursion with wildcard catch
         pass
@@ -244,8 +253,17 @@ def config_help():
     page = HelpPage(
         name='syntax',
         title='Syntax Help',
-        emoji='✏️',
+        emoji='✏️', # pencil2
         description=SYNTAX_HELP_PAGE
+    )
+    Help.add_page(page)
+
+
+    page = HelpPage(
+        name='timezone',
+        title='Timezone Help',
+        emoji='⏱️', # stopwatch
+        description=TIMEZONE_HELP_PAGE
     )
     Help.add_page(page)
 
@@ -283,15 +301,6 @@ async def update_experimental_count_before():
 def main():
     Connector.init()
     Analytics.init()
-
-    # client.load_extension(f'ReminderListing')
-    # client.load_extension(f'TimezoneModule')
-    # client.load_extension(f'ReminderCreation')
-    # client.load_extension(f'AdminModule')
-    # client.load_extension(f'ReminderModule')
-    # client.load_extension(f'SettingsModule')
-
-    # client.load_extension(f'HelpModule')
 
     for filename in os.listdir(Path(__file__).parent / 'cogs'):
         if filename.endswith('.py'):

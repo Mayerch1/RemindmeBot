@@ -666,7 +666,8 @@ class SettingsModule(commands.Cog):
     # Commands methods
     ##################
 
-    @commands.slash_command(name='menu', description='Get an overview over all settings', guild_ids=[140150091607441408]) 
+
+    @commands.slash_command(name='settings', description='Get an overview over all settings') 
     async def settings_menu_cmd(self, ctx):
         
         scope = Connector.Scope(
