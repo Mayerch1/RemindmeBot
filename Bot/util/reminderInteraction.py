@@ -498,12 +498,19 @@ class ReminderIntervalModifyView(util.interaction.CustomView):
                 await self.message.edit_original_message(embed=eb, view=view)
                 await view.wait()
         
-        # return back to normal view in any case
-        self.rule_index=None
-        self.del_rule.disabled=True
-        eb = self.get_embed()
-        self.update_dropdown()
-        await self.message.edit_original_message(embed=eb, view=self)
+
+        # test if there're any rules left
+        if isinstance(self.reminder, IntervalReminder):
+            # return back to normal view in any case
+            self.rule_index=None
+            self.del_rule.disabled=True
+            eb = self.get_embed()
+            self.update_dropdown()
+            await self.message.edit_original_message(embed=eb, view=self)
+        else:
+            self.disable_all()
+            await interaction.edit_original_message(view=self) # in case menu timeous out
+            self.stop() # this will give back controll to the list menu
     
 
 
@@ -538,12 +545,19 @@ class ReminderEditView(util.interaction.CustomView):
         self.reminder = reminder
         self.stm = stm
 
-        if isinstance(reminder, IntervalReminder):
-            self.set_interval.label = 'Edit Interval' # override decorator
+        self._override_edit_label()
 
         if self.stm.scope.is_private:
             # private reminders cannot change the channel
             self.edit_channel.disabled=True
+
+
+    def _override_edit_label(self):
+        if isinstance(self.reminder, IntervalReminder):
+            self.set_interval.label = 'Edit Interval' # override decorator
+        else:
+            self.set_interval.label = 'Set Interval'
+
 
     def get_embed(self) -> discord.Embed:
         return self.reminder.get_info_embed(self.stm.tz_str)
@@ -581,8 +595,10 @@ class ReminderEditView(util.interaction.CustomView):
         # wait for end of interaction
         await view.wait()
         self.message = view.message # update own message, in case it was transferred
+        self.reminder = view.reminder
 
         # go back to reminder edit view
+        self._override_edit_label()
         eb = self.get_embed()
         await self.message.edit_original_message(embed=eb, view=self)
 

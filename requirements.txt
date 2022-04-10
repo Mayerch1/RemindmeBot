@@ -14,5 +14,6 @@ aiodns
 brotlipy
 cchardet
 orjson
+py-cord==2.0.0b7
 git+https://github.com/Mayerch1/discord-ext-help
 git+https://github.com/Mayerch1/discord-ext-servercount

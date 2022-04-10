@@ -58,7 +58,7 @@ SYNTAX_HELP_PAGE = \
                 '\n'\
                 'create repeating reminders\n'\
                 '> /remindme `time: every friday at 14:15` `message: important appointment`\n'\
-                '> /remindme `time: every other year at 2nd july` `message: interesting`\n'\
+                '> /remindme `time: every other year on 2nd july` `message: interesting`\n'\
                 '\n'\
                 'combine relative intervals\n'\
                 '```1y 1mo 2 days -5h```'\
