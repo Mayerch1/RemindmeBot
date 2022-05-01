@@ -138,8 +138,7 @@ class Connector:
 
     @staticmethod
     def get_legacy_interval_count():
-        result = Connector.db.settings.find({'legacy_interval': True})
-        return result.count()
+        return Connector.db.settings.count_documents({'legacy_interval': True})
 
 
     @staticmethod
@@ -162,8 +161,7 @@ class Connector:
 
     @staticmethod
     def get_experimental_count():
-        result = Connector.db.settings.find({'experimental': True})
-        return result.count()
+        return Connector.db.settings.count_documents({'experimental': True})
 
 
     @staticmethod
@@ -183,8 +181,7 @@ class Connector:
 
     @staticmethod
     def get_community_count():
-        result = Connector.db.settings.find({'community': 'ENABLED'})
-        return result.count()
+        return Connector.db.settings.count_documents({'community': 'ENABLED'})
 
 
     @staticmethod
@@ -366,12 +363,12 @@ class Connector:
 
     @staticmethod
     def get_reminder_cnt():
-        return Connector.db.reminders.count()
+        return Connector.db.reminders.count_documents({})
 
 
     @staticmethod
     def get_interval_cnt():
-        return Connector.db.intervals.count()
+        return Connector.db.intervals.count_documents({})
 
 
     @staticmethod
