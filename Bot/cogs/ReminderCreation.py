@@ -336,7 +336,7 @@ class ReminderCreation(commands.Cog):
     # commands functions
     # =====================
     # TODO: fix mentionable type, wait for lib fix
-    @commands.slash_command(name='remind', description='set a reminder after a certain time period', guild_ids=[140150091607441408])
+    @commands.slash_command(name='remind', description='set a reminder after a certain time period')
     async def remind_user(self, ctx:discord.ApplicationContext,
                         target:discord.Option((discord.Member, discord.Role), 'the user or role you want to remind', required=True),
                         time:discord.Option(str, 'time/date when the reminder is triggered (see syntax page on /help)', required=True),

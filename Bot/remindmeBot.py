@@ -128,8 +128,8 @@ async def on_ready():
 
     config_help()
 
-    # await client.change_presence(activity=discord.Game(name='/remindme'))
-    log.debug('starting base-file loops')
+    await bot.change_presence(activity=discord.Game(name='/remindme'))
+    log.debug('starting basic statistics loops')
     update_community_count.start()
     update_experimental_count.start()
 
@@ -228,7 +228,7 @@ async def on_guild_join(guild):
 # ############
 
 def set_tokens():
-    ServerCount.init(bot, 'fuelBot (https://github.com/Mayerch1/RemindmeBot)')
+    ServerCount.init(bot, 'reminmdeBot (https://github.com/Mayerch1/RemindmeBot)')
     ServerCount.set_token_dir('tokens')
 
 
