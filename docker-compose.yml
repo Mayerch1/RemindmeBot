@@ -17,6 +17,8 @@ services:
     container_name: reminderbot-discord
     volumes:
            - ./Bot:/code
+           - ./legal:/code/legal
+           - ./logs:/code/logs
            - /usr/share/zoneinfo:/usr/share/zoneinfo
   
     stdin_open: true
