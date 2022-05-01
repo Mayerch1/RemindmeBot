@@ -187,7 +187,8 @@ class Reminder:
             eb.set_footer(text='created: ')
 
         if author:
-            eb.set_author(name=author.display_name, icon_url=author.avatar.url)
+            avatar_url = author.avatar.url if author.avatar else author.default_avatar.url
+            eb.set_author(name=author.display_name, icon_url=avatar_url)
         elif self.target != self.author:
             # fallback if author couldn't be determined
             eb.add_field(name='by', value=f'<@!{self.author}>', inline=False)
