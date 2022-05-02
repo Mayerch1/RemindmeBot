@@ -69,6 +69,11 @@ class ReminderListView(util.interaction.CustomView):
         self.stm.reminders = Connector.get_scoped_reminders(self.stm.scope)
         page_rems = self.get_reminders_on_page(self.stm.reminders, self.stm.page)
 
+        if(len(page_rems) > 25):
+            # TODO: debug issue?
+            log.warning('too many elements in dropdown in update_dropdown/ReminderListing.py')
+            page_rems = page_rems[0:25] # max 25 elements
+
         if page_rems:
             reminder_options = [discord.SelectOption(
                                         label= unidecode(r.msg)[:25] or '*empty reminder*', 

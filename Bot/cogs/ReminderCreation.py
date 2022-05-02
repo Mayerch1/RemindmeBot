@@ -182,7 +182,7 @@ class ReminderCreation(commands.Cog):
 
                 embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
                 embed.set_footer(text=ReminderCreation.HELP_FOOTER)
-                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.respond(embed=embed, ephemeral=True)
 
                 if interval == timedelta(hours=0):
                     Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)
@@ -199,7 +199,7 @@ class ReminderCreation(commands.Cog):
 
             embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
             embed.set_footer(text=ReminderCreation.HELP_FOOTER)
-            await ctx.send(embed=embed, ephemeral=True)
+            await ctx.respond(embed=embed, ephemeral=True)
             Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
             return  
 
@@ -221,7 +221,7 @@ class ReminderCreation(commands.Cog):
 
                 embed = discord.Embed(title='Failed to create the reminder', color=0xff0000, description=out_str)
                 embed.set_footer(text=ReminderCreation.HELP_FOOTER)
-                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.respond(embed=embed, ephemeral=True)
                 Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
                 return
             
