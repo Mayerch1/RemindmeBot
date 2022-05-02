@@ -39,7 +39,7 @@ services:
       - remindme-net
 
   mongo:
-    image: mongo
+    image: mongo:4
     container_name: reminderbot-mongo
     restart: always
     volumes:
