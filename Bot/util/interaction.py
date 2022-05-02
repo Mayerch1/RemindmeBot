@@ -8,6 +8,9 @@ from lib.Connector import Connector
 from lib.Analytics import Analytics, Types
 from lib.CommunitySettings import CommunitySettings, CommunityAction
 
+import logging
+
+log = logging.getLogger('Remindme')
 
 
 class CustomView(discord.ui.View):
@@ -32,7 +35,10 @@ class CustomView(discord.ui.View):
         self.disable_all()
 
         if self.message:
-            await self.message.edit_original_message(view=self)
+            if hasattr(self.message, 'edit_original_message'):
+                await self.message.edit_original_message(view=self)
+            else:
+                log.debug('on_timeout: message has no attr "edit_original_message. Do not disable btn elements"')
 
     async def transfer_to_message(self, new_msg, override_old):
         """attach this view context to a new message
