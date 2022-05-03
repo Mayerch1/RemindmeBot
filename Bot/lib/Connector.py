@@ -447,23 +447,30 @@ class Connector:
             bool: True if set was successfull
         """
         
-
+        # upsert with channel_name
         if channel_name:
             result = Connector.db.reminders.find_one_and_update({'_id': reminder_id}, 
                                                             {'$set': {'ch_id': str(channel_id), 'ch_name': str(channel_name)}}, 
                                                             new=False, 
                                                             upsert=False)
+            if not result:
+                result = Connector.db.intervals.find_one_and_update({'_id': reminder_id}, 
+                                                                {'$set': {'ch_id': str(channel_id), 'ch_name': str(channel_name)}}, 
+                                                                new=False, 
+                                                                upsert=False)
+
+        # upsert without channel name
         else:
             result = Connector.db.reminders.find_one_and_update({'_id': reminder_id}, 
                                                             {'$set': {'ch_id': str(channel_id)}}, 
                                                             new=False, 
                                                             upsert=False)
         
-        if not result:
-            result = Connector.db.intervals.find_one_and_update({'_id': reminder_id}, 
-                                                                {'$set': {'ch_id': str(channel_id)}}, 
-                                                                new=False, 
-                                                                upsert=False)
+            if not result:
+                result = Connector.db.intervals.find_one_and_update({'_id': reminder_id}, 
+                                                                    {'$set': {'ch_id': str(channel_id)}}, 
+                                                                    new=False, 
+                                                                    upsert=False)
             
         return (result is not None)
         

@@ -99,7 +99,7 @@ class ReminderChannelEdit(util.interaction.CustomView):
             err_eb = None
             if not new_ch:
                 err_eb = discord.Embed(title='Failed to edit Reminder',
-                                description='Couldn\'t resolve the selected channel')
+                                description='Couldn\'t resolve the selected channel. Ensure that I have sufficient permissions.')
             else:
                 r_type = Connector.get_reminder_type(self.stm.scope.instance_id)
                 if r_type == Connector.ReminderType.TEXT_ONLY:
