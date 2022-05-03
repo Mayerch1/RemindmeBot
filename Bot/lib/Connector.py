@@ -435,7 +435,7 @@ class Connector:
 
 
     @staticmethod
-    def set_reminder_channel(reminder_id, channel_id: int):
+    def set_reminder_channel(reminder_id, channel_id: int, channel_name:str=None):
         """change the channel id of a given reminder
            method tries to find reminder, if not exists
            method will assume an interval
@@ -447,7 +447,14 @@ class Connector:
             bool: True if set was successfull
         """
         
-        result = Connector.db.reminders.find_one_and_update({'_id': reminder_id}, 
+
+        if channel_name:
+            result = Connector.db.reminders.find_one_and_update({'_id': reminder_id}, 
+                                                            {'$set': {'ch_id': str(channel_id), 'ch_name': str(channel_name)}}, 
+                                                            new=False, 
+                                                            upsert=False)
+        else:
+            result = Connector.db.reminders.find_one_and_update({'_id': reminder_id}, 
                                                             {'$set': {'ch_id': str(channel_id)}}, 
                                                             new=False, 
                                                             upsert=False)

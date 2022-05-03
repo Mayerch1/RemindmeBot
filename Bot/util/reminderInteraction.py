@@ -88,7 +88,11 @@ class ReminderChannelEdit(util.interaction.CustomView):
 
         if self.drop_down.values:
             new_ch_id = int(self.drop_down.values[0])
-            new_ch = await self.stm.ctx.bot.fetch_channel(new_ch_id)
+
+            try:
+                new_ch = await self.stm.ctx.bot.fetch_channel(new_ch_id)
+            except discord.errors.Forbidden:
+                new_ch = None
 
             
 
@@ -125,7 +129,7 @@ class ReminderChannelEdit(util.interaction.CustomView):
 
                 if view.value:
                     # store the channel change
-                    Connector.set_reminder_channel(self.reminder._id, new_ch_id)
+                    Connector.set_reminder_channel(self.reminder._id, new_ch_id, new_ch.name)
                     # update local reminder obj
                     self.reminder.ch_id = new_ch_id
 
