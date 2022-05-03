@@ -195,7 +195,7 @@ class ReminderModule(commands.Cog):
             # this gets archived threads
             try:
                 channel = await self.client.fetch_channel(rem.ch_id)
-            except discord.errors.NotFound:
+            except (discord.errors.NotFound, discord.errors.Forbidden):
                 channel = None
 
         # no need to resolve author, target is sufficient
