@@ -38,47 +38,95 @@ class ReminderChannelEdit(util.interaction.CustomView):
 
         self.select_btn.disabled=True
         self.drop_down:discord.ui.Select = None
+        self.dd_is_category = False  # is True when drop down holds categories, False on text channels
+        self.drop_down_cat=None  # id of selected category, if dd holds text channels, on category mode: don't care
 
-        self.update_dropdown()
+        self.update_category_dropdown()
 
 
     def get_embed(self) -> discord.Embed:
         return self.reminder.get_info_embed(self.stm.tz_str)
 
 
-    def update_dropdown(self):
-        if not self.stm.ctx.guild:
-            return
+    async def category_selected_callback(self, interaction: discord.Interaction):
+        # only execute when called from category type dd
+        # NOP when called from text-channel populated DD
+        if self.dd_is_category:
+            cat_id = interaction.data['values'][0] # min/max selection is 1
+            self.drop_down_cat = int(cat_id)
+            await self.update_channel_dropdown(int(cat_id))
+
+
+    async def update_channel_dropdown(self, category_id: int):
 
         dd_search = [x for x in self.children if isinstance(x, discord.ui.Select)]
+        dropDown_instance = dd_search[0] if dd_search else None
 
-        # get channel list of server here
-        channel_list = list(filter(lambda ch: isinstance(ch, discord.TextChannel), self.stm.ctx.guild.channels))[0:25]
+        shown_channels = []
+
+        if self.drop_down_cat == -1:
+            shown_channels = list(filter(lambda ch: isinstance(ch, discord.TextChannel) and ch.category_id is None, self.stm.ctx.guild.channels))
+        else:
+            # limit to 25 entries
+            shown_channels = list(filter(lambda ch: isinstance(ch, discord.TextChannel) and ch.category_id is not None and ch.category_id==self.drop_down_cat, self.stm.ctx.guild.channels))[0:25]
+
         rule_options = [discord.SelectOption(
-                            label=unidecode(c.name)[:25] or '*unknown channel name*',
-                            value=str(c.id),
-                            default=(c.id==self.reminder.ch_id)) for c in channel_list]
-
-        if dd_search and rule_options:
-            dd = dd_search[0]
-            dd.options = []
+                    label=unidecode(c.name)[:25] or '*unknown channel name*',
+                    value=str(c.id),
+                    default=(c.id==self.reminder.ch_id)) for c in shown_channels]
+        
+        # delet old dropdown
+        #self.children.remove(dropDown_instance)
+        dropDown_instance.placeholder = 'Select a text-channel'
+        if not rule_options:
+            dropDown_instance.options = [
+                discord.SelectOption(
+                    label='*No channels found*',
+                    value='-1',
+                    default=False
+                )
+            ]
+            self.select_btn.disabled = True # no items to be selected, user needs to cancel
+        else:
+            
+            dropDown_instance.options = []
             for opt in rule_options:
-                dd.append_option(opt)
-        elif dd_search and not rule_options:
-            # delete action row
-            self.children.remove(dd_search[0])
-        elif rule_options:
-            self.drop_down = discord.ui.Select(
-                placeholder='Select a new channel',
+                dropDown_instance.append_option(opt)
+            self.select_btn.disabled = False
+        
+        self.dd_is_category = False
+        await self.message.edit_original_message(view=self)
+
+
+    def update_category_dropdown(self):
+        # show only the first 25 categories
+        cat_list = list(filter(lambda ch: isinstance(ch, discord.CategoryChannel), self.stm.ctx.guild.channels))[0:25]
+        rule_options = [
+                discord.SelectOption(
+                    label='No category',
+                    value=str(-1),
+                    default=False
+                )
+            ]
+        rule_options.extend([discord.SelectOption(
+                            label=unidecode(c.name)[:25] or '*unknown category name*',
+                            value=str(c.id),
+                            default=False) for c in cat_list])
+
+
+        self.drop_down = discord.ui.Select(
+                placeholder='Select a category',
                 min_values=1,
                 max_values=1,
                 options=rule_options,
                 row=1
             )
-            #self.drop_down.callback = self.drop_callback
-            self.select_btn.disabled = False # if items in list, enable select btn
-            self.add_item(self.drop_down)
-        # else pass
+        self.drop_down.callback = self.category_selected_callback
+        #self.drop_down.callback = self.drop_callback
+        self.select_btn.disabled = True # if items in list, enable select btn
+        self.add_item(self.drop_down)
+        
+        self.dd_is_category = True
 
 
     @discord.ui.button(label='Select', style=discord.ButtonStyle.green, row=2)
