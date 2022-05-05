@@ -276,7 +276,9 @@ class ReminderModule(commands.Cog):
                 Analytics.register_exception(e) # add these to ex counter
 
         self.last_loop = datetime.utcnow()
-        log.debug(f'intervals sent in {(self.last_loop-now).total_seconds()}s')
+        sent_in = (self.last_loop-now).total_seconds()
+        if sent_in > 1:
+            log.debug(f'intervals sent in {sent_in}s')
     
 
     @tasks.loop(minutes=1)
@@ -296,7 +298,11 @@ class ReminderModule(commands.Cog):
 
             Analytics.reminder_delay(reminder, now=now, allowed_delay=1*60)
 
-        log.debug(f'reminders sent in {(datetime.utcnow()-now).total_seconds()}s')
+
+        sent_in = (datetime.utcnow()-now).total_seconds()
+        if sent_in > 1:
+            log.debug(f'reminders sent in {sent_in}s')
+        
     
    
     @tasks.loop(minutes=15)
