@@ -475,8 +475,9 @@ class Help(discord.Cog):
         can_dm = False
         ping = int(self.client.latency*1000)
 
-        #response_time = (datetime.utcnow()-ctx.created_at)
-        response_time = timedelta(seconds=0)
+        created_at = discord.utils.snowflake_time(ctx.id)
+
+        response_time = (datetime.utcnow().replace(tzinfo=tz.UTC)-created_at)
         response_ms = int(response_time.total_seconds()*1000)
         
         # try-catch is the easiest approach for this problem
@@ -559,14 +560,12 @@ class Help(discord.Cog):
         eb.add_field(name='Library Latency*', value=f'{response_ms} ms', inline=True)
 
 
-        #test_time = (datetime.utcnow()-ctx.created_at)
-        test_time = timedelta(seconds=0)
+        test_time = (datetime.utcnow().replace(tzinfo=tz.UTC)-created_at)
         test_ms = int(test_time.total_seconds()*1000)
         eb.add_field(name='Self-Test Duration*', value=f'{test_ms} ms', inline=False)
 
-        #eb.set_footer(text='*this includes the server time difference between discord an the bot server')
-        eb.set_footer(text='*Currently not measured, always displayed as 0')
-        
+        eb.set_footer(text='*this includes server and discord time inaccuracies towards `Coordinated Universal Time`')
+
         
         await ctx.response.send_message(embed=eb, ephemeral=True)
 
