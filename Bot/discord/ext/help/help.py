@@ -1,5 +1,9 @@
 import discord
 import logging
+from datetime import datetime, timedelta
+from dateutil import tz
+
+from lib.Connector import Connector
 
 log = logging.getLogger('ext.help')
 
@@ -397,6 +401,15 @@ class Help(discord.Cog):
                     )
                 )
 
+            components.append(
+                discord.ui.Button(
+                    style=discord.ButtonStyle.secondary,
+                    label='Self-Test',
+                    custom_id='help_test_function',
+                    row=0
+                )
+            )
+
             # === ROW 1 ===
             if Help.tos_text:
                 components.append(
@@ -448,6 +461,116 @@ class Help(discord.Cog):
             # button/select menu
             await ctx.response.edit_message(embeds=[embed], view=view)
 
+
+
+    async def send_test_messages(self, ctx: discord.Interaction):
+        
+        instance_id = ctx.guild.id if ctx.guild else ctx.author.id
+        experimental = Connector.is_experimental(instance_id)
+        legacy = Connector.is_legacy_interval(instance_id)
+        
+        # create a report of the setup
+        can_embed = False
+        can_text = False
+        can_dm = False
+        ping = int(self.client.latency*1000)
+
+        #response_time = (datetime.utcnow()-ctx.created_at)
+        response_time = timedelta(seconds=0)
+        response_ms = int(response_time.total_seconds()*1000)
+        
+        # try-catch is the easiest approach for this problem
+        # instead of checking all permission overwrites
+        eb = discord.Embed(title='Test Message', 
+                           description='You can safely delete this message')
+        try:
+            await ctx.channel.send(embed=eb)
+        except discord.Forbidden:
+            # failure might still grant text_permission
+            text = 'Test Message, *please ignore this*'
+            try:
+                await ctx.channel.send(text)
+            except discord.Forbidden:
+                pass  # failure grants no permission
+            else:
+                can_text = True
+        else:
+            can_embed = can_text = True
+            
+            
+        # other critical parameters are the correct timezone
+        # aswell as the ability to DM the user
+        tz_str = Connector.get_timezone(instance_id)
+        local_time = datetime.now(tz.gettz(tz_str)).strftime('%H:%M')
+        
+        dm = await ctx.user.create_dm()
+        try:
+            await dm.send('Self-testing... *please ignore this.*')
+        except discord.Forbidden:
+            pass  # no permission on failure
+        else:
+            can_dm = True
+        
+        
+        # create the text snippets used to inform
+        # the user
+        color=0x96eb67
+        
+        if can_embed:
+            delivery_result = 'OK'
+            delivery_hint = ''
+        elif can_text:
+            delivery_result = '*Text Only*'
+            delivery_hint = '• Enable `Embed Links` permissions, to allow for a better reminder display\n'
+            color = 0xcceb67
+        else:
+            delivery_result = '**Failed**'
+            delivery_hint = '• Enable `Send Message` permissions for this text channel\n'
+            color = 0xde4b55  # red-ish
+
+        if can_dm:
+            dm_result = 'OK'
+            dm_hint = ''
+        else:
+            dm_result = '**Failed**'
+            dm_hint = '• Allow me to send you DMs to configure reminders and to receive error information, '\
+                        '[change your preferences]({:s}) and test again.'.format(r'https://support.discord.com/hc/en-us/articles/217916488-Blocking-Privacy-Settings-')
+            if can_embed:
+                # do not overwrite the color of more severe errors
+                color = 0xcceb67
+        
+        
+        eb = discord.Embed(title='Self-Test',
+                           description=delivery_hint + '\n' + dm_hint)
+        eb.color = color
+        
+        eb.add_field(name='Reminder delivery', value=delivery_result)
+        eb.add_field(name='DM permissions', value=dm_result)
+        
+        eb.add_field(name='Local Time', value=f'{local_time} (based on timezone settings)', inline=False)
+
+
+        eb.add_field(name='Legacy mode', value=legacy, inline=True)
+        eb.add_field(name='Experimental mode', value=experimental, inline=True)    
+        eb.add_field(name='\u200b', value='\u200b', inline=True)
+
+
+        eb.add_field(name='Discord API Latency', value=f'{ping} ms', inline=True)
+        eb.add_field(name='Library Latency*', value=f'{response_ms} ms', inline=True)
+
+
+        #test_time = (datetime.utcnow()-ctx.created_at)
+        test_time = timedelta(seconds=0)
+        test_ms = int(test_time.total_seconds()*1000)
+        eb.add_field(name='Self-Test Duration*', value=f'{test_ms} ms', inline=False)
+
+        #eb.set_footer(text='*this includes the server time difference between discord an the bot server')
+        eb.set_footer(text='*Currently not measured, always displayed as 0')
+        
+        
+        await ctx.response.send_message(embed=eb, ephemeral=True)
+
+
     # =====================
     # command functions
     # =====================
@@ -476,6 +599,8 @@ class Help(discord.Cog):
         elif custom_id == 'help_navigation':
             page = interaction.data['values'][0] # min select is 1
             await self.send_help_page(interaction, page)
+        elif custom_id == 'help_test_function':
+            await self.send_test_messages(interaction)
 
 
     @discord.Cog.listener()
