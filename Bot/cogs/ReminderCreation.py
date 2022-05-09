@@ -244,13 +244,25 @@ class ReminderCreation(commands.Cog):
             rem.ch_id = None
             rem.ch_name = 'DM'
         else:
-            # normal text channel
+            channel = self.client.get_partial_messageable(973222593039585300)
+            if isinstance(channel, discord.channel.PartialMessageable):
+                # channel not fully loaded (due to sharding or permissions)
+                try:
+                    channel = await self.client.fetch_channel(channel.id)
+                    rem.ch_name = channel.name[0:25] # only keep first 25 letters   
+                except discord.errors.Forbidden:
+                    rem.ch_name = '*Unresolved Channel*'
+                    info += f'\n• Failed to resolve the target channel. The reminder *might* not be delivered due to missing permissions.' 
+            else:
+                # channel name by attribute
+                rem.ch_name = channel.name[0:25] # only keep first 25 letters
+           
+            # independant of channel itself
             rem.g_id = ctx.guild.id
             rem.ch_id = channel.id
-            rem.ch_name = channel.name[0:25] # only keep first 25 letters
 
             if rem.ch_id != ctx.channel_id:
-                info += f'\n• This reminder will be delivered to `{channel.name}`.\nMake sure this bot has permission to send messages into that channel'
+                info += f'\n• This reminder will be delivered to `{rem.ch_name}`.\nMake sure this bot has permission to send messages into that channel'
 
 
         rem.msg = message
