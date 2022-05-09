@@ -244,11 +244,11 @@ class ReminderCreation(commands.Cog):
             rem.ch_id = None
             rem.ch_name = 'DM'
         else:
-            channel = self.client.get_partial_messageable(973222593039585300)
             if isinstance(channel, discord.channel.PartialMessageable):
                 # channel not fully loaded (due to sharding or permissions)
                 try:
-                    channel = await self.client.fetch_channel(channel.id)
+                    res_channel = await self.client.fetch_channel(channel.id)
+                    channel = res_channel
                     rem.ch_name = channel.name[0:25] # only keep first 25 letters   
                 except discord.errors.Forbidden:
                     rem.ch_name = '*Unresolved Channel*'
