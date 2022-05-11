@@ -74,8 +74,11 @@ class NewReminderView(util.interaction.CustomView):
         await interaction.response.send_modal(modal)
         await modal.wait()
 
-        # update reminder
-        self.reminder = Connector.get_reminder_by_id(self.reminder._id)
+        # update reminder (or interval)
+        if isinstance(self.reminder, IntervalReminder):
+            self.reminder = Connector.get_interval_by_id(self.reminder._id)
+        else:
+            self.reminder = Connector.get_reminder_by_id(self.reminder._id)
 
         # re-send this button menu
         if isinstance(self.message, discord.WebhookMessage):

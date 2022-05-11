@@ -257,6 +257,7 @@ class EditModal(discord.ui.Modal):
             discord.ui.InputText(
                 label='Title',
                 placeholder='(optional)',
+                value=self.reminder.title,
                 required=False,
                 style=discord.InputTextStyle.singleline
             )
@@ -757,7 +758,11 @@ class ReminderEditView(util.interaction.CustomView):
         await interaction.response.send_modal(modal)
         await modal.wait()
 
-        self.reminder = Connector.get_reminder_by_id(self.reminder._id)
+        if isinstance(self.reminder, IntervalReminder):
+            self.reminder = Connector.get_interval_by_id(self.reminder._id)
+        else:
+            self.reminder = Connector.get_reminder_by_id(self.reminder._id)
+
         eb = self.get_embed()
         await self.message.edit_original_message(embed=eb, view=self)
 
