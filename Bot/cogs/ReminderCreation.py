@@ -64,6 +64,29 @@ class NewReminderView(util.interaction.CustomView):
         await func(embed=self.get_embed(), view=self)
 
 
+    @discord.ui.button(label='Edit', emoji='🛠️', style=discord.ButtonStyle.secondary)
+    async def edit_reminder(self, button: discord.ui.Button, interaction: discord.Interaction):
+
+        modal = util.reminderInteraction.EditModal(reminder=self.reminder, 
+                                                    custom_callback=None,
+                                                    tz_str=self.stm.tz_str,
+                                                    title='Edit the Reminder')
+        await interaction.response.send_modal(modal)
+        await modal.wait()
+
+        # update reminder
+        self.reminder = Connector.get_reminder_by_id(self.reminder._id)
+
+        # re-send this button menu
+        if isinstance(self.message, discord.WebhookMessage):
+            func = self.message.edit
+        else:
+            func = self.message.edit_original_message
+
+        await func(embed=self.get_embed(), view=self)
+
+
+
     @discord.ui.button(emoji='🗑️', style=discord.ButtonStyle.danger)
     async def del_reminder(self, button: discord.ui.Button, interaction: discord.Interaction):
         eb_title = None

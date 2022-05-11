@@ -13,6 +13,7 @@ class Reminder:
             json = {}
 
         self.msg = json.get('msg', None)
+        self.title = json.get('title', None)
 
         self._id = json.get('_id', None)
 
@@ -70,6 +71,7 @@ class Reminder:
 
         d['msg'] = self.msg
 
+        d['title'] = self.title if self.title else None
         d['g_id'] = str(self.g_id) if self.g_id else None
         d['ch_id'] = str(self.ch_id) if self.ch_id else None
         d['target'] = str(self.target) if self.target else None

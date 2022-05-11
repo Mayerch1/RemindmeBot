@@ -242,6 +242,98 @@ class RuleModal(discord.ui.Modal):
             await interaction.response.send_message('OK', ephemeral=True)
 
 
+
+class EditModal(discord.ui.Modal):
+    def __init__(self, reminder: Reminder, tz_str:str, custom_callback, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.value = None
+        self.custom_callback = custom_callback
+        self.message = None
+        self.reminder = reminder
+        self.tz = tz_str
+
+
+        self.add_item(
+            discord.ui.InputText(
+                label='Title',
+                placeholder='(optional)',
+                required=False,
+                style=discord.InputTextStyle.singleline
+            )
+        )
+        self.add_item(discord.ui.InputText(
+                label='Content',
+                value=self.reminder.msg,
+                required=True,
+                style=discord.InputTextStyle.paragraph
+            )
+        )
+
+        if not isinstance(self.reminder, IntervalReminder):
+            self.add_item(discord.ui.InputText(
+                label='Remind at (iso)',
+                value=self.reminder.at.replace(tzinfo=tz.UTC).astimezone(tz=tz.gettz(tz_str)).isoformat(), # add +02:00 for server timezone
+                required=True,
+                style=discord.InputTextStyle.singleline
+                )
+            )
+        else:
+            self.add_item(discord.ui.InputText(
+                label='Remind at',
+                placeholder='Edit Intervals with `/reminder_list`',
+                required=False,
+                style=discord.InputTextStyle.singleline
+                )
+            )
+
+
+    async def callback(self, interaction: discord.Interaction):
+
+        info = ''
+
+        # title
+        new_title = self.children[0].value
+        new_msg = self.children[1].value
+        new_at = self.children[2].value
+        
+        if new_title != self.reminder.title:
+            self.reminder.title = new_title
+            Connector.set_reminder_title(self.reminder._id, self.reminder.title)
+
+        if new_msg != self.reminder.msg:
+            self.reminder.msg = new_msg
+            Connector.set_reminder_message(self.reminder._id, self.reminder.msg)
+
+        if not isinstance(self.reminder, IntervalReminder):
+            # check if valid iso-date was added
+            try:
+                parsed_at = datetime.strptime(new_at, '%Y-%m-%dT%H:%M:%S.%f')
+            except ValueError:
+                try:
+                    parsed_at = datetime.strptime(new_at, '%Y-%m-%dT%H:%M:%S.%f%z')
+                except ValueError:
+                    info += 'Didn\'t change the reminder date. The date is not an ISO-timestamp.\n'
+                    # TODO: show parsing error
+                    parsed_at = None
+
+            if parsed_at:
+                new_at_utc = parsed_at.astimezone(tz=tz.UTC).replace(tzinfo=None) if parsed_at.tzinfo else parsed_at
+                self.reminder.at = new_at_utc
+                Connector.update_reminder_at(self.reminder)
+        else:
+            info += 'The `Interval` attribute must be edited with `Edit Interval`.\n'
+
+
+        if self.custom_callback:
+            await self.custom_callback(interaction)
+        else:
+            await interaction.response.send_message(info+'Use `Set/Edit Interval` for better date parsing', ephemeral=True)
+
+        self.stop()
+
+
+
+
 class ReminderIntervalAddView(util.interaction.CustomView):
     def __init__(self, reminder: Reminder, stm: STM, message, *args, **kwargs):
         super().__init__(message, *args, **kwargs)
@@ -651,6 +743,21 @@ class ReminderEditView(util.interaction.CustomView):
 
         # go back to reminder edit view
         self._override_edit_label()
+        eb = self.get_embed()
+        await self.message.edit_original_message(embed=eb, view=self)
+
+
+    @discord.ui.button(label='Edit', emoji='🛠️', style=discord.ButtonStyle.secondary)
+    async def edit_reminder_btn(self, button: discord.ui.Button, interaction: discord.Interaction):
+        modal = EditModal(reminder=self.reminder, 
+                                                    custom_callback=None,
+                                                    tz_str=self.stm.tz_str,
+                                                    title='Edit the Reminder')
+
+        await interaction.response.send_modal(modal)
+        await modal.wait()
+
+        self.reminder = Connector.get_reminder_by_id(self.reminder._id)
         eb = self.get_embed()
         await self.message.edit_original_message(embed=eb, view=self)
 

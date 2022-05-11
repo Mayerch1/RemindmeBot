@@ -76,7 +76,7 @@ class ReminderListView(util.interaction.CustomView):
 
         if page_rems:
             reminder_options = [discord.SelectOption(
-                                        label= unidecode(r.msg)[:25] or '*empty reminder*', 
+                                        label= unidecode(r.title)[:25] if r.title else (unidecode(r.msg)[:25] or '*empty reminder*'), 
                                         emoji= lib.input_parser.num_to_emoji(i+1), 
                                         value= str(i))
                                         for i, r in enumerate(page_rems)]
@@ -210,7 +210,7 @@ class ReminderListing(commands.Cog):
             rows.append((str(i+1)+'.',
                         at_local.strftime('%d.%b %H:%M') if at_local else '-',
                         (r.ch_name or 'Unknown')[0:max_ch_len],
-                        r.msg[0:MAX_MSG_LEN]))
+                        r.title[0:MAX_MSG_LEN] if r.title else r.msg[0:MAX_MSG_LEN]))
 
         table = util.formatting.generate_code_table(['No.', 'Next', 'Channel', 'Message'], rows, description='Given in your server timezone')
 

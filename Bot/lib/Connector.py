@@ -312,6 +312,13 @@ class Connector:
                                                                                     'exrules': intvl_js['exrules']}}, new=False, upsert=False)
 
     @staticmethod
+    def update_reminder_at(reminder: Reminder):
+
+        at_ts = reminder._to_json()['at']
+        Connector.db.reminders.find_one_and_update({'_id': reminder._id}, {'$set': {'at': at_ts}}, new=False, upsert=False)
+
+
+    @staticmethod
     def update_interval_at(interval: IntervalReminder):
         
         if not interval.at:
@@ -433,6 +440,58 @@ class Connector:
         action = Connector.db.intervals.delete_one({'_id': reminder_id})
         return (action.deleted_count > 0)
 
+
+
+    @staticmethod
+    def set_reminder_message(reminder_id, message: str):
+        """set the message of the given reminder
+           can be Reminder or Interval
+           must already be existing in db
+
+        Args:
+            reminder_id (_type_): _description_
+            message (str): _description_
+
+        Returns:
+            _type_: _description_
+        """
+
+        result = Connector.db.reminders.find_one_and_update({
+            '_id': reminder_id,}, {'$set': {'msg': message}}, new=False, upsert=False
+        )
+
+        if not result:
+            result = Connector.db.intervals.find_one_and_update({
+            '_id': reminder_id,}, {'$set': {'msg': message}}, new=False, upsert=False
+        )
+
+        return (result is not None)
+
+
+    @staticmethod
+    def set_reminder_title(reminder_id, title: str):
+        """set the optional title for the given reminder Id
+           can be Reminder or Interval
+           reminder must already be stored into db
+
+        Args:
+            reminder_id (ObjectId): id of reminder
+            title (str): new title
+
+        Returns:
+            bool: True if set was successfull
+        """
+
+        result = Connector.db.reminders.find_one_and_update({
+            '_id': reminder_id,}, {'$set': {'title': title}}, new=False, upsert=False
+        )
+
+        if not result:
+            result = Connector.db.intervals.find_one_and_update({
+            '_id': reminder_id,}, {'$set': {'title': title}}, new=False, upsert=False
+        )
+
+        return (result is not None)
 
     @staticmethod
     def set_reminder_channel(reminder_id, channel_id: int, channel_name:str=None):
