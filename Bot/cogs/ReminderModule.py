@@ -37,11 +37,17 @@ class ReminderModule(commands.Cog):
         self.client: discord.AutoShardedBot = client
 
         log.debug('starting reminder event loops')
-        self.check_pending_reminders.start()
-        self.check_pending_intervals.start()
-        self.check_reminder_cnt.start()
-        self.check_interval_cnt.start()
-        self.clean_interval_orphans.start()
+
+        if not self.check_pending_reminders.is_running():
+            self.check_pending_reminders.start()
+        if not self.check_pending_intervals.is_running():
+            self.check_pending_intervals.start()
+        if not self.check_reminder_cnt.is_running():
+            self.check_reminder_cnt.start()
+        if not self.check_interval_cnt.is_running():
+            self.check_interval_cnt.start()
+        if not self.clean_interval_orphans.is_running():
+            self.clean_interval_orphans.start()
 
     def cog_unload(self):
         log.debug('stopping reminder event loops')

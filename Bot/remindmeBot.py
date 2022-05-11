@@ -130,8 +130,11 @@ async def on_ready():
 
     await bot.change_presence(activity=discord.Game(name='/remindme'))
     log.debug('starting basic statistics loops')
-    update_community_count.start()
-    update_experimental_count.start()
+
+    if not update_community_count.is_running():
+        update_community_count.start()
+    if not update_experimental_count.is_running():
+        update_experimental_count.start()
 
 
 @bot.event
