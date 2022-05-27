@@ -154,7 +154,7 @@ class ReminderChannelEdit(util.interaction.CustomView):
                     req_perms = discord.Permissions(send_messages=True)
                     has_perms = util.verboseErrors.VerboseErrors.has_permission(req_perms, new_ch)
                 else:
-                    has_perms = util.verboseErrors.VerboseErrors.can_embed(new_ch)
+                    has_perms = util.verboseErrors.VerboseErrors.can_send_messages(new_ch)
 
                 if not has_perms:
                     # no permissions
@@ -322,7 +322,9 @@ class EditModal(discord.ui.Modal):
                 self.reminder.at = new_at_utc
                 Connector.update_reminder_at(self.reminder)
         else:
-            info += 'The `Interval` attribute must be edited with `Edit Interval`.\n'
+            if new_at:
+                # TODO: check if placeholder is assigned to new_at or if None
+                info += 'The `Interval` attribute must be edited with `Edit Interval`.\n'
 
 
         if self.custom_callback:

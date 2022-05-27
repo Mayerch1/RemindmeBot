@@ -146,7 +146,7 @@ class Help(discord.Cog):
         for k in cmds:
             c = cmds[k]
 
-            if not c.default_permission:
+            if hasattr(c, 'default_permissions') and not c.default_permission:
                 # hide these commands (at least with the current permission system)
                 continue
 
