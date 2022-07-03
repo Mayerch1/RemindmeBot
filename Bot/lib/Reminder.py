@@ -142,7 +142,7 @@ class Reminder:
             return '{:d} minutes'.format(int(mins))
 
 
-    async def get_string(self, client=None, is_dm=False):
+    async def get_string(self, client=None, is_dm=False, barebone=False):
         """return string description of this reminder
 
         Args:
@@ -166,7 +166,7 @@ class Reminder:
         else:
             out_str = ''
 
-        if self.target == self.author:
+        if self.target == self.author or barebone:
             out_str += f' {self.msg}'
         elif author:
             out_str += f' {self.msg} (by {author.display_name})'

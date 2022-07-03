@@ -381,7 +381,7 @@ class ReminderCreation(commands.Cog):
                         message:discord.Option(str, 'the bot will remind you with this message', required=True)):
                         # TODO: re-implement after lib patch
                         #channel:discord.Option(discord.TextChannel, 'Show the reminder in a channel other than the current one', required=False)=None):
-        channel = None
+        channel=None
 
         if not target:
             # TODO: monitor if this ever gets hit
@@ -415,11 +415,9 @@ class ReminderCreation(commands.Cog):
     @commands.slash_command(name='remindme', description='set a reminder after a certain time period')
     async def remindme(self, ctx:discord.ApplicationContext,
                         time:discord.Option(str, 'time/date when the reminder is triggered (see syntax page on /help)', required=True),
-                        message:discord.Option(str, 'the bot will remind you with this message', required=True)): 
-                        # TODO: re-implement after lib patch
+                        message:discord.Option(str, 'the bot will remind you with this message', required=True)):
                         #channel:discord.Option(discord.TextChannel, 'Show the reminder in a channel other than the current one', required=False)=None):
-
-        channel = None
+        channel=None
         if ctx.guild:
             # call will fail if community mode is enabled
             err_eb = lib.permissions.get_missing_permissions_embed(ctx.guild.id, ctx.author.roles)

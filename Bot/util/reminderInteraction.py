@@ -65,13 +65,13 @@ class ReminderChannelEdit(util.interaction.CustomView):
         shown_channels = []
 
         if self.drop_down_cat == -1:
-            shown_channels = list(filter(lambda ch: isinstance(ch, discord.TextChannel) and ch.category_id is None, self.stm.ctx.guild.channels))
+            shown_channels = list(filter(lambda ch: (isinstance(ch, discord.TextChannel) or isinstance(ch, discord.VoiceChannel)) and ch.category_id is None, self.stm.ctx.guild.channels))
         else:
             # limit to 25 entries
-            shown_channels = list(filter(lambda ch: isinstance(ch, discord.TextChannel) and ch.category_id is not None and ch.category_id==self.drop_down_cat, self.stm.ctx.guild.channels))[0:25]
+            shown_channels = list(filter(lambda ch: (isinstance(ch, discord.TextChannel) or isinstance(ch, discord.VoiceChannel)) and ch.category_id is not None and ch.category_id==self.drop_down_cat, self.stm.ctx.guild.channels))[0:25]
 
         rule_options = [discord.SelectOption(
-                    label=unidecode(c.name)[:25] or '*unknown channel name*',
+                    label=(('#️⃣ ' if isinstance(c, discord.TextChannel) else '🔉 ') + unidecode(c.name)[:23]) or '*unknown channel name*',
                     value=str(c.id),
                     default=(c.id==self.reminder.ch_id)) for c in shown_channels]
         
@@ -100,7 +100,7 @@ class ReminderChannelEdit(util.interaction.CustomView):
 
     def update_category_dropdown(self):
         # show only the first 25 categories
-        cat_list = list(filter(lambda ch: isinstance(ch, discord.CategoryChannel), self.stm.ctx.guild.channels))[0:25]
+        cat_list = list(filter(lambda ch: isinstance(ch, discord.CategoryChannel), self.stm.ctx.guild.channels))[0:24]
         rule_options = [
                 discord.SelectOption(
                     label='No category',
@@ -134,6 +134,7 @@ class ReminderChannelEdit(util.interaction.CustomView):
         embed=None
         view=None
 
+
         if self.drop_down.values:
             new_ch_id = int(self.drop_down.values[0])
 
@@ -148,6 +149,9 @@ class ReminderChannelEdit(util.interaction.CustomView):
             if not new_ch:
                 err_eb = discord.Embed(title='Failed to edit Reminder',
                                 description='Couldn\'t resolve the selected channel. Ensure that I have sufficient permissions.')
+            elif isinstance(new_ch, discord.CategoryChannel):
+                err_eb = discord.Embed(title='Failed to edit Reminder',
+                                description='You must select a Voice- or Text- Channel')
             else:
                 r_type = Connector.get_reminder_type(self.stm.scope.instance_id)
                 if r_type == Connector.ReminderType.TEXT_ONLY:

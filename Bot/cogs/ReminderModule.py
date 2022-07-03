@@ -189,6 +189,7 @@ class ReminderModule(commands.Cog):
 
             return False
 
+    
         # reminder is a DM reminder
         if not rem.g_id:
             await self.print_reminder_dm(rem)
@@ -204,10 +205,19 @@ class ReminderModule(commands.Cog):
             except (discord.errors.NotFound, discord.errors.Forbidden):
                 channel = None
 
+
         # no need to resolve author, target is sufficient
+        guild_name = guild.name if guild else 'Unresolved Guild'
         if not channel:
-            guild_name = guild.name if guild else 'Unresolved Guild'
             err = f'`You are receiving this dm, as the desired channel on \'{guild_name}\' is not existing anymore.`'
+        elif isinstance(channel, discord.CategoryChannel):
+            # cannot use category channels
+            log.debug('tried to send reminder for category channel')
+            err = f'`You are receivin this dm, as the desired channel \'{channel.name}\' on \'{guild_name}\' is not a Text- or Voice- channel`'
+        else:
+            err = None
+        
+        if err:
             log.debug('try to send reminder over dm')
             await self.print_reminder_dm(rem, channel=None, err_msg=err)
             return
@@ -215,11 +225,15 @@ class ReminderModule(commands.Cog):
         # respect guild preferences
         rem_type = Connector.get_reminder_type(guild.id)
         
-        if rem_type == Connector.ReminderType.TEXT_ONLY:
+
+        if rem_type == Connector.ReminderType.BAREBONE:
+            eb = None
+            text = await rem.get_string(client=self.client, barebone=True)
+        elif rem_type == Connector.ReminderType.TEXT_ONLY:
             # text is identical to missing permission fallback
             # but the spoiler asking for more permissions is missing
             eb = None
-            text = await rem.get_string(client=self.client)
+            text = await rem.get_string(client=self.client, barebone=False)
         elif rem_type == Connector.ReminderType.EMBED_ONLY:
             eb = await rem.get_embed(self.client)
             text = rem.target_mention or f'<@{rem.target}>'

@@ -468,7 +468,7 @@ class Help(discord.Cog):
 
     async def send_test_messages(self, ctx: discord.Interaction):
         
-        instance_id = ctx.guild.id if ctx.guild else ctx.author.id
+        instance_id = ctx.guild_id if ctx.guild_id else ctx.user.id
         experimental = Connector.is_experimental(instance_id)
         legacy = Connector.is_legacy_interval(instance_id)
         

@@ -33,6 +33,7 @@ class Connector:
         TEXT_ONLY = 1
         HYBRID = 2
         EMBED_ONLY = 3
+        BAREBONE = 4
 
     class AutoDelete(Enum):
         TIMEOUT = 1

@@ -424,6 +424,8 @@ class BaseSettings(SettingsPageTemplate):
             self.style_embed.disabled=False
             self.style_text.style=discord.ButtonStyle.secondary
             self.style_text.disabled=False
+            self.style_bare.style=discord.ButtonStyle.secondary
+            self.style_bare.disabled=False
         elif rem_type==Connector.ReminderType.EMBED_ONLY:
             self.style_hybrid.style=discord.ButtonStyle.secondary
             self.style_hybrid.disabled=False
@@ -431,6 +433,17 @@ class BaseSettings(SettingsPageTemplate):
             self.style_embed.disabled=True
             self.style_text.style=discord.ButtonStyle.secondary
             self.style_text.disabled=False
+            self.style_bare.style=discord.ButtonStyle.secondary
+            self.style_bare.disabled=False
+        elif rem_type==Connector.ReminderType.BAREBONE:
+            self.style_hybrid.style=discord.ButtonStyle.secondary
+            self.style_hybrid.disabled=False
+            self.style_embed.style=discord.ButtonStyle.secondary
+            self.style_embed.disabled=False
+            self.style_text.style=discord.ButtonStyle.secondary
+            self.style_text.disabled=False
+            self.style_bare.style=discord.ButtonStyle.success
+            self.style_bare.disabled=True
         else:
             self.style_hybrid.style=discord.ButtonStyle.secondary
             self.style_hybrid.disabled=False
@@ -438,6 +451,8 @@ class BaseSettings(SettingsPageTemplate):
             self.style_embed.disabled=False
             self.style_text.style=discord.ButtonStyle.success
             self.style_text.disabled=True
+            self.style_bare.style=discord.ButtonStyle.secondary
+            self.style_bare.disabled=False
 
         if del_type==Connector.AutoDelete.NEVER:
             self.del_never.style=discord.ButtonStyle.success
@@ -519,6 +534,11 @@ class BaseSettings(SettingsPageTemplate):
     @discord.ui.button(label='Text-Only Reminders', style=discord.ButtonStyle.secondary, row=1)
     async def style_text(self, button: discord.ui.Button, interaction: discord.Interaction):
         Connector.set_reminder_type(self.scope.instance_id, Connector.ReminderType.TEXT_ONLY)
+        await self.send_update_ui(interaction)
+
+    @discord.ui.button(label='Barebone Reminder', style=discord.ButtonStyle.secondary, row=1)
+    async def style_bare(self, button: discord.ui.Button, interaction: discord.Interaction):
+        Connector.set_reminder_type(self.scope.instance_id, Connector.ReminderType.BAREBONE)
         await self.send_update_ui(interaction)
 
 
