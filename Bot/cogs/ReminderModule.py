@@ -273,7 +273,7 @@ class ReminderModule(commands.Cog):
         log.debug(f'deleted {cnt} orphaned interval(s)')
 
 
-    @tasks.loop(minutes=2)
+    @tasks.loop(minutes=1, seconds=5)
     async def check_pending_intervals(self):
         now = datetime.utcnow()
         

@@ -462,7 +462,7 @@ class Help(discord.Cog):
             # button/select menu
             await ctx.response.edit_message(embeds=[embed], view=view)
 
-        Analytics.help_page_called(page)
+        Analytics.help_page_called(page.name)
 
 
 
