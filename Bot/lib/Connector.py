@@ -495,6 +495,31 @@ class Connector:
         return (result is not None)
 
     @staticmethod
+    def set_reminder_img_url(reminder_id, img_url: str):
+        """set the optional image url for the given reminder Id
+           can be Reminder or Interval
+           reminder must already be stored into db
+
+        Args:
+            reminder_id (ObjectId): id of reminder
+            img_url (str): new url to image
+
+        Returns:
+            bool: True if set was successfull
+        """
+        result = Connector.db.reminders.find_one_and_update({
+            '_id': reminder_id,}, {'$set': {'img_url': img_url}}, new=False, upsert=False
+        )
+
+        if not result:
+            result = Connector.db.intervals.find_one_and_update({
+            '_id': reminder_id,}, {'$set': {'img_url': img_url}}, new=False, upsert=False
+        )
+
+        return (result is not None)
+
+
+    @staticmethod
     def set_reminder_channel(reminder_id, channel_id: int, channel_name:str=None):
         """change the channel id of a given reminder
            method tries to find reminder, if not exists

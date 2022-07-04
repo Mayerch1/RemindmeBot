@@ -3,6 +3,7 @@ from enum import Enum
 from datetime import datetime, timedelta
 from dateutil import tz
 from unidecode import unidecode
+import validators
 import logging
 
 import util.interaction
@@ -273,6 +274,12 @@ class EditModal(discord.ui.Modal):
                 style=discord.InputTextStyle.paragraph
             )
         )
+        self.add_item(discord.ui.InputText(
+            label='Image Url (optional)',
+            value=self.reminder.img_url,
+            required=False,
+            style=discord.InputTextStyle.singleline
+        ))
 
         if not isinstance(self.reminder, IntervalReminder):
             self.add_item(discord.ui.InputText(
@@ -299,7 +306,8 @@ class EditModal(discord.ui.Modal):
         # title
         new_title = self.children[0].value
         new_msg = self.children[1].value
-        new_at = self.children[2].value
+        new_imgurl = self.children[2].value
+        new_at = self.children[3].value
         
         if new_title != self.reminder.title:
             self.reminder.title = new_title
@@ -308,6 +316,18 @@ class EditModal(discord.ui.Modal):
         if new_msg != self.reminder.msg:
             self.reminder.msg = new_msg
             Connector.set_reminder_message(self.reminder._id, self.reminder.msg)
+
+        if new_imgurl != self.reminder.img_url:
+            # check if the given url is actually valid
+            try:
+                success = validators.url(new_imgurl)
+            except:
+                success = False
+                pass
+            if success:
+                self.reminder.img_url = new_imgurl
+                Connector.set_reminder_img_url(self.reminder._id, self.reminder.img_url)
+
 
         if not isinstance(self.reminder, IntervalReminder):
             # check if valid iso-date was added
@@ -337,8 +357,6 @@ class EditModal(discord.ui.Modal):
             await interaction.response.send_message(info+'Use `Set/Edit Interval` for better date parsing', ephemeral=True)
 
         self.stop()
-
-
 
 
 class ReminderIntervalAddView(util.interaction.CustomView):
@@ -372,7 +390,6 @@ class ReminderIntervalAddView(util.interaction.CustomView):
 
         self.return_btn.disabled=False # always allow return
         
-
 
     async def rrule_callback(self, interaction: discord.Interaction, user_input: str, mode: RuleMode):
 
@@ -482,7 +499,6 @@ class ReminderIntervalAddView(util.interaction.CustomView):
         msg = await self.message.edit_original_message(embed=eb, view=self)
 
 
-
     @discord.ui.button(label='Add Repeating Rule', style=discord.ButtonStyle.secondary, row=1)
     async def add_rrule(self, button:  discord.ui.Button, interaction: discord.Interaction):
 
@@ -533,7 +549,6 @@ class ReminderIntervalAddView(util.interaction.CustomView):
         self.disable_all()
         await interaction.response.edit_message(view=self) # in case menu timeous out
         self.stop() # this will give back controll to the list menu
-
 
 
 class ReminderIntervalModifyView(util.interaction.CustomView):
@@ -683,8 +698,6 @@ class ReminderIntervalModifyView(util.interaction.CustomView):
         eb = self.get_embed()
         self.update_dropdown()
         await interaction.response.edit_message(embed=eb, view=self)
-
-
 
 
 

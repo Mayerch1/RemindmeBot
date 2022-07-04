@@ -1,3 +1,4 @@
+from dis import dis
 import discord # for reminder
 from datetime import datetime
 from dateutil import tz
@@ -14,6 +15,7 @@ class Reminder:
 
         self.msg = json.get('msg', None)
         self.title = json.get('title', None)
+        self.img_url = json.get('img_url', None)
 
         self._id = json.get('_id', None)
 
@@ -71,7 +73,9 @@ class Reminder:
 
         d['msg'] = self.msg
 
+
         d['title'] = self.title if self.title else None
+        d['img_url'] = self.img_url if self.img_url else None
         d['g_id'] = str(self.g_id) if self.g_id else None
         d['ch_id'] = str(self.ch_id) if self.ch_id else None
         d['target'] = str(self.target) if self.target else None
@@ -166,12 +170,18 @@ class Reminder:
         else:
             out_str = ''
 
-        if self.target == self.author or barebone:
+        if barebone:
             out_str += f' {self.msg}'
-        elif author:
-            out_str += f' {self.msg} (by {author.display_name})'
         else:
-            out_str += f' {self.msg} (by <@!{self.author}>)'
+            if self.target == self.author:
+                out_str += f' {self.msg}'
+            elif author:
+                out_str += f' {self.msg} (by {author.display_name})'
+            else:
+                out_str += f' {self.msg} (by <@!{self.author}>)'
+
+            if self.img_url:
+                out_str += f'\n{self.img_url}'
 
         return out_str
 
@@ -293,6 +303,10 @@ class Reminder:
             url = f'https://discord.com/channels/@me/9/{self.last_msg_id}'
             eb.add_field(name='\u200B', value=f'[jump to the chat]({url})', inline=False)
 
+        if self.img_url:
+            eb.set_image(url=self.img_url)
+            eb.set_footer(text='*Images are provided by the author*, created: ')
+
         return eb
 
 
@@ -309,7 +323,9 @@ class Reminder:
             tmp = ''
 
         tmp += ' '
-        tmp += self.msg if len(self.msg) < 100 else f'{self.msg[0:100]} [...]'
+
+        content = self.title or self.msg
+        tmp += content if len(content) < 100 else f'{content[0:100]} [...]'
 
         return tmp
 
@@ -425,11 +441,16 @@ class IntervalReminder(Reminder):
         """
         
         eb = await super().get_embed(client, is_dm, tz_str)
+
         
-        
+        if self.img_url:
+            disclaimer = '*Images are provided by the author*'
+        else:
+            disclaimer = ''
+
         in_str = self.get_interval_string()
         prefix = 'Next in ' if self.at else ''
-        postfix = ', created'
+        postfix = f', {disclaimer}'
         
         eb.set_footer(text=f'{prefix}{in_str}{postfix}', icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/repeat-button_1f501.png')
         
