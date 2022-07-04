@@ -12,6 +12,7 @@ recurrent
 parsedatetime
 aiodns
 brotlipy
+validators
 cchardet
 orjson
 py-cord==2.0.0b7
