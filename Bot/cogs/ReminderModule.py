@@ -18,6 +18,7 @@ from lib.Connector import Connector
 from lib.Reminder import Reminder, IntervalReminder
 import lib.input_parser
 import lib.ReminderRepeater
+import util.interaction
 from util.verboseErrors import VerboseErrors
 from util.consts import Consts
 
@@ -145,13 +146,14 @@ class ReminderModule(commands.Cog):
         else:
             eb = await rem.get_embed(self.client, is_dm=True)
             text = rem.get_embed_text(is_dm=True)
-
         
+        view = util.interaction.UndeliveredView(reminder_id=rem._id, timeout=300)
+
         # first fallback is string-only message
         # second fallback is dm to user
         # DM never requires user mention (DM itself is a ping)
         try:
-            await dm.send(text, embed=eb)
+            await dm.send(text, embed=eb, view=view)
             if err_msg:
                 await dm.send(f'||{err_msg}||')
         except discord.errors.Forbidden:

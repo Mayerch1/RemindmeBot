@@ -182,6 +182,7 @@ class ReminderCreation(commands.Cog):
             last_msg = None
 
         
+        
 
         tz_str = Connector.get_timezone(instance_id)
         auto_del_action = Connector.get_auto_delete(instance_id)
@@ -379,10 +380,9 @@ class ReminderCreation(commands.Cog):
                         target:discord.Option((discord.Member, discord.Role), 'the user or role you want to remind', required=True),
                         time:discord.Option(str, 'time/date when the reminder is triggered (see syntax page on /help)', required=True),
                         message:discord.Option(str, 'the bot will remind you with this message', required=True)):
-                        # TODO: re-implement after lib patch
-                        #channel:discord.Option(discord.TextChannel, 'Show the reminder in a channel other than the current one', required=False)=None):
-        channel=None
+                        #channel:discord.Option((discord.TextChannel,discord.VoiceChannel), 'Show the reminder in a channel other than the current one', required=False)=None):
 
+        channel=None
         if not target:
             # TODO: monitor if this ever gets hit
             target_resolve = await ctx.guild.fetch_member(int(target))
@@ -416,8 +416,8 @@ class ReminderCreation(commands.Cog):
     async def remindme(self, ctx:discord.ApplicationContext,
                         time:discord.Option(str, 'time/date when the reminder is triggered (see syntax page on /help)', required=True),
                         message:discord.Option(str, 'the bot will remind you with this message', required=True)):
-                        #channel:discord.Option(discord.TextChannel, 'Show the reminder in a channel other than the current one', required=False)=None):
-        channel=None
+                        #channel:discord.Option((discord.TextChannel,discord.VoiceChannel), 'Show the reminder in a channel other than the current one', required=False)=None):
+        channel = None
         if ctx.guild:
             # call will fail if community mode is enabled
             err_eb = lib.permissions.get_missing_permissions_embed(ctx.guild.id, ctx.author.roles)

@@ -24,11 +24,13 @@ class CustomView(discord.ui.View):
         """disable all components in this view
            and stop the view
         """
+
+        # self.disable_all_items()
         for child in self.children:
-            # make all button childs gray
-            if isinstance(child, discord.ui.Button):
-                child.style = discord.ButtonStyle.secondary
-            child.disabled = True
+           # make all button childs gray
+           if isinstance(child, discord.ui.Button):
+               child.style = discord.ButtonStyle.secondary
+           child.disabled = True
 
 
     async def on_timeout(self):
@@ -137,5 +139,26 @@ class MulitDropdownView(CustomView):
         await interaction.response.edit_message(view=self)
         # go ahead and disable the view
         opt.default = True
+        self.stop()
+
+
+class UndeliveredView(CustomView):
+    def __init__(self, reminder_id, *args, **kwargs):
+        super().__init__(*args , **kwargs)
+        self.r_id = reminder_id
+
+
+    # This one is similar to the confirmation button except sets the inner value to `False`
+    @discord.ui.button(emoji='🗑️', style=discord.ButtonStyle.red)
+    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+
+        # modify button colors
+        if not Connector.delete_reminder(self.r_id):
+            Connector.delete_interval(self.r_id)
+
+        self.disable_all()
+        await interaction.response.edit_message(view=self)
+
+        self.value = False
         self.stop()
 
