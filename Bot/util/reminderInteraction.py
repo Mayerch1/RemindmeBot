@@ -805,8 +805,12 @@ class ReminderEditView(util.interaction.CustomView):
 
         if view.value:
             # delete the reminder
-            Connector.delete_interval(self.reminder._id)
-            Analytics.interval_deleted(Types.DeleteAction.LISTING)
+            if isinstance(self.reminder, IntervalReminder):
+                Connector.delete_interval(self.reminder._id)
+                Analytics.interval_deleted(Types.DeleteAction.LISTING)
+            else:
+                Connector.delete_reminder(self.reminder._id)
+                Analytics.reminder_deleted(Types.DeleteAction.LISTING)
 
             # go back to previous view
             self.disable_all()
