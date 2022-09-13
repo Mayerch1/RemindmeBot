@@ -4,7 +4,7 @@ from typing import Union
 
 import discord
 
-from lib.Connector import Connector
+from lib.Connector import Connector, Reminder
 from lib.Analytics import Analytics, Types
 from lib.CommunitySettings import CommunitySettings, CommunityAction
 
@@ -162,3 +162,42 @@ class UndeliveredView(CustomView):
         self.value = False
         self.stop()
 
+
+class SnoozeView(CustomView):
+    def __init__(self, reminder: Reminder, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reminder = reminder
+        self.r_id = reminder._id
+
+
+    async def snooze_reminder(self, button: discord.ui.Button, interaction: discord.Interaction, delay_seconds: int):
+        self.stop()
+
+    @discord.ui.button(label='+15m', emoji='⏱️', disabled=True, style=discord.ButtonStyle.blurple)
+    async def snooze_15(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await self.snooze_reminder(button, interaction, 15*60)
+
+    @discord.ui.button(label='+60m', emoji='⏱️', disabled=True, style=discord.ButtonStyle.blurple)
+    async def snooze_60(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await self.snooze_reminder(button, interaction, 60*60)
+
+    
+
+class SnoozeIntervalView(SnoozeView):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    async def delete(self, button: discord.ui.Button, interaction: discord.Interaction):
+
+        if interaction.user.id != self.reminder.author:
+            await interaction.response.send_message('You do not have permissions to delete this reminder', ephemeral=True)
+            return
+
+        Connector.delete_interval(self.r_id)
+        await interaction.response.edit_message(embed=discord.Embed(title='Deleted Reminder', description='The reminder was deleted by its author', color=0x409fe2)) # cyan blue
+        self.disable_all()
+        self.stop()
+
+    @discord.ui.button(emoji='🗑️', style=discord.ButtonStyle.danger)
+    async def del_reminder(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await self.delete(button, interaction)

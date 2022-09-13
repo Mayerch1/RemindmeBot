@@ -168,8 +168,15 @@ class ReminderModule(commands.Cog):
         async def send_message(guild, channel, text, embed):
             if VerboseErrors.can_embed(channel):
                 try:
+                    if isinstance(rem, IntervalReminder):                        
+                        view = util.interaction.SnoozeIntervalView(rem, timeout=120)
+                    else:
+                        view = util.interaction.SnoozeView(rem, timeout=120)
+
                     await channel.send(text, embed=embed, 
-                                    allowed_mentions=discord.AllowedMentions.all())
+                                    allowed_mentions=discord.AllowedMentions.all(),
+                                    view=view)
+                                    
                     return True
                 except discord.errors.Forbidden:
                     if isinstance(channel, discord.Thread) and channel.locked:
@@ -275,7 +282,7 @@ class ReminderModule(commands.Cog):
         log.debug(f'deleted {cnt} orphaned interval(s)')
 
 
-    @tasks.loop(minutes=1, seconds=5)
+    @tasks.loop(seconds=45)
     async def check_pending_intervals(self):
         now = datetime.utcnow()
         
@@ -301,9 +308,9 @@ class ReminderModule(commands.Cog):
         sent_in = (self.last_loop-now).total_seconds()
         if sent_in > 1:
             log.debug(f'intervals sent in {sent_in}s')
-    
 
-    @tasks.loop(minutes=1)
+
+    @tasks.loop(seconds=50)
     async def check_pending_reminders(self):
         now = datetime.utcnow()
 
