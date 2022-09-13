@@ -165,13 +165,17 @@ class ReminderModule(commands.Cog):
 
     async def print_reminder(self, rem: Reminder):
 
-        async def send_message(guild, channel, text, embed):
+        async def send_message(guild, channel, text, embed, rem_type: Connector.ReminderType):
             if VerboseErrors.can_embed(channel):
                 try:
-                    if isinstance(rem, IntervalReminder):                        
+                    if rem_type != Connector.ReminderType.EMBED_ONLY and \
+                        rem_type != Connector.ReminderType.HYBRID:
+                        view = None
+                    elif isinstance(rem, IntervalReminder):                        
                         view = util.interaction.SnoozeIntervalView(rem, timeout=120)
                     else:
                         view = util.interaction.SnoozeView(rem, timeout=120)
+
 
                     await channel.send(text, embed=embed, 
                                     allowed_mentions=discord.AllowedMentions.all(),
@@ -250,7 +254,7 @@ class ReminderModule(commands.Cog):
             eb = await rem.get_embed(self.client)
             text = rem.get_embed_text()
 
-        success = await send_message(guild, channel, text, eb)
+        success = await send_message(guild, channel, text, eb, rem_type)
         
 
         if not success:

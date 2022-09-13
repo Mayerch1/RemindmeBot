@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timedelta
 import re
 from typing import Union
 
@@ -171,13 +172,29 @@ class SnoozeView(CustomView):
 
 
     async def snooze_reminder(self, button: discord.ui.Button, interaction: discord.Interaction, delay_seconds: int):
+        
+        # convert to json and back to reminder object
+        # this automatically converts intervals to reminders
+        snoozed = Reminder(self.reminder._to_json())
+
+        snoozed._id = None
+        snoozed.created_at = datetime.utcnow()
+        snoozed.msg = (snoozed.msg+' (snoozed)')[:25]
+        snoozed.at = self.reminder.at + timedelta(seconds=delay_seconds)
+
+        Connector.add_reminder(snoozed)
+
+        self.disable_all()
+        button.style = discord.ButtonStyle.green
+
+        await interaction.response.edit_message(view=self)
         self.stop()
 
-    @discord.ui.button(label='+15m', emoji='⏱️', disabled=True, style=discord.ButtonStyle.blurple)
+    @discord.ui.button(label='+15m', emoji='⏱️', style=discord.ButtonStyle.blurple)
     async def snooze_15(self, button: discord.ui.Button, interaction: discord.Interaction):
         await self.snooze_reminder(button, interaction, 15*60)
 
-    @discord.ui.button(label='+60m', emoji='⏱️', disabled=True, style=discord.ButtonStyle.blurple)
+    @discord.ui.button(label='+60m', emoji='⏱️', style=discord.ButtonStyle.blurple)
     async def snooze_60(self, button: discord.ui.Button, interaction: discord.Interaction):
         await self.snooze_reminder(button, interaction, 60*60)
 
@@ -194,9 +211,12 @@ class SnoozeIntervalView(SnoozeView):
             return
 
         Connector.delete_interval(self.r_id)
-        await interaction.response.edit_message(embed=discord.Embed(title='Deleted Reminder', description='The reminder was deleted by its author', color=0x409fe2)) # cyan blue
         self.disable_all()
+        button.style = discord.ButtonStyle.danger
+
+        await interaction.response.edit_message(view=self, embed=discord.Embed(title='Deleted Reminder', description='The reminder was deleted by its author', color=0x409fe2)) # cyan blue
         self.stop()
+
 
     @discord.ui.button(emoji='🗑️', style=discord.ButtonStyle.danger)
     async def del_reminder(self, button: discord.ui.Button, interaction: discord.Interaction):
