@@ -40,6 +40,9 @@ class CustomView(discord.ui.View):
         if self.message:
             if hasattr(self.message, 'edit_original_message'):
                 await self.message.edit_original_message(view=self)
+            elif hasattr(self.message, 'edit'):
+                await self.message.edit(view=self)
+
             else:
                 log.debug('on_timeout: message has no attr "edit_original_message. Do not disable btn elements"')
 

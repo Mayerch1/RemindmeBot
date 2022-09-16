@@ -177,9 +177,13 @@ class ReminderModule(commands.Cog):
                         view = util.interaction.SnoozeView(rem, timeout=120)
 
 
-                    await channel.send(text, embed=embed, 
+                    tmp_msg = await channel.send(text, embed=embed, 
                                     allowed_mentions=discord.AllowedMentions.all(),
                                     view=view)
+
+                    if view:
+                        # for timeout functionality
+                        view.message = tmp_msg
                                     
                     return True
                 except discord.errors.Forbidden:
