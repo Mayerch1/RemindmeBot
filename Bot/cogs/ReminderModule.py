@@ -172,9 +172,9 @@ class ReminderModule(commands.Cog):
                         rem_type != Connector.ReminderType.HYBRID:
                         view = None
                     elif isinstance(rem, IntervalReminder):                        
-                        view = util.interaction.SnoozeIntervalView(rem, timeout=120)
+                        view = util.interaction.SnoozeIntervalView(rem, timeout=500)
                     else:
-                        view = util.interaction.SnoozeView(rem, timeout=120)
+                        view = util.interaction.SnoozeView(rem, timeout=500)
 
 
                     tmp_msg = await channel.send(text, embed=embed, 
