@@ -329,8 +329,12 @@ class ReminderCreation(commands.Cog):
             rem.rrules.append(str(rrule))
 
             rem.at = rem.next_trigger(utcnow, tz_str=tz_str)
-            rem._id = Connector.add_interval(rem)
-            Analytics.reminder_created(rem, country_code=self.timezone_country.get(tz_str, 'UNK'), direct_interval=True)
+            # do NOT save, if trigger creation faild
+            # this should not be possible
+            if rem.at:
+                
+                rem._id = Connector.add_interval(rem)
+                Analytics.reminder_created(rem, country_code=self.timezone_country.get(tz_str, 'UNK'), direct_interval=True)
         else:
             # the id is required in case the users wishes to abort
             rem._id = Connector.add_reminder(rem)

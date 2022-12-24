@@ -407,6 +407,9 @@ def rrule_normalize(rrule_str, dtstart, instance_id=None):
         (rule, str): normalized rule (to utc) None on failure, error string
     """
 
+    if 'interval=0' in rrule_str.lower():
+        return (None, 'Please specify an interval greater than 0')
+
     try:
         rule = rr.rrulestr(rrule_str, dtstart=dtstart)
     except Exception as e:

@@ -291,7 +291,7 @@ class ReminderModule(commands.Cog):
 
 
     @tasks.loop(seconds=45)
-    async def check_pending_intervals(self):
+    async def check_pending_intervals(self):   
         now = datetime.utcnow()
         
         pending_intvls = Connector.get_pending_intervals(now.timestamp())
@@ -301,7 +301,11 @@ class ReminderModule(commands.Cog):
             Analytics.reminder_delay(interval, now=now, allowed_delay=2*60)
             
             interval.at = interval.next_trigger(now)
-            Connector.update_interval_at(interval)
+
+            if interval.at is None:
+                # do not update on invalid rrule
+                interval.msg += '\n**WARNING: the reminder couldn\'t get queued for future invocations** (likely due to an invalid repetition rule). **This reminder will not be delivered anymore**'
+            Connector.update_interval_at(interval)                
             
         for interval in pending_intvls:
             try:

@@ -528,6 +528,12 @@ class IntervalReminder(Reminder):
 
     def next_trigger(self, utcnow, tz_str=None):
 
+        def valid_rule(rule_str):
+            if 'interval=0' in rule_str.lower():
+                print(f'rrule {rule_str} failed check')
+                return False
+            return True
+
         instance_id = self.g_id if self.g_id else self.author
         legacy_mode = lib.Connector.Connector.is_legacy_interval(instance_id)
 
@@ -539,15 +545,23 @@ class IntervalReminder(Reminder):
         ruleset.rdate(self.first_at)
 
         for rule in self.rrules:
+            if not valid_rule(rule):
+                continue
             ruleset.rrule(rr.rrulestr(rule))
 
         for rule in self.exrules:
+            if not valid_rule(rule):
+                continue
             ruleset.exrule(rr.rrulestr(rule))
 
         for date in self.rdates:
+            if not valid_rule(rule):
+                continue
             ruleset.rdate(date)
 
         for date in self.exdates:
+            if not valid_rule(rule):
+                continue
             ruleset.exdate(date)
 
 
@@ -561,6 +575,7 @@ class IntervalReminder(Reminder):
             local_now = local_now.astimezone(tz.gettz(tz_str))
             local_now = local_now.replace(tzinfo=None)
             
+
             next_trigger = ruleset.after(local_now)
             
             if next_trigger:
