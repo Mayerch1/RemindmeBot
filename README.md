@@ -65,8 +65,9 @@ The bot supports the full `rfc5545`-spec and allows the combination of up to 25 
 |```remindme <time> <message>```  | reminds you after the given `<time>` period| 
 |```remind <mentionable> <time> <message>``` | reminds another user/role after the given `<time>` period|
 |```reminder_list``` | manage all your reminders for this server (interactive DM) |
-|```settings timezone <string>``` | set the timezone of your server, used for absolute times, defaults to UTC|
-|```settings menu``` | show some application settings, to modify the behavior of the bot|
+|```settings``` | get an overview over all settings |
+|```timezone <timezone>``` | set the timezone of your server using a [time zone defined by IANA](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List), defaults to UTC|
+|```help``` | show the help page for this bot |
 
 
 ### Examples
@@ -86,6 +87,8 @@ The bot supports the full `rfc5545`-spec and allows the combination of up to 25 
 
 /remindme every friday at 20:15 do stuff
 /remind @User every year at 1st july happy birthday
+
+/timezone Australia/Melbourne
 ```
 
 ## Time parsing
