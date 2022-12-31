@@ -38,13 +38,16 @@ class CustomView(discord.ui.View):
         self.disable_all()
 
         if self.message:
-            if hasattr(self.message, 'edit_original_message'):
-                await self.message.edit_original_message(view=self)
-            elif hasattr(self.message, 'edit'):
-                await self.message.edit(view=self)
+            try:
+                if hasattr(self.message, 'edit_original_message'):
+                        await self.message.edit_original_message(view=self)
+                elif hasattr(self.message, 'edit'):
+                        await self.message.edit(view=self)
+                else:
+                    log.debug('on_timeout: message has no attr "edit_original_message. Do not disable btn elements"')
+            except:
+                log.warning('failed to edit message on timeout')
 
-            else:
-                log.debug('on_timeout: message has no attr "edit_original_message. Do not disable btn elements"')
 
     async def transfer_to_message(self, new_msg, override_old):
         """attach this view context to a new message

@@ -555,13 +555,9 @@ class IntervalReminder(Reminder):
             ruleset.exrule(rr.rrulestr(rule))
 
         for date in self.rdates:
-            if not valid_rule(rule):
-                continue
             ruleset.rdate(date)
 
         for date in self.exdates:
-            if not valid_rule(rule):
-                continue
             ruleset.exdate(date)
 
 
