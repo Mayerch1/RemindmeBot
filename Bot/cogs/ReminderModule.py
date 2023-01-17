@@ -165,16 +165,16 @@ class ReminderModule(commands.Cog):
 
     async def print_reminder(self, rem: Reminder):
 
-        async def send_message(guild, channel, text, embed, rem_type: Connector.ReminderType):
-            if VerboseErrors.can_embed(channel):
+        async def send_message(guild, channel, text, embed, rem_type: Connector.ReminderType, reminder):
+            if isinstance(channel, discord.Thread) or VerboseErrors.can_embed(channel):
                 try:
                     if rem_type != Connector.ReminderType.EMBED_ONLY and \
                         rem_type != Connector.ReminderType.HYBRID:
                         view = None
-                    elif isinstance(rem, IntervalReminder):                        
-                        view = util.interaction.SnoozeIntervalView(rem, timeout=500)
+                    elif  isinstance(reminder, IntervalReminder):                        
+                        view = util.interaction.SnoozeIntervalView(reminder, timeout=500)
                     else:
-                        view = util.interaction.SnoozeView(rem, timeout=500)
+                        view = util.interaction.SnoozeView(reminder, timeout=500)
 
 
                     tmp_msg = await channel.send(text, embed=embed, 
@@ -226,7 +226,7 @@ class ReminderModule(commands.Cog):
         # no need to resolve author, target is sufficient
         guild_name = guild.name if guild else 'Unresolved Guild'
         if not channel:
-            err = f'`You are receiving this dm, as the desired channel on \'{guild_name}\' is not existing anymore.`'
+            err = f'`You are receiving this dm, as the desired channel on \'{guild_name}\' is not accesible (anymore).`'
         elif isinstance(channel, discord.CategoryChannel):
             # cannot use category channels
             log.debug('tried to send reminder for category channel')
@@ -258,7 +258,7 @@ class ReminderModule(commands.Cog):
             eb = await rem.get_embed(self.client)
             text = rem.get_embed_text()
 
-        success = await send_message(guild, channel, text, eb, rem_type)
+        success = await send_message(guild, channel, text, eb, rem_type, reminder=rem)
         
 
         if not success:

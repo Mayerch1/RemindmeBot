@@ -11,8 +11,8 @@ If the bot is kicked from a server, all information is deleted (see exceptions b
 
 
 __**Midterm User Data**__
-Whenever a reminder is created, the bot stores all information in a database, required to deliver the reminder.
-These information are only used to deliver the reminder as and will be completely once the reminder elapsed or has no future ocurrences (whichever is later).
+Whenever a reminder is created, the bot stores all information required to deliver the reminder in a database.
+These information are only used to deliver the reminder and will be deleted once the reminder elapsed or has no future occurrences (whichever is later).
 
 
 __**Long Term User Data**__
@@ -30,7 +30,7 @@ If you want your feedback to be deleted, you need to manually join the Support S
 
 __Analytics__
 Some actions (Reminder Creation, `/help` call, ...) will be written into an Analytics Database.
-The only data stored in this database, is *what* event ocurred and *when* in ocurred. The content of the event is never stored, 
+The only data stored in this database, is *what* event occurred and *when* in occurred. The content of the event is never stored, 
 which leads to a removal of all identifying and personal data like *User ID* or *Reminder Content*.
 
 This data cannot be deleted as it's completely anonymized and not back-trackable.
