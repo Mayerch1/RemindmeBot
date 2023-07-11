@@ -8,6 +8,7 @@ import discord
 from lib.Connector import Connector, Reminder
 from lib.Analytics import Analytics, Types
 from lib.CommunitySettings import CommunitySettings, CommunityAction
+import lib.permissions
 
 import logging
 
@@ -40,7 +41,7 @@ class CustomView(discord.ui.View):
         if self.message:
             try:
                 if hasattr(self.message, 'edit_original_message'):
-                        await self.message.edit_original_message(view=self)
+                        await self.message.edit_original_response(view=self)
                 elif hasattr(self.message, 'edit'):
                         await self.message.edit(view=self)
                 else:
@@ -179,13 +180,22 @@ class SnoozeView(CustomView):
 
     async def snooze_reminder(self, button: discord.ui.Button, interaction: discord.Interaction, delay_seconds: int):
         
+        if interaction.guild:
+            # call will fail if community mode is enabled
+            err_eb = lib.permissions.get_missing_permissions_embed(interaction.guild.id, interaction.user.roles)
+            if err_eb:
+                await interaction.response.send_message(embed=err_eb)
+                # await interaction.response.send_message('You do not have permissions to snooze this reminder', ephemeral=True)
+                return
+
         # convert to json and back to reminder object
         # this automatically converts intervals to reminders
         snoozed = Reminder(self.reminder._to_json())
+        user_name = interaction.user.display_name
 
         snoozed._id = None
         snoozed.created_at = datetime.utcnow()
-        snoozed.msg = (snoozed.msg+' (snoozed)')[:25]
+        snoozed.msg = (snoozed.msg+f' (snoozed)')[:25]
         snoozed.at = self.reminder.at + timedelta(seconds=delay_seconds)
 
         Connector.add_reminder(snoozed)
@@ -195,6 +205,8 @@ class SnoozeView(CustomView):
 
         await interaction.response.edit_message(view=self)
         self.stop()
+
+        
 
     @discord.ui.button(label='+15m', emoji='⏱️', style=discord.ButtonStyle.blurple)
     async def snooze_15(self, button: discord.ui.Button, interaction: discord.Interaction):
