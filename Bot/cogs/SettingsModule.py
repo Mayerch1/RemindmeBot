@@ -618,7 +618,7 @@ class SettingsManager():
             self.view.stop()
             self.view = new_view
 
-            await message.edit_original_response(embed=self.view.get_embed(), view=self.view)
+            await message.edit_original_message(embed=self.view.get_embed(), view=self.view)
 
 
 class SettingsModule(commands.Cog):

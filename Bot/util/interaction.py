@@ -41,7 +41,7 @@ class CustomView(discord.ui.View):
         if self.message:
             try:
                 if hasattr(self.message, 'edit_original_message'):
-                        await self.message.edit_original_response(view=self)
+                        await self.message.edit_original_message(view=self)
                 elif hasattr(self.message, 'edit'):
                         await self.message.edit(view=self)
                 else:
