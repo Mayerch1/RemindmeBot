@@ -182,7 +182,7 @@ class SnoozeView(CustomView):
         
         if interaction.guild:
             # call will fail if community mode is enabled
-            err_eb = lib.permissions.get_missing_permissions_embed(interaction.guild.id, interaction.user.roles)
+            err_eb = lib.permissions.get_missing_permissions_embed(interaction.guild.id, interaction.user.roles, user_name=interaction.user.display_name)
             if err_eb:
                 await interaction.response.send_message(embed=err_eb)
                 # await interaction.response.send_message('You do not have permissions to snooze this reminder', ephemeral=True)

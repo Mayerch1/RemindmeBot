@@ -49,7 +49,7 @@ def check_user_permission(guild_id: int, user_roles: list, required_perms:Commun
         return True
 
 
-def get_missing_permissions_embed(guild_id: int, user_roles: list, required_perms:CommunitySettings=None) -> discord.Embed:
+def get_missing_permissions_embed(guild_id: int, user_roles: list, required_perms:CommunitySettings=None, user_name:str=None) -> discord.Embed:
     
     settings = Connector.get_community_settings(guild_id)
 
@@ -79,4 +79,6 @@ def get_missing_permissions_embed(guild_id: int, user_roles: list, required_perm
                                         '\n'\
                                         'This can be done with `/settings menu`')
         eb.color = Consts.col_err
+        if user_name is not None:
+            eb.set_footer(text=f'Issued for {user_name}')
         return eb
