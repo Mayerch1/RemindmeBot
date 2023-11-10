@@ -66,6 +66,12 @@ class NewReminderView(util.interaction.CustomView):
 
     @discord.ui.button(label='Edit', emoji='🛠️', style=discord.ButtonStyle.secondary)
     async def edit_reminder(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if self.reminder.author != interaction.user.id:
+            eb = discord.Embed(title='Cannot edit reminders of other users', color=Consts.col_crit)
+            self.disable_all()
+            self.del_reminder.style = discord.ButtonStyle.danger # keep this btn red
+            await interaction.response.edit_message(embed=eb, view=self)
+            return
 
         modal = util.reminderInteraction.EditModal(reminder=self.reminder, 
                                                     custom_callback=None,
@@ -93,7 +99,10 @@ class NewReminderView(util.interaction.CustomView):
     @discord.ui.button(emoji='🗑️', style=discord.ButtonStyle.danger)
     async def del_reminder(self, button: discord.ui.Button, interaction: discord.Interaction):
         eb_title = None
-        if Connector.delete_reminder(self.reminder._id):
+        if self.reminder.author != interaction.user.id:
+            eb_title = 'Cannot delete reminders of other users'
+            color = Consts.col_crit
+        elif Connector.delete_reminder(self.reminder._id):
             eb_title = 'Deleted the reminder'
             color = Consts.col_warn
             Analytics.reminder_deleted(Types.DeleteAction.DIRECT_BTN) 
