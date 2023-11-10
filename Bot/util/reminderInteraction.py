@@ -207,7 +207,7 @@ class ReminderChannelEdit(util.interaction.CustomView):
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.danger, row=2)
     async def cnacel_btn(self, button:  discord.ui.Button, interaction: discord.Interaction):
         self.disable_all()
-        await interaction.response.edit_message(view=self) # in case menu timeous out
+        self.open_interaction = interaction
         self.stop() # this will give back controll to the list menu
 
     
@@ -708,12 +708,18 @@ class ReminderEditView(util.interaction.CustomView):
 
         self.reminder = reminder
         self.stm = stm
+        self.is_foreign = reminder.author != stm.ctx.author.id
 
         self._override_edit_label()
 
         if self.stm.scope.is_private:
             # private reminders cannot change the channel
             self.edit_channel.disabled=True
+
+        if self.is_foreign:
+            self.edit_channel.disabled = True
+            self.set_interval.disabled = True
+            self.edit_reminder_btn.disabled = True
 
 
     def _override_edit_label(self):
@@ -790,7 +796,7 @@ class ReminderEditView(util.interaction.CustomView):
     async def ret_menu(self, button:  discord.ui.Button, interaction: discord.Interaction):
 
         self.disable_all()
-        await interaction.response.edit_message(view=self) # in case menu timeous out
+        self.open_interaction = interaction
         self.stop() # this will give back controll to the list menu
 
 
@@ -816,6 +822,6 @@ class ReminderEditView(util.interaction.CustomView):
             self.disable_all()
             
 
-        await interaction.edit_original_message(embed=self.get_embed(), view=self)
+        await interaction.edit_original_response(embed=self.get_embed(), view=self)
         if view.value:
             self.stop() # must be after last edit

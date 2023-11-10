@@ -39,7 +39,7 @@ class ReminderListView(util.interaction.CustomView):
             title_str = f'Reminder list for {self.stm.ctx.guild.name}'        
         footer_str = 'You only see reminders of the server this command was invoked on'
 
-        eb = ReminderListing.get_reminder_list_eb(self.stm.reminders, self.stm.page, title_str, self.stm.tz_str)
+        eb = ReminderListing.get_reminder_list_eb(self.stm.reminders, self.stm.page, title_str, self.stm.tz_str, self.stm.scope.user_id)
         eb.set_footer(text=footer_str)
         return eb
 
@@ -66,7 +66,7 @@ class ReminderListView(util.interaction.CustomView):
 
 
     def update_dropdown(self):
-        self.stm.reminders = Connector.get_scoped_reminders(self.stm.scope)
+        self.stm.reminders = Connector.get_guild_reminders(self.stm.scope, self.stm.ctx.author.roles)
         page_rems = self.get_reminders_on_page(self.stm.reminders, self.stm.page)
 
         if(len(page_rems) > 25):
@@ -152,10 +152,10 @@ class ReminderListView(util.interaction.CustomView):
         self.message = view.message # update in case it was transferred
 
         # update reminder list and dropdown
-        self.stm.reminders = Connector.get_scoped_reminders(self.stm.scope)
+        self.stm.reminders = Connector.get_guild_reminders(self.stm.scope, self.stm.ctx.author.roles)
         self.update_dropdown()
         new_eb = self.get_embed()
-        await self.message.edit_original_message(embed=new_eb, view=self) # already responded
+        await view.open_interaction.response.edit_message(embed=new_eb, view=self) # already responded
         # self is not used anymore, until this is finished
 
 
@@ -181,7 +181,7 @@ class ReminderListing(commands.Cog):
     
 
     @staticmethod
-    def _create_reminder_list(reminders, tz_str):
+    def _create_reminder_list(reminders, tz_str, author_id=None):
         """convert the inputed reminder list
            into a menu-string, with leading emojis
 
@@ -201,16 +201,24 @@ class ReminderListing(commands.Cog):
 
             at_local = r.at.replace(tzinfo=tz.UTC).astimezone(tz.gettz(tz_str)) if r.at else None
 
+
+            content = r.title[0:MAX_MSG_LEN] if r.title else r.msg[0:MAX_MSG_LEN]
+
+            sfx = ''
+            if author_id and r.author != author_id:
+                sfx = '*'
+
+
             # a total of 33 chars are possible before overflow
             #
             # the message will get up to 26 chars
             # the channel len will get the rest, but at least 7
-            max_ch_len = MAX_FIELD_LEN-min(len(r.msg), MAX_MSG_LEN)
+            max_ch_len = MAX_FIELD_LEN-min(len(content), MAX_MSG_LEN)
             
-            rows.append((str(i+1)+'.',
+            rows.append((str(i+1)+'.'+sfx,
                         at_local.strftime('%d.%b %H:%M') if at_local else '-',
                         (r.ch_name or 'Unknown')[0:max_ch_len],
-                        r.title[0:MAX_MSG_LEN] if r.title else r.msg[0:MAX_MSG_LEN]))
+                        content))
 
         table = util.formatting.generate_code_table(['No.', 'Next', 'Channel', 'Message'], rows, description='Given in your server timezone')
 
@@ -218,7 +226,7 @@ class ReminderListing(commands.Cog):
 
 
     @staticmethod
-    def get_reminder_list_eb(reminders: list[Reminder], page, title_start='Reminder list', tz_str='UTC'):
+    def get_reminder_list_eb(reminders: list[Reminder], page, title_start='Reminder list', tz_str='UTC', author_id=None):
         """get the menu embed for all reminders
            in respect to the selected page
 
@@ -236,7 +244,7 @@ class ReminderListing(commands.Cog):
         page_cnt = math.ceil(len(reminders) / 9)
         selectables = ReminderListing.get_reminders_on_page(reminders, page)
 
-        out_str = ReminderListing._create_reminder_list(selectables, tz_str)
+        out_str = ReminderListing._create_reminder_list(selectables, tz_str, author_id=author_id)
 
         embed = discord.Embed(title=f'{title_start} {page+1}/{min(page_cnt, 1)}',
                                 description=out_str)
@@ -271,7 +279,7 @@ class ReminderListing(commands.Cog):
 
     async def reminder_stm(self, stm: util.reminderInteraction.STM):
         # first fetch of reminders
-        stm.reminders = Connector.get_scoped_reminders(stm.scope)
+        stm.reminders = Connector.get_guild_reminders(stm.scope, stm.ctx.author.roles)
 
         # manually send initial message to init view
         view = ReminderListView(stm)

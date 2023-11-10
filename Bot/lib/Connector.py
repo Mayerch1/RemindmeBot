@@ -559,7 +559,47 @@ class Connector:
             
         return (result is not None)
         
+    
+    @staticmethod
+    def get_guild_reminders(scope: Scope, user_roles=[], sort_return=True):
+        """request all reminders/intervals of the given guild
+           will only return foreign reminders if all conditions are true
+              - community mode is enabled
+              - user holds moderator permissions
+
+        Args:
+            scope (Scope): request scope (guild or private, always user bound)
+            user_roles (list, optional): all roles of the user on given server. Defaults to [].
+            sort_return (bool, optional): sort the reminders by elapsed time. Defaults to True.
+
+        Returns:
+            list: list of reminders
+        """
+        has_perms = False
+
+        if scope.guild_id and Connector.get_community_mode(scope.guild_id) == Connector.CommunityMode.ENABLED:
+            if Connector.is_moderator(user_roles):
+                has_perms = True
+            
+        if not has_perms:
+            return Connector.get_scoped_reminders(scope, sort_return=sort_return)
         
+        guild_id = scope.guild_id
+        
+        rems = list(Connector.db.reminders.find({'g_id': str(guild_id)}))
+        rems = list(map(Reminder, rems))
+
+        intvl = list(Connector.db.intervals.find({'g_id': str(guild_id)}))
+        intvl = list(map(IntervalReminder, intvl))
+
+
+        rems = rems + intvl
+        if sort_return:
+            rems = sorted(rems)
+
+        return rems
+
+
 
 
     @staticmethod
@@ -570,6 +610,7 @@ class Connector:
         Args:
             scope (Scope): request scope (guild or private, always user bound)
             sort_return (bool): sort the reminders by elapsed time
+            inc_read_only (bool): include read-only reminders (moderators only)
 
         Returns:
             list: list of reminders
