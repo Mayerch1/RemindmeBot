@@ -199,7 +199,8 @@ class CommunitySubSettings(util.interaction.CustomView):
     @discord.ui.button(label='Return', style=discord.ButtonStyle.secondary, row=4)
     async def ret_btn(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.disable_all()
-        await interaction.response.edit_message(view=self) # in case of timeout
+        # await interaction.response.edit_message(view=self) # in case of timeout
+        self.open_interaction = interaction
         self.stop()
 
 class SettingsPageTemplate(util.interaction.CustomView):
@@ -297,6 +298,7 @@ class RoleDropDown(discord.ui.Select):
         self.mod_roles = list(map(int, self.values))
         log.debug(f'updated moderator count is {len(self.mod_roles)}')
         Connector.set_moderators(self.scope.instance_id, self.mod_roles)
+        await interaction.response.defer(ephemeral=True)
 
 
 class CommunitySettingsView(SettingsPageTemplate):
@@ -387,7 +389,7 @@ class CommunitySettingsView(SettingsPageTemplate):
 
         eb = self.get_embed()
         self.update_ui_elements()
-        await self.message.edit_original_message(embed=eb, view=self)
+        await view.open_interaction.response.edit_message(embed=eb, view=self)
 
 
     @discord.ui.button(label='Moderators:', style=discord.ButtonStyle.secondary, row=1)
@@ -618,7 +620,7 @@ class SettingsManager():
             self.view.stop()
             self.view = new_view
 
-            await message.edit_original_message(embed=self.view.get_embed(), view=self.view)
+            await interaction.response.edit_message(embed=self.view.get_embed(), view=self.view)
 
 
 class SettingsModule(commands.Cog):
