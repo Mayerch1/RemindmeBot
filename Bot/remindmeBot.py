@@ -48,7 +48,7 @@ intents.guilds = True # required for member roles -> permissions
 #intents.reactions = True
 #intents.messages = True
 
-bot: discord.AutoShardedBot = discord.AutoShardedBot(intents=intents)
+bot: discord.AutoShardedBot = discord.AutoShardedBot(intents=intents, debug_guilds=[140150091607441408])
 
 SYNTAX_HELP_PAGE = \
                 'basic example:\n'\
@@ -224,8 +224,6 @@ async def on_guild_join(guild):
         eb.set_image(url='https://media.giphy.com/media/kyLYXonQYYfwYDIeZl/giphy.gif')
         await guild.system_channel.send(embed=eb)
         
-
-
 # #############
 # # Commands
 # ############

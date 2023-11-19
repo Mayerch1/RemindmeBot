@@ -5,17 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Aktuelle Datei",
+            "name": "Python: Bot",
             "type": "python",
             "request": "launch",
             "program": "Bot/remindmeBot.py",
             "console": "integratedTerminal"
         },
         {
+            "name": "Python: Test File",
+            "type": "python",
+            "request": "launch",
+            "program": "testFile.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: Unit Tests",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}\\BotTest.py",
+            "program": "BotTest.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"
         }
