@@ -21,6 +21,7 @@ class CustomView(discord.ui.View):
         
         self.value = None
         self.message: Union[discord.Message, discord.Interaction, discord.WebhookMessage] = message
+        self.open_interaction = None
 
     def disable_all(self):
         """disable all components in this view
@@ -98,6 +99,7 @@ class AckView(CustomView):
 
         self.value = True
         self.stop()
+        self.open_interaction = interaction
 
 
 

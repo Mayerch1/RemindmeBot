@@ -417,7 +417,8 @@ class IntervalReminder(Reminder):
             [type]: [description]
         """
         eb = super().get_info_embed(tz_str=tz_str, title=title)
-        eb.timestamp = discord.Embed.Empty
+        #eb.timestamp = discord.Embed.Empty
+        eb.timestamp = None
         
         in_str = self.get_interval_string()
         prefix = 'Next in ' if self.at else ''

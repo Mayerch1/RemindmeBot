@@ -37,7 +37,7 @@ class ReminderListView(util.interaction.CustomView):
             title_str = f'**Private** Reminder list'
         else:
             title_str = f'Reminder list for {self.stm.ctx.guild.name}'        
-        footer_str = 'You only see reminders of the server this command was invoked on'
+        footer_str = 'Reminders marked with * belong to other users'
 
         eb = ReminderListing.get_reminder_list_eb(self.stm.reminders, self.stm.page, title_str, self.stm.tz_str, self.stm.scope.user_id)
         eb.set_footer(text=footer_str)

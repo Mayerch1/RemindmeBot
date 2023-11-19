@@ -43,6 +43,7 @@ class ReminderChannelEdit(util.interaction.CustomView):
         self.drop_down_cat=None  # id of selected category, if dd holds text channels, on category mode: don't care
 
         self.update_category_dropdown()
+        self.open_interaction = None
 
 
     def get_embed(self) -> discord.Embed:
@@ -55,10 +56,12 @@ class ReminderChannelEdit(util.interaction.CustomView):
         if self.dd_is_category:
             cat_id = interaction.data['values'][0] # min/max selection is 1
             self.drop_down_cat = int(cat_id)
-            await self.update_channel_dropdown(int(cat_id))
+            await self.update_channel_dropdown(int(cat_id), interaction)
+        else:
+            await interaction.response.defer()
 
 
-    async def update_channel_dropdown(self, category_id: int):
+    async def update_channel_dropdown(self, category_id: int, interaction: discord.Interaction):
 
         dd_search = [x for x in self.children if isinstance(x, discord.ui.Select)]
         dropDown_instance = dd_search[0] if dd_search else None
@@ -96,7 +99,7 @@ class ReminderChannelEdit(util.interaction.CustomView):
             self.select_btn.disabled = False
         
         self.dd_is_category = False
-        await self.message.edit_original_message(view=self)
+        await interaction.response.edit_message(view=self)
 
 
     def update_category_dropdown(self):
@@ -198,8 +201,8 @@ class ReminderChannelEdit(util.interaction.CustomView):
 
         # go back to normal view
         self.disable_all()
-        await self.message.edit_original_message(view=self) # in case of timeout
-        self.stop()
+        await interaction.edit_original_response(view=self)
+        # self.stop()
 
             
 
@@ -740,12 +743,12 @@ class ReminderEditView(util.interaction.CustomView):
         eb = view.get_embed()
 
         await interaction.response.edit_message(embed=eb, view=view)
-        await view.wait()
-        self.message = view.message # in case of migration
+        timeout = await view.wait()
 
         # go back to normal view
-        eb = self.get_embed()
-        await self.message.edit_original_message(embed=eb, view=self)
+        if view.open_interaction:
+            eb = self.get_embed()
+            await view.open_interaction.response.edit_message(embed=eb, view=self)
 
 
 
@@ -770,7 +773,7 @@ class ReminderEditView(util.interaction.CustomView):
         # go back to reminder edit view
         self._override_edit_label()
         eb = self.get_embed()
-        await self.message.edit_original_message(embed=eb, view=self)
+        await interaction.edit_original_response(embed=eb, view=self)
 
 
     @discord.ui.button(label='Edit', emoji='🛠️', style=discord.ButtonStyle.secondary)
@@ -789,7 +792,7 @@ class ReminderEditView(util.interaction.CustomView):
             self.reminder = Connector.get_reminder_by_id(self.reminder._id)
 
         eb = self.get_embed()
-        await self.message.edit_original_message(embed=eb, view=self)
+        await interaction.edit_original_response(embed=eb, view=self)
 
 
     @discord.ui.button(label='Return', style=discord.ButtonStyle.secondary, row=2)
