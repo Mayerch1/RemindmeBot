@@ -15,5 +15,5 @@ brotlipy
 validators
 cchardet
 orjson
-py-cord==2.0.0b7
+py-cord-dev==2.5.0rc5
 git+https://github.com/Mayerch1/discord-ext-servercount
