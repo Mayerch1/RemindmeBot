@@ -187,7 +187,6 @@ class SnoozeView(CustomView):
             err_eb = lib.permissions.get_missing_permissions_embed(interaction.guild.id, interaction.user.roles, user_name=interaction.user.display_name)
             if err_eb:
                 await interaction.response.send_message(embed=err_eb)
-                # await interaction.response.send_message('You do not have permissions to snooze this reminder', ephemeral=True)
                 return
 
         # convert to json and back to reminder object
@@ -200,15 +199,22 @@ class SnoozeView(CustomView):
         snoozed.msg = (snoozed.msg+f' (snoozed)')[:25]
         snoozed.at = self.reminder.at + timedelta(seconds=delay_seconds)
 
-        Connector.add_reminder(snoozed)
+        if interaction.user.id != self.reminder.author:
+            # convert reminder into DM reminder
+            # if anyone but author pressed snooze button
+            snoozed.g_id = None
+            snoozed.author = interaction.user.id
+            Connector.add_reminder(snoozed)
+            await interaction.response.send_message(f'The snoozed reminder will be delivered to your DMs, as you are not the original author. Make sure I\'m allowed to message you.', ephemeral=True)
 
-        self.disable_all()
-        button.style = discord.ButtonStyle.green
+        else:
+            Connector.add_reminder(snoozed)
 
-        await interaction.response.edit_message(view=self)
-        self.stop()
+            self.disable_all()
+            button.style = discord.ButtonStyle.green
+            await interaction.response.edit_message(view=self)
+            self.stop()
 
-        
 
     @discord.ui.button(label='+15m', emoji='⏱️', style=discord.ButtonStyle.blurple)
     async def snooze_15(self, button: discord.ui.Button, interaction: discord.Interaction):
