@@ -428,9 +428,9 @@ class ReminderIntervalAddView(util.interaction.CustomView):
                            description='Add the rule `{:s}`?. The reminder is {:s} triggered according to this rule.'\
                                         .format(str(rrule), action_modifier))
             view = util.interaction.ConfirmDenyView(dangerous_action=False)
-
+            
             msg = await interaction.response.send_message(embed=eb, view=view, ephemeral=True)
-            await self.transfer_to_message(msg, override_old=True) # after sending the new message, as msg is required
+            await interaction.edit(embed=eb, view=view)
 
             await view.wait()
 
@@ -445,7 +445,8 @@ class ReminderIntervalAddView(util.interaction.CustomView):
         # return to normal view in any case
         eb = self.get_embed()
         self.update_btn_activation() # update in case too many rules are present
-        msg = await self.message.edit_original_message(embed=eb, view=self)
+        msg = await msg.edit_original_response(embed=eb, view=self)
+        
 
 
     async def date_callback(self, interaction: discord.Interaction, user_input: str, mode: RuleMode):
