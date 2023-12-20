@@ -48,7 +48,7 @@ intents.guilds = True # required for member roles -> permissions
 #intents.reactions = True
 #intents.messages = True
 
-bot: discord.AutoShardedBot = discord.AutoShardedBot(intents=intents, debug_guilds=[140150091607441408])
+bot: discord.AutoShardedBot = discord.AutoShardedBot(intents=intents)
 
 SYNTAX_HELP_PAGE = \
                 'basic example:\n'\
