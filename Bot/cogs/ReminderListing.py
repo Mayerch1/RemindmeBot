@@ -66,7 +66,8 @@ class ReminderListView(util.interaction.CustomView):
 
 
     def update_dropdown(self):
-        self.stm.reminders = Connector.get_guild_reminders(self.stm.scope, self.stm.ctx.author.roles)
+        roles = self.stm.ctx.author.roles if self.stm.scope.guild_id else []
+        self.stm.reminders = Connector.get_guild_reminders(self.stm.scope, roles)
         page_rems = self.get_reminders_on_page(self.stm.reminders, self.stm.page)
 
         if(len(page_rems) > 25):
@@ -152,7 +153,8 @@ class ReminderListView(util.interaction.CustomView):
         self.message = view.message # update in case it was transferred
 
         # update reminder list and dropdown
-        self.stm.reminders = Connector.get_guild_reminders(self.stm.scope, self.stm.ctx.author.roles)
+        roles = self.stm.ctx.author.roles if self.stm.scope.guild_id else []
+        self.stm.reminders = Connector.get_guild_reminders(self.stm.scope, roles)
         self.update_dropdown()
         new_eb = self.get_embed()
         await view.open_interaction.response.edit_message(embed=new_eb, view=self) # already responded
@@ -279,7 +281,8 @@ class ReminderListing(commands.Cog):
 
     async def reminder_stm(self, stm: util.reminderInteraction.STM):
         # first fetch of reminders
-        stm.reminders = Connector.get_guild_reminders(stm.scope, stm.ctx.author.roles)
+        roles = stm.ctx.author.roles if stm.scope.guild_id else []
+        stm.reminders = Connector.get_guild_reminders(stm.scope, roles)
 
         # manually send initial message to init view
         view = ReminderListView(stm)
