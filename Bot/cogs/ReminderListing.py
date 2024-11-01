@@ -76,16 +76,24 @@ class ReminderListView(util.interaction.CustomView):
             page_rems = page_rems[0:25] # max 25 elements
 
         if page_rems:
-            reminder_options = [discord.SelectOption(
-                                        label= unidecode(r.title)[:25] if r.title else (unidecode(r.msg)[:25] or '*empty reminder*'), 
-                                        emoji= lib.input_parser.num_to_emoji(i+1), 
-                                        value= str(i))
-                                        for i, r in enumerate(page_rems)]
+            reminder_opts = []
+            for i, r in enumerate(page_rems):
+                # make sure to always have between 1 and 25 chars in any label
+                # *AFTER* unidecode
+                lbl = unidecode(r.title)[:25] if r.title and unidecode(r.title) else unidecode(r.msg)[:25]
+                lbl = lbl if lbl else '*empty reminder*'
+
+                reminder_opts.append(discord.SelectOption(
+                    label= lbl, 
+                    emoji= lib.input_parser.num_to_emoji(i+1), 
+                    value= str(i)))
+
+
             dd = discord.ui.Select(
                 placeholder='Select a reminder to edit',
                 min_values=0,
                 max_values=1,
-                options=reminder_options
+                options=reminder_opts
             )
             dd.callback = self.dropdown_callback
 
