@@ -1,6 +1,5 @@
 pytz
 tzdata
-PyNaCl
 python-dateutil
 pymongo
 requests
@@ -10,10 +9,14 @@ waitress
 Flask
 recurrent
 parsedatetime
+validators
+orjson
+# libs for pycord sppedup
+PyNaCl
 aiodns
 brotlipy
-validators
 cchardet
-orjson
-git+https://github.com/Pycord-Development/pycord
+msgspec
+# pycord + extensions
+py-cord==2.7.2
 git+https://github.com/Mayerch1/discord-ext-servercount

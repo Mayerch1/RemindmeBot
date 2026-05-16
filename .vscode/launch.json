@@ -9,6 +9,15 @@
             "type": "python",
             "request": "launch",
             "program": "Bot/remindmeBot.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "justMyCode": false
+        },
+        {
+            "name": "Python: Test File",
+            "type": "python",
+            "request": "launch",
+            "program": "testFile.py",
             "console": "integratedTerminal"
         },
         {
