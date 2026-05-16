@@ -219,8 +219,14 @@ class ExperimentalSettings(SettingsPageTemplate):
         super().__init__(scope=scope, page=2, page_callback=page_callback, dropdown_row=4, *args, **kwargs)
         self.update_ui_elements()
 
+        if isinstance(author, discord.Member):
+            author_roles = author.roles
+        else:
+            # discord removed role attr from Users (DM) entirely
+            author_roles = []
+
         action = CommunityAction(settings=True)
-        self.forbidden = not lib.permissions.check_user_permission(self.scope.instance_id, author.roles, required_perms=action)
+        self.forbidden = not lib.permissions.check_user_permission(self.scope.instance_id, author_roles, required_perms=action)
 
         if scope.is_private or (self.forbidden and not author.guild_permissions.administrator):
             self.disable_all()
@@ -311,11 +317,16 @@ class CommunitySettingsView(SettingsPageTemplate):
 
         mod_roles = Connector.get_moderators(self.scope.instance_id)
 
-        self.role_drop = RoleDropDown(scope=scope, author=self.author, guild_roles=self.guild_roles, mod_roles=mod_roles)
-        self.add_item(self.role_drop)
+        if isinstance(self.author, discord.Member):
+            self.role_drop = RoleDropDown(scope=scope, author=self.author, guild_roles=self.guild_roles, mod_roles=mod_roles)
+            self.add_item(self.role_drop)
+            author_roles = self.author.roles
+        else:
+            author_roles = []
+
 
         action = CommunityAction(settings=True)
-        self.forbidden = not lib.permissions.check_user_permission(self.scope.instance_id, self.author.roles, required_perms=action)
+        self.forbidden = not lib.permissions.check_user_permission(self.scope.instance_id, author_roles, required_perms=action)
 
         if scope.is_private or (self.forbidden and not self.author.guild_permissions.administrator):
             self.disable_all()
@@ -403,8 +414,14 @@ class BaseSettings(SettingsPageTemplate):
         super().__init__(scope=scope, page=0, roles=[], page_callback=page_callback, dropdown_row=4, *args, **kwargs)
         self.update_ui_elements()
 
+        if isinstance(author, discord.Member):
+            author_roles = author.roles
+        else:
+            # discord removed role attr from Users (DM) entirely
+            author_roles = []
+
         action = CommunityAction(settings=True)
-        self.forbidden = not lib.permissions.check_user_permission(self.scope.instance_id, author.roles, required_perms=action)
+        self.forbidden = not lib.permissions.check_user_permission(self.scope.instance_id, author_roles, required_perms=action)
 
         if scope.is_private or (self.forbidden and not author.guild_permissions.administrator):
             self.disable_all()

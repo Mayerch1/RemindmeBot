@@ -186,9 +186,11 @@ class ReminderCreation(commands.Cog):
             except:
                 last_msg = None
             last_msg = last_msg[0] if last_msg else None
+            author_roles = ctx.author.roles
         else:
             instance_id = author.id
             last_msg = None
+            author_roles = []
 
         
         
@@ -261,8 +263,9 @@ class ReminderCreation(commands.Cog):
                 Analytics.reminder_creation_failed(Types.CreationFailed.INVALID_F_STR)  
                 return
             
-            elif not lib.permissions.check_user_permission(ctx.guild.id, ctx.author.roles, required_perms=CommunityAction(repeating=True)):
+            elif not lib.permissions.check_user_permission(instance_id, author_roles, required_perms=CommunityAction(repeating=True)):
                 # make sure the user is allowed to create repeating reminders
+                # if its a DM (no guild object), the user is always allowed and permissions are not checked
                 return
 
         if auto_del_action == Connector.AutoDelete.HIDE:
