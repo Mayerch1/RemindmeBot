@@ -2,8 +2,8 @@
 
 networks:
   grafana-net:
-    external:
-      name: grafana_network
+    external: true
+    name: grafana_network
 
   remindme-net:
     external: false
